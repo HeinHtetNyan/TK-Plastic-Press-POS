@@ -2,8 +2,15 @@
 .env
 backend/.env
 
-# Android — machine-specific config (SDK path + tunnel URL)
+# Android
 android/local.properties
+android/.gradle/
+android/.idea/
+android/app/build/
+android/build/
+
+# Ruff
+.ruff_cache/
 
 # Python
 __pycache__/
