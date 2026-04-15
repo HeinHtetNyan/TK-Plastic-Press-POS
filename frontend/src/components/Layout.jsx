@@ -2,26 +2,27 @@ import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, FileText, CreditCard, History, BarChart3, Users, LogOut, User as UserIcon, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { useLanguage } from '../context/LanguageContext';
 import SyncStatus from './SyncStatus';
 
 const Layout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout, isAdmin } = useAuth();
-  const [lang, setLang] = React.useState('EN');
+  const { lang, setLang, t } = useLanguage();
 
   const toggleLang = () => {
-    setLang(prev => prev === 'EN' ? 'MM' : 'EN');
+    setLang(lang === 'EN' ? 'MM' : 'EN');
   };
 
   const navItems = [
-    { path: '/', icon: Home, label: 'Home' },
-    { path: '/reports', icon: BarChart3, label: 'Reports' },
+    { path: '/', icon: Home, label: t('home') },
+    { path: '/reports', icon: BarChart3, label: t('reports') },
   ];
 
   if (isAdmin()) {
-    navItems.push({ path: '/users', icon: Users, label: 'Users' });
-    navItems.push({ path: '/audit-logs', icon: ShieldAlert, label: 'Audit' });
+    navItems.push({ path: '/users', icon: Users, label: t('users') });
+    navItems.push({ path: '/audit-logs', icon: ShieldAlert, label: t('audit') });
   }
 
   return (
@@ -95,7 +96,7 @@ const Layout = ({ children }) => {
           className="hidden md:flex items-center gap-3 p-4 rounded-2xl transition-all font-black uppercase text-xs tracking-widest text-blue-100 hover:bg-red-500 hover:text-white mt-auto mb-4"
         >
           <LogOut size={20} />
-          Logout
+          {t('logout')}
         </button>
 
         {/* Mobile Header Right — username + sync pill + logout */}

@@ -5,11 +5,13 @@ import Layout from '../components/Layout';
 import DropdownDatePicker from '../components/DropdownDatePicker';
 import { voucherService, paymentService } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
+import { useLanguage } from '../context/LanguageContext';
 
 const History = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
+  const { t } = useLanguage();
   const customer = location.state?.customer || null;
   const [vouchers, setVouchers] = useState([]);
   const [payments, setPayments] = useState([]);
@@ -48,23 +50,23 @@ const History = () => {
 
   const handleDeleteVoucher = async (e, id) => {
     e.stopPropagation();
-    if (window.confirm('Are you sure you want to delete this voucher?')) {
+    if (window.confirm(t('are_you_sure_delete_voucher'))) {
       try {
         await voucherService.delete(id);
         fetchHistory();
       } catch {
-        alert('Error deleting voucher');
+        alert(t('error_deleting_voucher'));
       }
     }
   };
 
   const handleDeletePayment = async (id) => {
-    if (window.confirm('Are you sure you want to delete this payment?')) {
+    if (window.confirm(t('are_you_sure_delete_payment'))) {
       try {
         await paymentService.delete(id);
         fetchHistory();
       } catch {
-        alert('Error deleting payment');
+        alert(t('error_deleting_payment'));
       }
     }
   };
@@ -97,11 +99,11 @@ const History = () => {
             <button onClick={() => navigate('/', { state: { customer: customer } })} className="p-2 bg-white rounded-full shadow-sm hover:bg-gray-100 transition-all">
               <ArrowLeft size={20} className="text-gray-600" />
             </button>
-            <h2 className="text-xl font-black text-gray-800">History</h2>
+            <h2 className="text-xl font-black text-gray-800">{t('history')}</h2>
           </div>
           {customer && (
             <div className="bg-blue-50 px-3 py-1 rounded-xl border border-blue-100 text-right">
-              <span className="text-[9px] font-black text-blue-400 uppercase block tracking-tighter leading-none mb-1">Customer</span>
+              <span className="text-[9px] font-black text-blue-400 uppercase block tracking-tighter leading-none mb-1">{t('customer')}</span>
               <p className="text-sm font-black text-blue-700 truncate max-w-[120px] leading-none">{customer.name}</p>
             </div>
           )}
@@ -110,19 +112,19 @@ const History = () => {
         <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1">
             <label className="text-[10px] font-black text-gray-400 uppercase flex items-center gap-1">
-              <Filter size={10} /> Monthly Group
+              <Filter size={10} /> {t('monthly_group')}
             </label>
             <select 
               className="w-full p-2 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-blue-500"
               value={selectedMonth}
               onChange={(e) => { setSelectedMonth(e.target.value); setSelectedDate(''); }}
             >
-              <option value={currentMonthStr}>Current ({currentMonthStr})</option>
+              <option value={currentMonthStr}>{t('current')} ({currentMonthStr})</option>
               {months.filter(m => m !== currentMonthStr).map(m => <option key={m} value={m}>{m}</option>)}
             </select>
           </div>
           <DropdownDatePicker 
-            label="Specific Date Search" 
+            label={t('specific_date_search')} 
             value={selectedDate} 
             onChange={(val) => { setSelectedDate(val); if(val) setExpandedVoucher(null); }} 
           />
@@ -130,7 +132,7 @@ const History = () => {
 
         <div className="space-y-3">
           {loading ? (
-            <div className="text-center py-12 text-gray-400 font-bold text-sm uppercase tracking-widest animate-pulse">Refreshing Records...</div>
+            <div className="text-center py-12 text-gray-400 font-bold text-sm uppercase tracking-widest animate-pulse">{t('refreshing_records')}</div>
           ) : filteredData.length > 0 ? (
             filteredData.map((item) => (
               <div key={`${item.type}-${item.id}`} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-in fade-in transition-all">
@@ -158,12 +160,12 @@ const History = () => {
                               </span>
                             )}
                           </div>
-                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{item.items?.length || 0} Products</p>
+                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{item.items?.length || 0} {t('products')}</p>
                         </div>
                       </div>
                       <div className="text-right flex items-center gap-2">
                         <div className="hidden sm:block">
-                          <span className="text-[9px] text-gray-400 font-black uppercase block tracking-tighter">Remaining</span>
+                          <span className="text-[9px] text-gray-400 font-black uppercase block tracking-tighter">{t('remaining')}</span>
                           <span className={`text-sm font-black ${item.remaining_balance > 0 ? 'text-red-500' : 'text-green-500'}`}>
                             {item.remaining_balance.toLocaleString()}
                           </span>
@@ -187,28 +189,28 @@ const History = () => {
                       <div className="bg-gray-50 p-3 border-t border-gray-100 space-y-3 animate-in slide-in-from-top-2">
                         {item.note && (
                           <div className="bg-blue-50/50 p-2 rounded-xl border border-blue-100/50">
-                             <span className="text-[8px] font-black text-blue-400 uppercase block leading-none mb-1">Note</span>
+                             <span className="text-[8px] font-black text-blue-400 uppercase block leading-none mb-1">{t('note')}</span>
                              <p className="text-xs font-bold text-blue-700 leading-tight italic">"{item.note}"</p>
                           </div>
                         )}
                         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                           <table className="w-full text-[10px] text-left">
                             <thead className="bg-gray-100 font-black text-gray-500 uppercase">
-                              <tr><th className="p-2">Details</th><th className="p-2 text-right">Price</th><th className="p-2 text-right">Total</th></tr>
+                              <tr><th className="p-2">{t('details')}</th><th className="p-2 text-right">{t('price')}</th><th className="p-2 text-right">{t('total')}</th></tr>
                             </thead>
                             <tbody className="font-bold text-gray-700">
                               {item.items?.map((it, idx) => (
                                 <React.Fragment key={idx}>
                                   <tr className="border-t border-gray-100">
                                     <td className="p-2 align-top">
-                                      <div className="text-blue-600">{it.lb} LB - {it.plastic_size} ({it.color})</div>
+                                      <div className="text-blue-600">{it.lb} {t('weight_lb').split(' ')[1] || 'LB'} - {it.plastic_size} ({it.color})</div>
                                       <div className="mt-1 space-y-0.5">
                                         <div className="text-[9px] text-gray-500 uppercase flex justify-between">
-                                          <span>Plastic: {it.lb} LB × {it.plastic_price} Price</span>
+                                          <span>{t('plastic')}: {it.lb} {t('weight_lb').split(' ')[1] || 'LB'} × {it.plastic_price} {t('price')}</span>
                                           <span className="font-black">{(it.lb * it.plastic_price).toLocaleString()}</span>
                                         </div>
                                         <div className="text-[9px] text-gray-500 uppercase flex justify-between border-b border-gray-50 pb-0.5">
-                                          <span>Color: {it.lb} LB × {it.color_price} Price</span>
+                                          <span>{t('color')}: {it.lb} {t('weight_lb').split(' ')[1] || 'LB'} × {it.color_price} {t('price')}</span>
                                           <span className="font-black">{(it.lb * it.color_price).toLocaleString()}</span>
                                         </div>
                                       </div>
@@ -227,11 +229,11 @@ const History = () => {
                         </div>
                         <div className="grid grid-cols-2 gap-2 text-[9px] font-black uppercase text-center">
                            <div className="bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
-                              <span className="text-gray-400 block mb-1">Voucher Total</span>
+                              <span className="text-gray-400 block mb-1">{t('voucher_total')}</span>
                               <span className="text-gray-700 text-xs">{item.items_total.toLocaleString()}</span>
                            </div>
                            <div className="bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
-                              <span className="text-gray-400 block mb-1 tracking-tighter">Paid at Site</span>
+                              <span className="text-gray-400 block mb-1 tracking-tighter">{t('paid_at_site')}</span>
                               <span className="text-green-600 text-xs">{item.paid_amount.toLocaleString()}</span>
                            </div>
                         </div>
@@ -246,7 +248,7 @@ const History = () => {
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="font-black text-green-700 text-sm">Direct Payment</span>
+                          <span className="font-black text-green-700 text-sm">{t('direct_payment')}</span>
                           <span className="text-[9px] bg-gray-100 px-1.5 py-0.5 rounded font-black text-gray-500 whitespace-nowrap">{item.payment_date}</span>
                           {item.payment_method && (
                             <span className={`text-[8px] px-1.5 py-0.5 rounded font-black uppercase ${
@@ -263,7 +265,7 @@ const History = () => {
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="text-right">
-                        <span className="text-[9px] text-gray-400 font-black uppercase block tracking-tighter leading-none mb-1">Amount Paid</span>
+                        <span className="text-[9px] text-gray-400 font-black uppercase block tracking-tighter leading-none mb-1">{t('amount_paid')}</span>
                         <span className="font-black text-green-600 text-base leading-none whitespace-nowrap">
                           {item.amount_paid.toLocaleString()}
                         </span>
@@ -283,7 +285,7 @@ const History = () => {
             ))
           ) : (
             <div className="text-center py-12 text-gray-400 bg-white rounded-3xl border-2 border-dashed border-gray-100 text-sm font-bold animate-in zoom-in duration-300">
-              No activity found for this selection
+              {t('no_activity_found')}
             </div>
           )}
         </div>

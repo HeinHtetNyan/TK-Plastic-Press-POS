@@ -16,8 +16,10 @@ import {
 } from '../services/syncService';
 import db, { generateUUID } from '../lib/db';
 import { useAuth } from '../hooks/useAuth';
+import { useLanguage } from '../context/LanguageContext';
 
 const Home = () => {
+  const { t } = useLanguage();
   const { isAdmin } = useAuth();
   const location = useLocation();
 
@@ -214,7 +216,7 @@ const Home = () => {
   const handleEditClick = (e, customer) => {
     e.stopPropagation();
     if (!navigator.onLine) {
-      alert('Editing customers is only available while online.');
+      alert(t('online_only'));
       return;
     }
     setEditingCustomer(customer);
@@ -274,9 +276,9 @@ const Home = () => {
   };
 
   const actions = [
-    { label: 'Create Voucher', icon: FilePlus, color: 'bg-blue-600', path: '/voucher' },
-    { label: 'Add Payment', icon: CreditCard, color: 'bg-green-600', path: '/payment' },
-    { label: 'View History', icon: History, color: 'bg-gray-600', path: '/history' },
+    { label: t('create_voucher'), icon: FilePlus, color: 'bg-blue-600', path: '/voucher' },
+    { label: t('add_payment'), icon: CreditCard, color: 'bg-green-600', path: '/payment' },
+    { label: t('history'), icon: History, color: 'bg-gray-600', path: '/history' },
   ];
 
   return (
@@ -284,13 +286,13 @@ const Home = () => {
       <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
         <section className="space-y-4">
           <div className="flex justify-between items-end">
-            <h2 className="text-2xl font-black text-gray-800">Select Customer</h2>
+            <h2 className="text-2xl font-black text-gray-800">{t('select_customer')}</h2>
             <button
               onClick={() => setShowAll(!showAll)}
               className="text-blue-600 font-bold text-xs uppercase flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-all"
             >
               {showAll ? <SearchIcon size={14} /> : <Users size={14} />}
-              {showAll ? 'Search Mode' : 'Browse All Customers'}
+              {showAll ? t('search_mode') : t('browse_all')}
             </button>
           </div>
 
@@ -320,7 +322,7 @@ const Home = () => {
                     </div>
                     <div className="flex items-center gap-1.5">
                       {c.sync_status === 'pending' && (
-                        <span className="text-[9px] bg-yellow-400 text-yellow-900 px-1.5 py-0.5 rounded-full font-black uppercase">Offline</span>
+                        <span className="text-[9px] bg-yellow-400 text-yellow-900 px-1.5 py-0.5 rounded-full font-black uppercase">{t('offline_notice')}</span>
                       )}
                       <span className={`text-[10px] uppercase font-black ${
                         (selectedCustomer?.client_id === c.client_id || selectedCustomer?.id === c.id)
@@ -362,7 +364,7 @@ const Home = () => {
                 onClick={() => setShowAddModal(true)}
                 className="w-full py-4 bg-gray-50 text-blue-600 rounded-2xl font-black uppercase text-xs hover:bg-blue-50 transition-colors border-2 border-dashed border-blue-100"
               >
-                + Add New Customer
+                + {t('add_new_customer')}
               </button>
             </div>
           )}
@@ -373,7 +375,7 @@ const Home = () => {
             <BalanceDisplay balance={balance} />
             {balanceIsEstimate && (
               <p className="text-center text-[11px] text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-2 font-bold">
-                Estimated balance (offline) — actual balance may differ
+                {t('balance_estimate_notice')}
               </p>
             )}
 

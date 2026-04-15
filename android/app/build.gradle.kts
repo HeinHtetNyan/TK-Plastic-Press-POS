@@ -10,7 +10,7 @@ val localProps = Properties().apply {
     val f = rootProject.file("local.properties")
     if (f.exists()) load(f.inputStream())
 }
-val posUrl: String = localProps.getProperty("pos.url", "https://your-tunnel.trycloudflare.com/")
+val posUrl: String = localProps.getProperty("pos.url", "https://api.heinh.dev")
 
 android {
     namespace = "com.tkplasticpress.pos"

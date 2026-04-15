@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Search, UserPlus, X, Pencil } from 'lucide-react';
 import { customerService } from '../services/api';
 import db from '../lib/db';
+import { useLanguage } from '../context/LanguageContext';
 
 const CustomerSearch = ({ onSelect, onAdd, onEdit, selectedCustomer }) => {
+  const { t } = useLanguage();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [showResults, setShowResults] = useState(false);
@@ -72,7 +74,7 @@ const CustomerSearch = ({ onSelect, onAdd, onEdit, selectedCustomer }) => {
     return (
       <div className="bg-white p-4 rounded-2xl shadow-sm border-2 border-blue-100 flex justify-between items-center">
         <div className="flex-grow">
-          <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Selected Customer</p>
+          <p className="text-xs font-black text-gray-400 uppercase tracking-widest">{t('selected_customer')}</p>
           <div className="flex items-center gap-2">
             <p className="text-xl font-black text-blue-700">{selectedCustomer.name}</p>
             {selectedCustomer.phone_numbers && (
@@ -112,7 +114,7 @@ const CustomerSearch = ({ onSelect, onAdd, onEdit, selectedCustomer }) => {
           <input
             type="text"
             className="w-full pl-11 pr-4 py-4 bg-white border-2 border-gray-100 rounded-2xl focus:border-blue-500 outline-none transition-all text-lg font-bold"
-            placeholder="Search customer name..."
+            placeholder={t('search_customer')}
             value={query}
             onChange={handleQueryChange}
             onFocus={() => query && setShowResults(true)}
@@ -124,7 +126,7 @@ const CustomerSearch = ({ onSelect, onAdd, onEdit, selectedCustomer }) => {
           className="bg-blue-600 text-white px-5 rounded-2xl hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center gap-2 font-black shadow-md shadow-blue-100"
         >
           <UserPlus size={20} />
-          <span className="hidden sm:inline text-sm uppercase tracking-wide">Add</span>
+          <span className="hidden sm:inline text-sm uppercase tracking-wide">{t('add')}</span>
         </button>
       </div>
 
@@ -138,7 +140,7 @@ const CustomerSearch = ({ onSelect, onAdd, onEdit, selectedCustomer }) => {
             >
               <span className="font-black text-gray-800 text-lg">{customer.name}</span>
               <span className="text-[10px] font-black text-gray-400 uppercase">
-                {customer.server_id ? `ID: ${customer.server_id}` : customer.id ? `ID: ${customer.id}` : 'Local'}
+                {customer.server_id ? `${t('id')}: ${customer.server_id}` : customer.id ? `${t('id')}: ${customer.id}` : t('local')}
               </span>
             </li>
           ))}
@@ -147,7 +149,7 @@ const CustomerSearch = ({ onSelect, onAdd, onEdit, selectedCustomer }) => {
 
       {showResults && results.length === 0 && query.trim().length > 0 && (
         <div className="absolute z-50 w-full mt-2 bg-white border-2 border-gray-100 rounded-2xl shadow-xl p-4 text-center text-gray-400 font-bold text-sm animate-in fade-in duration-200">
-          No customers found for "{query}"
+          {t('no_customers_found')} "{query}"
         </div>
       )}
     </div>

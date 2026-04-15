@@ -7,8 +7,10 @@ import { customerService, paymentService } from '../services/api';
 import { cacheBalance, getOfflineBalance } from '../services/syncService';
 import BalanceDisplay from '../components/BalanceDisplay';
 import db, { generateUUID } from '../lib/db';
+import { useLanguage } from '../context/LanguageContext';
 
 const Payment = () => {
+  const { t } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
   const [customer] = useState(location.state?.customer || null);
@@ -58,7 +60,7 @@ const Payment = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!amount || parseFloat(amount) <= 0) return alert('Enter a valid amount');
+    if (!amount || parseFloat(amount) <= 0) return alert(t('enter_valid_amount'));
 
     setLoading(true);
 
@@ -100,7 +102,7 @@ const Payment = () => {
           created_at: now,
         }).catch(() => {});
 
-        alert('Payment Saved Successfully!');
+        alert(t('payment_saved_successfully'));
         setLoading(false);
         navigate('/', { state: { customer } });
         return;
@@ -108,7 +110,7 @@ const Payment = () => {
         // Server returned a structured error — stop here
         if (apiErr.response) {
           setLoading(false);
-          return alert(apiErr.response.data?.detail || 'Error saving payment. Please try again.');
+          return alert(apiErr.response.data?.detail || t('error_saving_payment'));
         }
         // Network error (tunnel down, server unreachable) — fall through to offline save
         console.warn('[Payment] API unreachable, saving offline...');
@@ -144,51 +146,51 @@ const Payment = () => {
         });
       });
 
-      alert('Saved offline. Will sync automatically when internet is available.');
+      alert(t('saved_offline_auto_sync'));
       setLoading(false);
       navigate('/', { state: { customer } });
     } catch (offlineErr) {
       setLoading(false);
-      alert('Could not save. Please try again.\n' + offlineErr.message);
+      alert(t('could_not_save') + offlineErr.message);
     }
   };
 
   const paymentMethods = [
-    { id: 'CASH', label: 'Cash', icon: Banknote, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200', active: 'bg-green-600 text-white' },
-    { id: 'KBZPAY', label: 'KBZPay', icon: Smartphone, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200', active: 'bg-blue-600 text-white' },
-    { id: 'BANK_TRANSFER', label: 'Bank', icon: Landmark, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200', active: 'bg-purple-600 text-white' },
+    { id: 'CASH', label: t('cash'), icon: Banknote, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200', active: 'bg-green-600 text-white' },
+    { id: 'KBZPAY', label: t('kbzpay'), icon: Smartphone, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200', active: 'bg-blue-600 text-white' },
+    { id: 'BANK_TRANSFER', label: t('bank_transfer'), icon: Landmark, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200', active: 'bg-purple-600 text-white' },
   ];
 
   return (
     <Layout>
       <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
         <header className="flex items-center gap-4">
-          <button onClick={() => navigate('/')} className="p-2 bg-white rounded-full shadow-sm hover:bg-gray-100 transition-all">
+          <button onClick={() => navigate('/', { state: { customer } })} className="p-2 bg-white rounded-full shadow-sm hover:bg-gray-100 transition-all">
             <ArrowLeftIcon size={24} className="text-gray-600" />
           </button>
-          <h2 className="text-2xl font-black text-gray-800">Add Payment</h2>
+          <h2 className="text-2xl font-black text-gray-800">{t('add_payment')}</h2>
         </header>
 
         {!navigator.onLine && (
           <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-200 text-yellow-800 text-xs font-bold px-4 py-3 rounded-xl">
             <WifiOff size={14} />
-            Offline — payment will be saved locally and synced when internet returns.
+            {t('offline_payment_notice')}
           </div>
         )}
 
         {customer && (
           <div className="space-y-6">
             <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-              <span className="text-xs font-bold text-gray-400 uppercase px-1">Customer</span>
+              <span className="text-xs font-bold text-gray-400 uppercase px-1">{t('customer')}</span>
               <p className="text-xl font-black text-blue-600 truncate">{customer.name}</p>
             </div>
 
-            <BalanceDisplay balance={balance} label={balanceIsEstimate ? 'Current Debt (est.)' : 'Current Debt'} />
+            <BalanceDisplay balance={balance} label={balanceIsEstimate ? t('current_debt_est') : t('current_debt')} />
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 space-y-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-black text-gray-600 uppercase px-1">Payment Amount</label>
+                  <label className="text-sm font-black text-gray-600 uppercase px-1">{t('payment_amount')}</label>
                   <input
                     autoFocus required type="number" min="1" step="1"
                     className="w-full p-4 bg-green-50 border-2 border-green-100 rounded-2xl outline-none focus:border-green-500 transition-all text-3xl font-black text-green-700 text-center"
@@ -200,15 +202,15 @@ const Payment = () => {
 
                 <div className="grid grid-cols-1 gap-4">
                   <DropdownDatePicker
-                    label="Payment Date"
+                    label={t('payment_date')}
                     value={paymentDate}
                     onChange={setPaymentDate}
                   />
 
                   <div className="flex items-center justify-between bg-blue-50 p-4 rounded-2xl border-2 border-blue-100">
                     <div>
-                      <span className="font-black text-blue-800 text-sm block">Settle Oldest Debts First (FIFO)</span>
-                      <span className="text-[10px] font-bold text-blue-600 uppercase">Recommended for regular payments</span>
+                      <span className="font-black text-blue-800 text-sm block">{t('settle_oldest')}</span>
+                      <span className="text-[10px] font-bold text-blue-600 uppercase">{t('recommended_regular')}</span>
                     </div>
                     <button
                       type="button"
@@ -220,7 +222,7 @@ const Payment = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-600 uppercase px-1">Payment Method</label>
+                    <label className="text-sm font-bold text-gray-600 uppercase px-1">{t('payment_method')}</label>
                     <div className="grid grid-cols-3 gap-2">
                       {paymentMethods.map((m) => (
                         <button
@@ -241,11 +243,11 @@ const Payment = () => {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-sm font-bold text-gray-600 uppercase px-1">Note (Optional)</label>
+                    <label className="text-sm font-bold text-gray-600 uppercase px-1">{t('note_optional')}</label>
                     <textarea
                       className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-500 font-bold transition-all"
                       rows="2"
-                      placeholder="e.g. Cash payment, Bank transfer..."
+                      placeholder={t('note_placeholder')}
                       value={note}
                       onChange={(e) => setNote(e.target.value)}
                     />
@@ -261,7 +263,7 @@ const Payment = () => {
                 }`}
               >
                 <CreditCardIcon size={28} />
-                {loading ? 'Saving...' : 'SAVE PAYMENT'}
+                {loading ? t('saving') : t('save_payment')}
               </button>
             </form>
           </div>
