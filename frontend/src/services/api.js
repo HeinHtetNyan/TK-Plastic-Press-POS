@@ -1,7 +1,11 @@
 import axios from 'axios';
 
-// This logic ensures it works on Localhost, Local IP (WiFi), and Cloudflare Tunnel URL
+// In production (Vercel), VITE_API_URL must point to the VPS backend.
+// In development, proxy through Vite dev server.
 const getBaseURL = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
   const { protocol, hostname } = window.location;
   // If it's a domain (like trycloudflare.com), use relative path
   if (hostname.includes('.') && !hostname.match(/^\d/)) {

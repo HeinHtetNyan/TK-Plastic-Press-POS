@@ -1,27 +1,12 @@
 services:
 
-  # ── Nginx: serves the built frontend + proxies /api to backend ──────────────
-  nginx:
-    build:
-      context: .                         # project root — so COPY can reach nginx/nginx.conf
-      dockerfile: ./frontend/Dockerfile.prod
-    container_name: plastic_press_nginx
-    restart: unless-stopped
-    ports:
-      - "80:80"          # Only port exposed to the internet (via Cloudflare Tunnel)
-    depends_on:
-      - backend
-    networks:
-      - internal
-
-  # ── FastAPI backend ──────────────────────────────────────────────────────────
+  # -- FastAPI backend (exposed on port 8000, Cloudflare Tunnel points here) --
   backend:
     build: ./backend
     container_name: plastic_press_backend
     restart: unless-stopped
-    # Port 8000 is NOT exposed externally — only reachable via nginx inside Docker
-    expose:
-      - "8000"
+    ports:
+      - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -33,12 +18,11 @@ services:
     networks:
       - internal
 
-  # ── PostgreSQL ───────────────────────────────────────────────────────────────
+  # -- PostgreSQL ---------------------------------------------------------------
   postgres:
     image: postgres:15-alpine
     container_name: plastic_press_db
     restart: unless-stopped
-    # Port 5432 is NOT exposed externally — database is internal only
     expose:
       - "5432"
     env_file:
@@ -58,7 +42,7 @@ services:
     networks:
       - internal
 
-  # ── Daily automated backups ──────────────────────────────────────────────────
+  # -- Daily automated backups --------------------------------------------------
   db-backup:
     image: prodrigestivill/postgres-backup-local
     container_name: plastic_press_db_backup
