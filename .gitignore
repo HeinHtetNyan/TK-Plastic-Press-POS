@@ -21,6 +21,7 @@ frontend/dist-ssr/
 
 # Docker
 .docker-compose.lock
+backups/
 
 # Logs
 logs
