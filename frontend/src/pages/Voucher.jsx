@@ -4,7 +4,7 @@ import { Plus, Trash2, Save, ArrowLeft, Smartphone, Landmark, Banknote, WifiOff 
 import Layout from '../components/Layout';
 import DropdownDatePicker from '../components/DropdownDatePicker';
 import { customerService, voucherService } from '../services/api';
-import { cacheBalance, getOfflineBalance } from '../services/syncService';
+import { cacheBalance, getOfflineBalance, syncAll } from '../services/syncService';
 import db, { generateUUID } from '../lib/db';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -179,6 +179,7 @@ const Voucher = () => {
         });
       });
 
+      syncAll(); // attempt immediate sync in case backend is reachable now
       alert(t('saved_offline_auto_sync'));
       setLoading(false);
       navigate('/', { state: { customer } });

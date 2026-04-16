@@ -13,6 +13,7 @@ import {
   loadCachedCustomers,
   cacheBalance,
   getOfflineBalance,
+  syncAll,
 } from '../services/syncService';
 import db, { generateUUID } from '../lib/db';
 import { useAuth } from '../hooks/useAuth';
@@ -252,6 +253,7 @@ const Home = () => {
       setAllCustomers(prev =>
         [...prev, enriched].sort((a, b) => a.name.localeCompare(b.name))
       );
+      syncAll(); // attempt immediate sync in case backend is reachable now
       alert('Customer saved offline. Will sync when internet is available.');
     } catch (err) {
       console.error('[Create Customer] IndexedDB error:', err);

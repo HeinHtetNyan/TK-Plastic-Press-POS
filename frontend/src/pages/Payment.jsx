@@ -4,7 +4,7 @@ import { Save as SaveIcon, ArrowLeft as ArrowLeftIcon, CreditCard as CreditCardI
 import Layout from '../components/Layout';
 import DropdownDatePicker from '../components/DropdownDatePicker';
 import { customerService, paymentService } from '../services/api';
-import { cacheBalance, getOfflineBalance } from '../services/syncService';
+import { cacheBalance, getOfflineBalance, syncAll } from '../services/syncService';
 import BalanceDisplay from '../components/BalanceDisplay';
 import db, { generateUUID } from '../lib/db';
 import { useLanguage } from '../context/LanguageContext';
@@ -146,6 +146,7 @@ const Payment = () => {
         });
       });
 
+      syncAll(); // attempt immediate sync in case backend is reachable now
       alert(t('saved_offline_auto_sync'));
       setLoading(false);
       navigate('/', { state: { customer } });
