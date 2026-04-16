@@ -146,8 +146,7 @@ const Payment = () => {
         });
       });
 
-      syncAll(); // attempt immediate sync in case backend is reachable now
-      alert(t('saved_offline_auto_sync'));
+      syncAll(); // attempt immediate sync — SyncStatus badge shows pending state
       setLoading(false);
       navigate('/', { state: { customer } });
     } catch (offlineErr) {

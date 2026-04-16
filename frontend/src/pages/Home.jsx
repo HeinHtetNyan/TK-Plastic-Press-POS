@@ -253,8 +253,7 @@ const Home = () => {
       setAllCustomers(prev =>
         [...prev, enriched].sort((a, b) => a.name.localeCompare(b.name))
       );
-      syncAll(); // attempt immediate sync in case backend is reachable now
-      alert('Customer saved offline. Will sync when internet is available.');
+      syncAll(); // attempt immediate sync — no alert needed, SyncStatus badge shows pending state
     } catch (err) {
       console.error('[Create Customer] IndexedDB error:', err);
       alert('Error saving customer: ' + err.message);
