@@ -102,7 +102,6 @@ export const voucherService = {
 
 export const paymentService = {
   create: (data) => api.post('/payments', data),
-  createBulk: (data) => api.post('/payments/bulk', data),
   listAll: () => api.get('/payments'),
   getCustomerPayments: (customerId) => api.get(`/customers/${customerId}/payments`),
   delete: (id) => api.delete(`/payments/${id}`),

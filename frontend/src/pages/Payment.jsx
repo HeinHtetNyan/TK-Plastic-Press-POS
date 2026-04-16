@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Save as SaveIcon, ArrowLeft as ArrowLeftIcon, CreditCard as CreditCardIcon, Smartphone, Landmark, Banknote, WifiOff } from 'lucide-react';
+import { ArrowLeft as ArrowLeftIcon, CreditCard as CreditCardIcon, Smartphone, Landmark, Banknote, WifiOff } from 'lucide-react';
 import Layout from '../components/Layout';
 import DropdownDatePicker from '../components/DropdownDatePicker';
 import { customerService, paymentService } from '../services/api';
@@ -22,7 +22,6 @@ const Payment = () => {
   const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [paymentDate, setPaymentDate] = useState(new Date().toLocaleDateString('en-GB').split('/').join('-'));
   const [loading, setLoading] = useState(false);
-  const [isBulk, setIsBulk] = useState(true);
 
   useEffect(() => {
     if (!customer) {
@@ -81,11 +80,7 @@ const Payment = () => {
     // ── ONLINE PATH: call API first; IndexedDB is best-effort ──────────
     if (navigator.onLine && serverId) {
       try {
-        if (isBulk) {
-          await paymentService.createBulk(apiPayload);
-        } else {
-          await paymentService.create(apiPayload);
-        }
+        await paymentService.create(apiPayload);
 
         // Save to IndexedDB in background
         db.payments.add({
@@ -97,7 +92,6 @@ const Payment = () => {
           payment_method: paymentMethod,
           payment_date: paymentDate,
           note: note,
-          is_bulk: isBulk,
           sync_status: 'synced',
           created_at: now,
         }).catch(() => {});
@@ -130,7 +124,6 @@ const Payment = () => {
           payment_method: paymentMethod,
           payment_date: paymentDate,
           note: note,
-          is_bulk: isBulk,
           sync_status: 'pending',
           created_at: now,
         });
@@ -138,7 +131,7 @@ const Payment = () => {
           client_id: clientId,
           type: 'payment',
           action: 'create',
-          payload: { ...apiPayload, is_bulk: isBulk },
+          payload: { ...apiPayload },
           status: 'pending',
           retries: 0,
           depends_on_client_id: serverId ? null : (customer.client_id ?? null),
@@ -206,20 +199,6 @@ const Payment = () => {
                     value={paymentDate}
                     onChange={setPaymentDate}
                   />
-
-                  <div className="flex items-center justify-between bg-blue-50 p-4 rounded-2xl border-2 border-blue-100">
-                    <div>
-                      <span className="font-black text-blue-800 text-sm block">{t('settle_oldest')}</span>
-                      <span className="text-[10px] font-bold text-blue-600 uppercase">{t('recommended_regular')}</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setIsBulk(!isBulk)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${isBulk ? 'bg-blue-600' : 'bg-gray-200'}`}
-                    >
-                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isBulk ? 'translate-x-6' : 'translate-x-1'}`} />
-                    </button>
-                  </div>
 
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-gray-600 uppercase px-1">{t('payment_method')}</label>

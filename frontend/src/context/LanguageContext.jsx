@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 
 const LanguageContext = createContext();
 
@@ -112,10 +112,14 @@ const translations = {
     details: 'Details',
     price: 'Price',
     voucher_total: 'Voucher Total',
+    previous_balance: 'Prev. Balance',
     paid_at_site: 'Paid at Site',
+    overall_total: 'Overall Total',
     direct_payment: 'Direct Payment',
     amount_paid: 'Amount Paid',
     no_activity_found: 'No activity found for this selection',
+    newest_first: 'Newest First',
+    oldest_first: 'Oldest First',
     are_you_sure_delete_voucher: 'Are you sure you want to delete this voucher?',
     error_deleting_voucher: 'Error deleting voucher',
     are_you_sure_delete_payment: 'Are you sure you want to delete this payment?',
@@ -234,10 +238,14 @@ const translations = {
     details: 'အသေးစိတ်',
     price: 'စျေးနှုန်း',
     voucher_total: 'ဘောက်ချာစုစုပေါင်း',
+    previous_balance: 'ယခင်ကြွေးကျန်',
     paid_at_site: 'ပေးချေပြီးငွေ',
+    overall_total: 'စုစုပေါင်းကျန်ငွေ',
     direct_payment: 'ငွေပေးချေမှု',
     amount_paid: 'ပေးချေငွေ',
     no_activity_found: 'ဤအချိန်အတွက် မှတ်တမ်းမရှိပါ',
+    newest_first: 'အသစ်ဦးစွာ',
+    oldest_first: 'အဟောင်းဦးစွာ',
     are_you_sure_delete_voucher: 'ဤဘောက်ချာကိုဖျက်ရန် သေချာပါသလား?',
     error_deleting_voucher: 'ဘောက်ချာဖျက်ရာတွင် အမှားအယွင်းရှိနေပါသည်',
     are_you_sure_delete_payment: 'ဤငွေပေးချေမှုကိုဖျက်ရန် သေချာပါသလား?',

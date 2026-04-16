@@ -26,7 +26,6 @@ def create_voucher(
         if existing:
             v_data = existing.model_dump()
             v_data["customer_name"] = existing.customer.name
-            from app.services.balance import calculate_customer_balance
             v_data["customer_balance"] = calculate_customer_balance(session, existing.customer_id)
             v_data["items"] = existing.items
             return v_data

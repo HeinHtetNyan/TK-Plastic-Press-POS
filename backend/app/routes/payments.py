@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from app.db import get_session
-from app.models import Payment, Customer, User, Voucher
+from app.models import Payment, Customer, User
 from app.schemas.payment import PaymentCreate, PaymentRead
 from app.dependencies.auth import require_staff_or_admin, require_admin
 
@@ -61,10 +61,6 @@ def create_bulk_payment(
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
 
-    # Lock customer record for atomicity
-    session.exec(select(Customer).where(Customer.id == payment_in.customer_id).with_for_update()).one()
-
-    # 1. Create the standalone payment record
     db_payment = Payment(
         client_id=payment_in.client_id,
         customer_id=payment_in.customer_id,
@@ -74,28 +70,8 @@ def create_bulk_payment(
         note=payment_in.note,
     )
     session.add(db_payment)
-
-    # 2. FIFO Logic: Apply payment to unpaid vouchers
-    remaining_to_apply = payment_in.amount_paid
-
-    unpaid_vouchers = session.exec(
-        select(Voucher)
-        .where(Voucher.customer_id == payment_in.customer_id)
-        .where(Voucher.remaining_balance > 0)
-        .order_by(Voucher.voucher_date.asc(), Voucher.id.asc())
-    ).all()
-
-    for voucher in unpaid_vouchers:
-        if remaining_to_apply <= 0:
-            break
-
-        amount_to_pay = min(voucher.remaining_balance, remaining_to_apply)
-        voucher.paid_amount += amount_to_pay
-        voucher.remaining_balance -= amount_to_pay
-        remaining_to_apply -= amount_to_pay
-        session.add(voucher)
-
-    log_action(session, current_user.id, "CREATE_BULK", "Payment", str(db_payment.id), f"Bulk Payment of {db_payment.amount_paid} for customer {db_payment.customer_id}")
+    session.flush()
+    log_action(session, current_user.id, "CREATE", "Payment", str(db_payment.id), f"Payment of {db_payment.amount_paid} for customer {db_payment.customer_id}")
     session.commit()
     session.refresh(db_payment)
     return db_payment

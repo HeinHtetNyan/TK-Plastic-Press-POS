@@ -148,9 +148,7 @@ async function syncPayment(item) {
     payload.customer_id = customer.server_id;
   }
 
-  const endpoint = item.payload.is_bulk ? '/payments/bulk' : '/payments';
-
-  const res = await api.post(endpoint, {
+  const res = await api.post('/payments', {
     ...payload,
     client_id: item.client_id,
   });

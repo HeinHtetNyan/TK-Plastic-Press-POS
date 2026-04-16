@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, FileText, CreditCard, ChevronDown, ChevronUp, Filter, Trash2 } from 'lucide-react';
+import { ArrowLeft, FileText, CreditCard, ChevronDown, ChevronUp, Filter, Trash2, ArrowUpDown } from 'lucide-react';
 import Layout from '../components/Layout';
 import DropdownDatePicker from '../components/DropdownDatePicker';
 import { voucherService, paymentService } from '../services/api';
@@ -17,7 +17,8 @@ const History = () => {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [expandedVoucher, setExpandedVoucher] = useState(null);
-  
+  const [sortOrder, setSortOrder] = useState('desc'); // 'desc' = newest first
+
   const now = new Date();
   const currentMonthStr = `${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`;
   const [selectedMonth, setSelectedMonth] = useState(currentMonthStr);
@@ -92,7 +93,11 @@ const History = () => {
     const itemDate = item.type === 'voucher' ? item.voucher_date : item.payment_date;
     if (selectedDate) return itemDate === selectedDate;
     return getMonthFromDate(itemDate) === selectedMonth;
-  }).sort((a, b) => b.id - a.id);
+  }).sort((a, b) => {
+    const aTime = new Date(a.created_at).getTime();
+    const bTime = new Date(b.created_at).getTime();
+    return sortOrder === 'desc' ? bTime - aTime : aTime - bTime;
+  });
 
   const months = Array.from(new Set([
     ...vouchers.map(v => getMonthFromDate(v.voucher_date)),
@@ -136,6 +141,16 @@ const History = () => {
             value={selectedDate} 
             onChange={(val) => { setSelectedDate(val); if(val) setExpandedVoucher(null); }} 
           />
+        </div>
+
+        <div className="flex justify-end">
+          <button
+            onClick={() => setSortOrder(s => s === 'desc' ? 'asc' : 'desc')}
+            className="flex items-center gap-1.5 text-[10px] font-black text-gray-500 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-gray-100 hover:border-blue-200 hover:text-blue-600 transition-all"
+          >
+            <ArrowUpDown size={10} />
+            {sortOrder === 'desc' ? t('newest_first') : t('oldest_first')}
+          </button>
         </div>
 
         <div className="space-y-3">
@@ -235,15 +250,30 @@ const History = () => {
                             </tbody>
                           </table>
                         </div>
-                        <div className="grid grid-cols-2 gap-2 text-[9px] font-black uppercase text-center">
+                        <div className="grid grid-cols-3 gap-2 text-[9px] font-black uppercase text-center">
                            <div className="bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
                               <span className="text-gray-400 block mb-1">{t('voucher_total')}</span>
                               <span className="text-gray-700 text-xs">{item.items_total.toLocaleString()}</span>
+                           </div>
+                           <div className="bg-white p-2 rounded-lg border border-orange-100 shadow-sm">
+                              <span className="text-gray-400 block mb-1 tracking-tighter">{t('previous_balance')}</span>
+                              <span className={`text-xs ${item.previous_balance > 0 ? 'text-orange-500' : 'text-gray-500'}`}>
+                                {item.previous_balance.toLocaleString()}
+                              </span>
                            </div>
                            <div className="bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
                               <span className="text-gray-400 block mb-1 tracking-tighter">{t('paid_at_site')}</span>
                               <span className="text-green-600 text-xs">{item.paid_amount.toLocaleString()}</span>
                            </div>
+                        </div>
+                        <div className={`flex items-center justify-between px-3 py-2 rounded-lg border text-[9px] font-black uppercase ${item.remaining_balance > 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+                           <span className="text-gray-500 tracking-widest">{t('overall_total')}</span>
+                           <span className="text-[10px] flex items-center gap-1 text-gray-400 font-bold normal-case tracking-normal">
+                             {item.items_total.toLocaleString()} + {item.previous_balance.toLocaleString()} − {item.paid_amount.toLocaleString()} =
+                             <span className={`font-black text-sm ${item.remaining_balance > 0 ? 'text-red-500' : 'text-green-600'}`}>
+                               {item.remaining_balance.toLocaleString()}
+                             </span>
+                           </span>
                         </div>
                       </div>
                     )}

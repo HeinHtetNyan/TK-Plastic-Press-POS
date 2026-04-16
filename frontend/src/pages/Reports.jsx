@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { FileText, BarChart3, Filter, ChevronDown, ChevronUp, Trash2, TrendingUp, AlertCircle, Users, CreditCard as CreditCardIcon, Banknote, Smartphone, Landmark } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { FileText, BarChart3, ChevronDown, ChevronUp, Trash2, TrendingUp, AlertCircle, Users, CreditCard as CreditCardIcon, Banknote, Smartphone, Landmark, ArrowUpDown } from 'lucide-react';
 import Layout from '../components/Layout';
 import DropdownDatePicker from '../components/DropdownDatePicker';
 import { voucherService, analyticsService } from '../services/api';
@@ -18,6 +18,7 @@ const Reports = () => {
 
   const [selectedMonth, setSelectedMonth] = useState(currentMonthStr);
   const [selectedDate, setSelectedDate] = useState('');
+  const [sortOrder, setSortOrder] = useState('desc'); // 'desc' = newest first
 
   useEffect(() => {
     fetchVouchers();
@@ -28,7 +29,7 @@ const Reports = () => {
     setLoading(true);
     try {
       const response = await voucherService.listAll();
-      setVouchers((response.data || []).sort((a, b) => b.id - a.id));
+      setVouchers(response.data || []);
     } catch (error) {
       console.error('Error fetching vouchers:', error);
     } finally {
@@ -67,10 +68,16 @@ const Reports = () => {
     return parts.length === 3 ? `${parts[1]}-${parts[2]}` : "";
   };
 
-  const filteredVouchers = vouchers.filter(v => {
-    if (selectedDate) return v.voucher_date === selectedDate;
-    return getMonthFromDate(v.voucher_date) === selectedMonth;
-  });
+  const filteredVouchers = vouchers
+    .filter(v => {
+      if (selectedDate) return v.voucher_date === selectedDate;
+      return getMonthFromDate(v.voucher_date) === selectedMonth;
+    })
+    .sort((a, b) => {
+      const aTime = new Date(a.created_at).getTime();
+      const bTime = new Date(b.created_at).getTime();
+      return sortOrder === 'desc' ? bTime - aTime : aTime - bTime;
+    });
 
   const months = Array.from(new Set(vouchers.map(v => getMonthFromDate(v.voucher_date)).filter(m => m !== "")))
     .sort().reverse();
@@ -183,7 +190,16 @@ const Reports = () => {
         <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1"><FileText size={10} /> Vouchers</h3>
-            <span className="text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{totalSales.toLocaleString()} MMK</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{totalSales.toLocaleString()} MMK</span>
+              <button
+                onClick={() => setSortOrder(s => s === 'desc' ? 'asc' : 'desc')}
+                className="flex items-center gap-1 text-[9px] font-black text-gray-500 bg-gray-50 px-2 py-1 rounded-lg border border-gray-200 hover:border-blue-300 hover:text-blue-600 transition-all"
+              >
+                <ArrowUpDown size={9} />
+                {sortOrder === 'desc' ? 'Newest' : 'Oldest'}
+              </button>
+            </div>
           </div>
           <div className="flex gap-2 mb-2">
             <div className="flex-1">
