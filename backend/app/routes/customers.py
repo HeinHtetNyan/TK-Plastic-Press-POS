@@ -27,9 +27,7 @@ def create_customer(
 
     db_customer = Customer.model_validate(customer)
     session.add(db_customer)
-    session.commit()
-    session.refresh(db_customer)
-    
+    session.flush()  # assign ID without committing yet
     log_action(
         session,
         user_id=current_user.id,
@@ -38,7 +36,8 @@ def create_customer(
         entity_id=str(db_customer.id),
         details=f"Created customer: {db_customer.name}"
     )
-
+    session.commit()
+    session.refresh(db_customer)
     return db_customer
 
 @router.get("/", response_model=List[CustomerRead])
@@ -75,9 +74,7 @@ def update_customer(
         setattr(db_customer, key, value)
 
     session.add(db_customer)
-    session.commit()
-    session.refresh(db_customer)
-
+    session.flush()  # apply changes, keep in same transaction as audit log
     log_action(
         session,
         user_id=current_user.id,
@@ -86,7 +83,8 @@ def update_customer(
         entity_id=str(db_customer.id),
         details=f"Updated customer: {db_customer.name} (ID: {db_customer.id})"
     )
-
+    session.commit()
+    session.refresh(db_customer)
     return db_customer
 
 @router.get("/{customer_id}/balance", response_model=CustomerBalance)

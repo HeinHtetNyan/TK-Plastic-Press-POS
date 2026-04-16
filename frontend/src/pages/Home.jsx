@@ -268,6 +268,10 @@ const Home = () => {
       alert(t('online_only'));
       return;
     }
+    if (!customer.server_id) {
+      alert('This customer has not synced yet. Please wait for sync before editing.');
+      return;
+    }
     setEditingCustomer(customer);
     setCustomerForm({
       name: customer.name || '',
@@ -282,12 +286,12 @@ const Home = () => {
     if (!editingCustomer || !customerForm.name.trim()) return;
 
     try {
-      const serverId = editingCustomer.server_id || editingCustomer.id;
+      const serverId = editingCustomer.server_id;
       const response = await customerService.update(serverId, customerForm);
       const enriched = enrichCustomer(response.data);
-      
-      // Update cache
-      await db.customers.put({
+
+      // Update cache in background — don't let a Dexie error hide the success
+      db.customers.put({
         client_id: enriched.client_id,
         server_id: enriched.server_id,
         name: enriched.name,
@@ -295,16 +299,17 @@ const Home = () => {
         address: enriched.address ?? null,
         created_at: enriched.created_at,
         sync_status: 'synced',
-      });
+      }).catch(() => {});
 
-      if (selectedCustomer?.id === enriched.id || selectedCustomer?.server_id === enriched.server_id) {
+      if (selectedCustomer?.server_id === enriched.server_id) {
         setSelectedCustomer(enriched);
       }
-      
+
       setShowEditModal(false);
       resetForm();
       fetchAllCustomers();
     } catch (error) {
+      console.error('[Update Customer]', error);
       alert(error.response?.data?.detail || 'Error updating customer');
     }
   };

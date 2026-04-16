@@ -25,11 +25,19 @@ const History = () => {
 
   const fetchHistory = useCallback(async () => {
     if (!customer) return;
+    // server_id is the reliable integer ID; customer.id may be a UUID for offline customers
+    const serverId = customer.server_id ?? (typeof customer.id === 'number' ? customer.id : null);
+    if (!serverId) {
+      // Offline customer not yet synced — no server history to fetch
+      setVouchers([]);
+      setPayments([]);
+      return;
+    }
     setLoading(true);
     try {
       const [vRes, pRes] = await Promise.all([
-        voucherService.getCustomerVouchers(customer.id),
-        paymentService.getCustomerPayments(customer.id)
+        voucherService.getCustomerVouchers(serverId),
+        paymentService.getCustomerPayments(serverId)
       ]);
       setVouchers(vRes.data || []);
       setPayments(pRes.data || []);
