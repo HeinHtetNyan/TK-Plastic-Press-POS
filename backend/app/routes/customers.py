@@ -127,6 +127,14 @@ def delete_customer(
     for p in payments:
         session.delete(p)
 
+    log_action(
+        session,
+        user_id=current_user.id,
+        action="DELETE_CUSTOMER",
+        entity_type="CUSTOMER",
+        entity_id=str(customer_id),
+        details=f"Deleted customer: {customer.name} (ID: {customer_id})"
+    )
     session.delete(customer)
     session.commit()
     return {"message": "Customer deleted successfully"}

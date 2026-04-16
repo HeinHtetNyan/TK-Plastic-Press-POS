@@ -6,6 +6,7 @@ from app.models.user import User, UserRole
 from app.schemas.user import UserCreate, UserRead
 from app.core.security import get_password_hash
 from app.dependencies.auth import get_current_user, require_admin
+from app.services.audit import log_action
 
 router = APIRouter(tags=["users"])
 
@@ -28,6 +29,15 @@ def create_user(
         role=user_in.role
     )
     session.add(db_user)
+    session.flush()
+    log_action(
+        session,
+        user_id=current_user.id,
+        action="CREATE_USER",
+        entity_type="USER",
+        entity_id=str(db_user.id),
+        details=f"Created user: {db_user.username} (role: {db_user.role})"
+    )
     session.commit()
     session.refresh(db_user)
     return db_user
@@ -57,6 +67,15 @@ def toggle_user_active(
         raise HTTPException(status_code=400, detail="Cannot disable an admin account")
     user.is_active = not user.is_active
     session.add(user)
+    session.flush()
+    log_action(
+        session,
+        user_id=current_user.id,
+        action="TOGGLE_USER_ACTIVE",
+        entity_type="USER",
+        entity_id=str(user.id),
+        details=f"Set user {user.username} active={user.is_active}"
+    )
     session.commit()
     session.refresh(user)
     return user
@@ -75,6 +94,14 @@ def delete_user(
     if user.id == current_user.id:
         raise HTTPException(status_code=400, detail="Cannot delete yourself")
     
+    log_action(
+        session,
+        user_id=current_user.id,
+        action="DELETE_USER",
+        entity_type="USER",
+        entity_id=str(user.id),
+        details=f"Deleted user: {user.username}"
+    )
     session.delete(user)
     session.commit()
     return {"message": "User deleted successfully"}

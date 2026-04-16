@@ -147,8 +147,11 @@ const Home = () => {
 
     // ── ONLINE PATH: try the API first ────────────────────────────────
     if (navigator.onLine) {
+      // Generate client_id before the request so we can use it for idempotent
+      // recovery on 5xx — the backend stores it and we can look it up by it.
+      const onlineClientId = generateUUID();
       try {
-        const response = await customerService.create(customerForm);
+        const response = await customerService.create({ ...customerForm, client_id: onlineClientId });
         const enriched = enrichCustomer(response.data);
         // Cache in background
         db.customers.put({
@@ -171,15 +174,12 @@ const Home = () => {
         if (apiErr.response) {
           console.error('[Create Customer] API error:', apiErr.response.status, apiErr.response.data);
 
-          // 5xx = server crashed AFTER the DB commit (the customer was saved but
-          // something else broke, e.g. audit logging). Verify by fetching the list.
+          // 5xx = server crashed AFTER the DB commit. Use client_id for exact
+          // idempotent lookup — avoids race conditions and case-sensitivity issues.
           if (apiErr.response.status >= 500) {
             try {
               const listRes = await customerService.list();
-              const nameLower = customerForm.name.trim().toLowerCase();
-              const saved = listRes.data.find(
-                c => c.name.trim().toLowerCase() === nameLower
-              );
+              const saved = listRes.data.find(c => c.client_id === onlineClientId);
               if (saved) {
                 const enriched = enrichCustomer(saved);
                 db.customers.put({
@@ -340,7 +340,14 @@ const Home = () => {
       <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
         <section className="space-y-4">
           <div className="flex justify-between items-end">
-            <h2 className="text-2xl font-black text-gray-800">{t('select_customer')}</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-2xl font-black text-gray-800">{t('select_customer')}</h2>
+              {allCustomers.length > 0 && (
+                <span className="text-xs font-black text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
+                  {allCustomers.length}
+                </span>
+              )}
+            </div>
             <button
               onClick={() => setShowAll(!showAll)}
               className="text-blue-600 font-bold text-xs uppercase flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-all"
@@ -359,6 +366,12 @@ const Home = () => {
             />
           ) : (
             <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-2 space-y-2 animate-in fade-in zoom-in duration-200">
+              <div className="flex items-center justify-between px-2 pt-1 pb-0.5">
+                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('browse_all')}</span>
+                <span className="text-[10px] font-black text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full">
+                  {allCustomers.length} {allCustomers.length === 1 ? 'customer' : 'customers'}
+                </span>
+              </div>
               <div className="max-h-64 overflow-y-auto px-2 space-y-1">
                 {allCustomers.length > 0 ? allCustomers.map(c => (
                   <div
