@@ -10,22 +10,28 @@ const Login = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isSetupRequired, setIsSetupRequired] = useState(false);
-  
+  // null = still checking, true = setup needed, false = show login
+  const [isSetupRequired, setIsSetupRequired] = useState(null);
+  const [checkError, setCheckError] = useState(false);
+
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
+  const checkStatus = async () => {
+    setCheckError(false);
+    try {
+      const res = await authService.checkSetup();
+      setIsSetupRequired(res.data.is_setup_required);
+    } catch (err) {
+      console.error('Failed to check setup status', err);
+      setCheckError(true);
+    }
+  };
+
   useEffect(() => {
-    const checkStatus = async () => {
-      try {
-        const res = await authService.checkSetup();
-        setIsSetupRequired(res.data.is_setup_required);
-      } catch (err) {
-        console.error('Failed to check setup status', err);
-      }
-    };
     checkStatus();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSetup = async (e) => {
@@ -64,6 +70,39 @@ const Login = () => {
       setLoading(false);
     }
   };
+
+  // Still waiting for backend response — show spinner
+  if (isSetupRequired === null && !checkError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center space-y-3">
+          <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto" />
+          <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">Connecting...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Backend unreachable
+  if (checkError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <div className="max-w-sm w-full bg-white rounded-2xl p-8 shadow-lg border border-red-100 text-center space-y-4">
+          <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+            <Lock className="h-6 w-6 text-red-500" />
+          </div>
+          <h2 className="text-xl font-black text-gray-800">Cannot Reach Server</h2>
+          <p className="text-sm text-gray-500">The backend is not reachable. Make sure the server is running and the API URL is configured correctly.</p>
+          <button
+            onClick={checkStatus}
+            className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (isSetupRequired) {
     return (
