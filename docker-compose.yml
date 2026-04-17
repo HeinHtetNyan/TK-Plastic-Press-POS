@@ -45,26 +45,6 @@ services:
     ports:
       - "5432:5432"
 
-  db-backup:
-    image: prodrigestivill/postgres-backup-local
-    container_name: plastic_press_db_backup
-    restart: always
-    volumes:
-      - ./backups:/backups
-    depends_on:
-      - postgres
-    env_file:
-      - .env
-    environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - SCHEDULE=@daily
-      - BACKUP_KEEP_DAYS=7
-      - BACKUP_KEEP_WEEKS=4
-      - BACKUP_KEEP_MONTHS=6
-      - HEALTHCHECK_PORT=8080
 
 volumes:
   postgres_data:
