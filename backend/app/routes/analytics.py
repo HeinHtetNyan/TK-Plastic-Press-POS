@@ -30,10 +30,10 @@ def get_dashboard_data(
     daily_sales = [{"date": str(d), "amount": amount} for d, amount in sales_results]
 
     # 2. Total Debt (always all-time — debt is cumulative)
-    total_revenue_alltime = session.exec(select(func.sum(Voucher.items_total))).first() or 0.0
+    total_revenue_alltime = session.exec(select(func.sum(Voucher.items_total + Voucher.extra_charge_amount))).first() or 0.0
     total_paid_vouchers_alltime = session.exec(select(func.sum(Voucher.paid_amount))).first() or 0.0
     total_standalone_alltime = session.exec(select(func.sum(Payment.amount_paid))).first() or 0.0
-    total_debt = total_revenue_alltime - total_paid_vouchers_alltime - total_standalone_alltime
+    total_debt = round(float(total_revenue_alltime - total_paid_vouchers_alltime - total_standalone_alltime), 2)
 
     # 3. Total Revenue for selected period
     total_revenue = session.exec(
