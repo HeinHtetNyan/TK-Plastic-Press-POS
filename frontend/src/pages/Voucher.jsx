@@ -298,7 +298,7 @@ const Voucher = () => {
                   <div className="space-y-1 sm:col-span-1">
                     <label className="text-[10px] font-black text-gray-400 uppercase px-1 tracking-widest">{t('plastic_price')}</label>
                     <input
-                      type="number" required min="0"
+                      type="number" required min="0" step="any"
                       className="w-full p-2 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none transition-all font-bold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                       value={item.plastic_price}
                       onKeyDown={(e) => e.key === '-' && e.preventDefault()}
@@ -317,7 +317,7 @@ const Voucher = () => {
                   <div className="space-y-1 sm:col-span-1">
                     <label className="text-[10px] font-black text-gray-400 uppercase px-1 tracking-widest">{t('color_price')}</label>
                     <input
-                      type="number" required min="0"
+                      type="number" required min="0" step="any"
                       className="w-full p-2 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none transition-all font-bold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                       value={item.color_price}
                       onKeyDown={(e) => e.key === '-' && e.preventDefault()}
@@ -411,6 +411,7 @@ const Voucher = () => {
               <input
                 type="number"
                 min="0"
+                step="any"
                 className="w-full p-4 bg-blue-50 border-2 border-blue-100 rounded-2xl outline-none focus:border-blue-500 transition-all text-2xl font-black text-blue-700 text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 placeholder="0"
                 value={paidAmount}

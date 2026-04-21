@@ -591,7 +591,7 @@ const History = () => {
                       <div className="grid grid-cols-3 gap-2">
                         <div>
                           <label className="text-[9px] font-black text-gray-400 uppercase block mb-0.5">LB</label>
-                          <input type="number" value={it.lb} onChange={e => handleEditItemChange(idx, 'lb', e.target.value)}
+                          <input type="number" step="any" value={it.lb} onChange={e => handleEditItemChange(idx, 'lb', e.target.value)}
                             className="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs font-bold outline-none focus:border-blue-400" />
                         </div>
                         <div>
@@ -601,7 +601,7 @@ const History = () => {
                         </div>
                         <div>
                           <label className="text-[9px] font-black text-gray-400 uppercase block mb-0.5">Plastic ฿</label>
-                          <input type="number" value={it.plastic_price} onChange={e => handleEditItemChange(idx, 'plastic_price', e.target.value)}
+                          <input type="number" step="any" value={it.plastic_price} onChange={e => handleEditItemChange(idx, 'plastic_price', e.target.value)}
                             className="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs font-bold outline-none focus:border-blue-400" />
                         </div>
                       </div>
@@ -613,7 +613,7 @@ const History = () => {
                         </div>
                         <div>
                           <label className="text-[9px] font-black text-gray-400 uppercase block mb-0.5">Color ฿</label>
-                          <input type="number" value={it.color_price} onChange={e => handleEditItemChange(idx, 'color_price', e.target.value)}
+                          <input type="number" step="any" value={it.color_price} onChange={e => handleEditItemChange(idx, 'color_price', e.target.value)}
                             className="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs font-bold outline-none focus:border-blue-400" />
                         </div>
                       </div>
@@ -639,7 +639,7 @@ const History = () => {
                   </div>
                   <div>
                     <label className="text-[9px] font-black text-gray-400 uppercase block mb-0.5">Amount</label>
-                    <input type="number" value={editExtraChargeAmount} onChange={e => setEditExtraChargeAmount(e.target.value)}
+                    <input type="number" step="any" value={editExtraChargeAmount} onChange={e => setEditExtraChargeAmount(e.target.value)}
                       placeholder="0"
                       className="w-full p-2 bg-white border border-orange-100 rounded-lg text-xs font-bold outline-none focus:border-orange-400" />
                   </div>
@@ -650,7 +650,7 @@ const History = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">{t('paid_amount') || 'Paid Amount'}</label>
-                  <input type="number" value={editPaidAmount} onChange={e => setEditPaidAmount(e.target.value)}
+                  <input type="number" step="any" value={editPaidAmount} onChange={e => setEditPaidAmount(e.target.value)}
                     placeholder="0"
                     className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-blue-400" />
                 </div>
