@@ -2,7 +2,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://api.heinh.dev/api/:path*" },
+    { "source": "/api/:path*", "destination": "https://plasticpressapi.heinh.dev/api/:path*" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
