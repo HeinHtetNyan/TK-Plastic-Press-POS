@@ -31,6 +31,7 @@ const Home = () => {
   const [balance, setBalance] = useState(0);
   const [balanceIsEstimate, setBalanceIsEstimate] = useState(false);
   const [allCustomers, setAllCustomers] = useState([]);
+  const [customersLoadError, setCustomersLoadError] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -56,6 +57,7 @@ const Home = () => {
   // Rule: always show API data first; Dexie caching is best-effort.
   // ------------------------------------------------------------------
   const fetchAllCustomers = useCallback(async () => {
+    setCustomersLoadError(false);
     try {
       const response = await customerService.list();
       const enriched = response.data.map(enrichCustomer);
@@ -67,9 +69,15 @@ const Home = () => {
       // API unavailable (offline) — load from IndexedDB fallback
       try {
         const cached = await loadCachedCustomers();
-        setAllCustomers(cached.sort((a, b) => (a.server_id ?? a.id) - (b.server_id ?? b.id)));
+        if (cached.length > 0) {
+          setAllCustomers(cached.sort((a, b) => (a.server_id ?? a.id) - (b.server_id ?? b.id)));
+        } else {
+          setAllCustomers([]);
+          setCustomersLoadError(true);
+        }
       } catch (__) {
         setAllCustomers([]);
+        setCustomersLoadError(true);
       }
     }
   }, []);
@@ -462,7 +470,18 @@ const Home = () => {
                       </div>
                     </div>
                   </div>
-                )) : (
+                )) : customersLoadError ? (
+                  <div className="text-center py-8 space-y-3">
+                    <p className="text-red-400 font-bold text-sm">Could not load customers</p>
+                    <p className="text-gray-400 text-xs">Server unreachable and no offline cache available.</p>
+                    <button
+                      onClick={fetchAllCustomers}
+                      className="text-blue-600 font-black text-xs bg-blue-50 px-4 py-2 rounded-full hover:bg-blue-100 transition-colors"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                ) : (
                   <p className="text-center py-8 text-gray-400 font-bold">No customers found</p>
                 )}
               </div>
