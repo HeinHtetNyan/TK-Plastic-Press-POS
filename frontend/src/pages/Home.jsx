@@ -31,7 +31,7 @@ const Home = () => {
   const [balance, setBalance] = useState(0);
   const [balanceIsEstimate, setBalanceIsEstimate] = useState(false);
   const [allCustomers, setAllCustomers] = useState([]);
-  const [customersLoadError, setCustomersLoadError] = useState(false);
+  const [customersLoadError, setCustomersLoadError] = useState(null);
   const [showAll, setShowAll] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -57,27 +57,26 @@ const Home = () => {
   // Rule: always show API data first; Dexie caching is best-effort.
   // ------------------------------------------------------------------
   const fetchAllCustomers = useCallback(async () => {
-    setCustomersLoadError(false);
+    setCustomersLoadError(null);
     try {
       const response = await customerService.list();
       const enriched = response.data.map(enrichCustomer);
-      // Show data IMMEDIATELY — never wait for IndexedDB
       setAllCustomers(enriched.sort((a, b) => (a.server_id ?? a.id) - (b.server_id ?? b.id)));
-      // Cache in background; if Dexie fails it must not affect the UI
       cacheCustomers(response.data).catch(() => {});
-    } catch (_) {
-      // API unavailable (offline) — load from IndexedDB fallback
+    } catch (err) {
+      const status = err?.response?.status;
+      const errorMsg = status ? `Server error (HTTP ${status})` : 'Server unreachable';
       try {
         const cached = await loadCachedCustomers();
         if (cached.length > 0) {
           setAllCustomers(cached.sort((a, b) => (a.server_id ?? a.id) - (b.server_id ?? b.id)));
         } else {
           setAllCustomers([]);
-          setCustomersLoadError(true);
+          setCustomersLoadError(errorMsg);
         }
       } catch (__) {
         setAllCustomers([]);
-        setCustomersLoadError(true);
+        setCustomersLoadError(errorMsg);
       }
     }
   }, []);
@@ -473,7 +472,7 @@ const Home = () => {
                 )) : customersLoadError ? (
                   <div className="text-center py-8 space-y-3">
                     <p className="text-red-400 font-bold text-sm">Could not load customers</p>
-                    <p className="text-gray-400 text-xs">Server unreachable and no offline cache available.</p>
+                    <p className="text-gray-400 text-xs">{customersLoadError} — no offline cache available.</p>
                     <button
                       onClick={fetchAllCustomers}
                       className="text-blue-600 font-black text-xs bg-blue-50 px-4 py-2 rounded-full hover:bg-blue-100 transition-colors"
