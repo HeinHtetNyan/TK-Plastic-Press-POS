@@ -4,7 +4,7 @@ from sqlalchemy.exc import NoResultFound
 from sqlmodel import Session, select
 from app.db import get_session
 from app.models import Payment, Customer, User
-from app.schemas.payment import PaymentCreate, PaymentRead
+from app.schemas.payment import PaymentCreate, PaymentRead, PaymentUpdate
 from app.dependencies.auth import require_staff_or_admin, require_admin
 
 from app.services.audit import log_action
@@ -65,6 +65,32 @@ def get_customer_payments(
 
     payments = session.exec(select(Payment).where(Payment.customer_id == customer_id)).all()
     return payments
+
+@router.put("/payments/{payment_id}", response_model=PaymentRead)
+def update_payment(
+    payment_id: int,
+    payment_in: PaymentUpdate,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_admin)
+):
+    payment = session.get(Payment, payment_id)
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+
+    if payment_in.amount_paid is not None:
+        payment.amount_paid = payment_in.amount_paid
+    if payment_in.payment_method is not None:
+        payment.payment_method = payment_in.payment_method
+    if payment_in.payment_date is not None:
+        payment.payment_date = payment_in.payment_date
+    if "note" in payment_in.model_fields_set:
+        payment.note = payment_in.note
+
+    log_action(session, current_user.id, "UPDATE", "Payment", str(payment_id), f"Payment updated to {payment.amount_paid}")
+    session.add(payment)
+    session.commit()
+    session.refresh(payment)
+    return payment
 
 @router.delete("/payments/{payment_id}")
 def delete_payment(

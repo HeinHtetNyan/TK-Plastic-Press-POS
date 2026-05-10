@@ -105,6 +105,7 @@ export const paymentService = {
   create: (data) => api.post('/payments', data),
   listAll: () => api.get('/payments'),
   getCustomerPayments: (customerId) => api.get(`/customers/${customerId}/payments`),
+  update: (id, data) => api.put(`/payments/${id}`, data),
   delete: (id) => api.delete(`/payments/${id}`),
 };
 

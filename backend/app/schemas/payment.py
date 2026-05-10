@@ -31,6 +31,22 @@ class PaymentCreate(PaymentBase):
     client_id: Optional[str] = None
     payment_method: PaymentMethod  # required for standalone payments
 
+class PaymentUpdate(BaseModel):
+    amount_paid: Optional[float] = None
+    payment_method: Optional[PaymentMethod] = None
+    payment_date: Optional[date] = None
+    note: Optional[str] = None
+
+    @field_validator("payment_date", mode="before")
+    @classmethod
+    def parse_payment_date(cls, v: Any) -> Any:
+        if isinstance(v, str) and v:
+            try:
+                return datetime.strptime(v, "%d-%m-%Y").date()
+            except ValueError:
+                pass
+        return v
+
 class PaymentRead(PaymentBase):
     id: int
     client_id: Optional[str] = None
