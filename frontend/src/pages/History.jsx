@@ -33,10 +33,19 @@ const History = () => {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [expandedVoucher, setExpandedVoucher] = useState(null);
+  const [expandedPayment, setExpandedPayment] = useState(null);
   const [sortOrder, setSortOrder] = useState('desc');
   const [selectedDate, setSelectedDate] = useState('');
 
-  // Edit modal state
+  // Edit payment modal state
+  const [editingPayment, setEditingPayment] = useState(null);
+  const [editPaymentSaving, setEditPaymentSaving] = useState(false);
+  const [editPaymentAmount, setEditPaymentAmount] = useState('');
+  const [editPmtMethod, setEditPmtMethod] = useState('');
+  const [editPaymentDate, setEditPaymentDate] = useState('');
+  const [editPaymentNote, setEditPaymentNote] = useState('');
+
+  // Edit voucher modal state
   const [editingVoucher, setEditingVoucher] = useState(null);
   const [editSaving, setEditSaving] = useState(false);
   const [editVoucherNumber, setEditVoucherNumber] = useState('');
@@ -177,6 +186,52 @@ const History = () => {
       fetchHistory();
     } catch {
       alert(t('error_deleting_payment'));
+    }
+  };
+
+  const openEditPaymentModal = (e, item) => {
+    e.stopPropagation();
+    setEditingPayment(item);
+    setEditPaymentAmount(String(item.amount_paid));
+    setEditPmtMethod(item.payment_method || '');
+    setEditPaymentDate(item.payment_date || '');
+    setEditPaymentNote(item.note || '');
+  };
+
+  const closeEditPaymentModal = () => setEditingPayment(null);
+
+  const handleSavePaymentEdit = async () => {
+    if (!editingPayment) return;
+    const serverId = editingPayment.server_id ?? (typeof editingPayment.id === 'number' ? editingPayment.id : null);
+    if (!serverId) {
+      alert('This payment has not been synced yet. Edit is only available for synced payments.');
+      return;
+    }
+    if (!navigator.onLine) {
+      alert('You are offline. Please connect to the internet to edit a payment.');
+      return;
+    }
+    const amount = parseFloat(editPaymentAmount);
+    if (!amount || amount <= 0) {
+      alert('Amount must be greater than 0.');
+      return;
+    }
+    const payload = {
+      amount_paid: amount,
+      payment_method: editPmtMethod || null,
+      payment_date: editPaymentDate || null,
+      note: editPaymentNote || null,
+    };
+    setEditPaymentSaving(true);
+    try {
+      await paymentService.update(serverId, payload);
+      closeEditPaymentModal();
+      fetchHistory();
+    } catch (err) {
+      const detail = err?.response?.data?.detail;
+      alert(detail || 'Failed to save payment. Please try again.');
+    } finally {
+      setEditPaymentSaving(false);
     }
   };
 
@@ -483,48 +538,94 @@ const History = () => {
                     )}
                   </>
                 ) : (
-                  <div className="p-3 flex justify-between items-center bg-white hover:bg-gray-50 group">
-                    <div className="flex gap-3 items-center min-w-0">
-                      <div className="p-2 bg-green-50 text-green-600 rounded-lg">
-                        <CreditCard size={18} />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-black text-green-700 text-sm">{t('direct_payment')}</span>
-                          <span className="text-[9px] bg-gray-100 px-1.5 py-0.5 rounded font-black text-gray-500 whitespace-nowrap">{item.payment_date}</span>
-                          {item.sync_status === 'pending' && (
-                            <span className="text-[8px] bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded font-black uppercase">Pending</span>
-                          )}
-                          {item.payment_method && (
-                            <span className={`text-[8px] px-1.5 py-0.5 rounded font-black uppercase ${
-                              item.payment_method === 'KBZPAY' ? 'bg-blue-100 text-blue-600' :
-                              item.payment_method === 'BANK_TRANSFER' ? 'bg-purple-100 text-purple-600' :
-                              'bg-green-100 text-green-600'
-                            }`}>
-                              {item.payment_method === 'BANK_TRANSFER' ? 'BANK' : item.payment_method}
-                            </span>
-                          )}
+                  <>
+                    <div
+                      onClick={() => setExpandedPayment(expandedPayment === item.id ? null : item.id)}
+                      className="p-3 flex justify-between items-center cursor-pointer hover:bg-gray-50"
+                    >
+                      <div className="flex gap-3 items-center min-w-0">
+                        <div className="p-2 bg-green-50 text-green-600 rounded-lg">
+                          <CreditCard size={18} />
                         </div>
-                        {item.note && <p className="text-[10px] text-gray-500 italic truncate max-w-[150px]">"{item.note}"</p>}
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-black text-green-700 text-sm">{t('direct_payment')}</span>
+                            <span className="text-[9px] bg-gray-100 px-1.5 py-0.5 rounded font-black text-gray-500 whitespace-nowrap">{item.payment_date}</span>
+                            {item.sync_status === 'pending' && (
+                              <span className="text-[8px] bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded font-black uppercase">Pending</span>
+                            )}
+                            {item.payment_method && (
+                              <span className={`text-[8px] px-1.5 py-0.5 rounded font-black uppercase ${
+                                item.payment_method === 'KBZPAY' ? 'bg-blue-100 text-blue-600' :
+                                item.payment_method === 'BANK_TRANSFER' ? 'bg-purple-100 text-purple-600' :
+                                'bg-green-100 text-green-600'
+                              }`}>
+                                {item.payment_method === 'BANK_TRANSFER' ? 'BANK' : item.payment_method}
+                              </span>
+                            )}
+                          </div>
+                          {item.note && <p className="text-[10px] text-gray-500 italic truncate max-w-[150px]">"{item.note}"</p>}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-right">
+                          <span className="text-[9px] text-gray-400 font-black uppercase block tracking-tighter leading-none mb-1">{t('amount_paid')}</span>
+                          <span className="font-black text-green-600 text-base leading-none whitespace-nowrap">
+                            {item.amount_paid.toLocaleString()}
+                          </span>
+                        </div>
+                        {isAdmin() && (item.server_id ?? (typeof item.id === 'number' ? item.id : null)) && (
+                          <button
+                            onClick={(e) => openEditPaymentModal(e, item)}
+                            className="p-1.5 text-gray-300 hover:text-green-500 hover:bg-green-50 rounded-lg transition-all"
+                          >
+                            <Pencil size={15} />
+                          </button>
+                        )}
+                        {isAdmin() && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDeletePayment(item); }}
+                            className="p-1.5 text-gray-200 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                        <div>
+                          {expandedPayment === item.id ? <ChevronUp size={16} className="text-gray-300" /> : <ChevronDown size={16} className="text-gray-300" />}
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <span className="text-[9px] text-gray-400 font-black uppercase block tracking-tighter leading-none mb-1">{t('amount_paid')}</span>
-                        <span className="font-black text-green-600 text-base leading-none whitespace-nowrap">
-                          {item.amount_paid.toLocaleString()}
-                        </span>
+                    {expandedPayment === item.id && (
+                      <div className="bg-gray-50 p-3 border-t border-gray-100 space-y-3 animate-in slide-in-from-top-2">
+                        {item.note && (
+                          <div className="bg-green-50/50 p-2 rounded-xl border border-green-100/50">
+                            <span className="text-[8px] font-black text-green-400 uppercase block leading-none mb-1">{t('note')}</span>
+                            <p className="text-xs font-bold text-green-700 leading-tight italic">"{item.note}"</p>
+                          </div>
+                        )}
+                        <div className="grid grid-cols-2 gap-2 text-[9px] font-black uppercase text-center">
+                          <div className="bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
+                            <span className="text-gray-400 block mb-1">{t('payment_method') || 'METHOD'}</span>
+                            <span className={`text-xs ${
+                              item.payment_method === 'KBZPAY' ? 'text-blue-600' :
+                              item.payment_method === 'BANK_TRANSFER' ? 'text-purple-600' :
+                              'text-green-600'
+                            }`}>
+                              {item.payment_method === 'BANK_TRANSFER' ? 'BANK' : item.payment_method || '-'}
+                            </span>
+                          </div>
+                          <div className="bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
+                            <span className="text-gray-400 block mb-1">{t('amount_paid')}</span>
+                            <span className="text-green-600 text-xs">{item.amount_paid.toLocaleString()}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between px-3 py-2 rounded-lg border bg-green-50 border-green-200 text-[9px] font-black uppercase">
+                          <span className="text-gray-500 tracking-widest">{t('amount_paid')}</span>
+                          <span className="font-black text-sm text-green-600">{item.amount_paid.toLocaleString()}</span>
+                        </div>
                       </div>
-                      {isAdmin() && (
-                        <button
-                          onClick={() => handleDeletePayment(item)}
-                          className="p-1.5 text-gray-200 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all group-hover:text-gray-300"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
+                    )}
+                  </>
                 )}
               </div>
             ))
@@ -535,6 +636,94 @@ const History = () => {
           )}
         </div>
       </div>
+
+      {/* Edit Payment Modal */}
+      {editingPayment && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4">
+          <div className="bg-white w-full sm:max-w-sm sm:rounded-3xl rounded-t-3xl shadow-2xl flex flex-col max-h-[92vh]">
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100 shrink-0">
+              <div>
+                <h3 className="text-base font-black text-gray-800">Edit Payment</h3>
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{editingPayment.payment_date}</p>
+              </div>
+              <button onClick={closeEditPaymentModal} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 transition-all">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
+              {/* Amount */}
+              <div>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">{t('amount_paid')}</label>
+                <input
+                  type="number"
+                  step="any"
+                  value={editPaymentAmount}
+                  onChange={e => setEditPaymentAmount(e.target.value)}
+                  className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-green-400"
+                />
+              </div>
+
+              {/* Method & Date */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">{t('payment_method') || 'Method'}</label>
+                  <select
+                    value={editPmtMethod}
+                    onChange={e => setEditPmtMethod(e.target.value)}
+                    className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-green-400"
+                  >
+                    <option value="">—</option>
+                    {PAYMENT_METHODS.map(m => (
+                      <option key={m} value={m}>{m === 'BANK_TRANSFER' ? 'BANK' : m}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <DropdownDatePicker
+                    label={t('date') || 'Date'}
+                    value={editPaymentDate}
+                    onChange={setEditPaymentDate}
+                  />
+                </div>
+              </div>
+
+              {/* Note */}
+              <div>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">{t('note') || 'Note'}</label>
+                <textarea
+                  value={editPaymentNote}
+                  onChange={e => setEditPaymentNote(e.target.value)}
+                  rows={3}
+                  className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-green-400 resize-none"
+                />
+              </div>
+
+              {/* Summary */}
+              <div className="bg-green-50 rounded-xl p-3 border border-green-100 text-[10px] font-black uppercase">
+                <div className="flex justify-between text-green-700">
+                  <span>{t('amount_paid')}</span>
+                  <span className="text-sm">{(parseFloat(editPaymentAmount) || 0).toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-5 pb-5 pt-3 border-t border-gray-100 flex gap-3 shrink-0">
+              <button onClick={closeEditPaymentModal} className="flex-1 py-3 rounded-2xl border-2 border-gray-100 font-black text-gray-500 text-sm hover:bg-gray-50 transition-all">
+                Cancel
+              </button>
+              <button
+                onClick={handleSavePaymentEdit}
+                disabled={editPaymentSaving || !editPaymentAmount}
+                className="flex-1 py-3 rounded-2xl bg-green-600 text-white font-black text-sm flex items-center justify-center gap-2 hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Save size={15} />
+                {editPaymentSaving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Edit Voucher Modal */}
       {editingVoucher && (
