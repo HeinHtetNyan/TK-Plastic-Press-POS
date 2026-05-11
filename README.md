@@ -1,170 +1,106 @@
 ![image alt](https://github.com/HeinHtetNyan/TK-Plastic-Press-POS/blob/4fedf02afd4a83e8598ba07a98a7998247747c7d/Screenshot%202026-04-20%20022638.png)
 # TK Plastic Press POS System
 
-A modern, offline-capable Point of Sale (POS) system designed for TK Plastic Press. Built with a FastAPI backend, a React 19 frontend (deployed on Vercel), and a native Android WebView wrapper.
+A modern, professional-grade Point of Sale (POS) system specifically engineered for TK Plastic Press. This full-stack solution features an offline-first architecture with a FastAPI backend, a React 19 frontend, and a native Android integration.
 
-## Key Features
+## 🚀 Key Features
 
-- **Offline-First Architecture**: Create vouchers and process payments without an internet connection. Data is automatically synchronized when connectivity is restored via a custom sync engine backed by Dexie.js (IndexedDB).
-- **Idempotent Sync**: All offline operations use `client_id` UUIDs to prevent duplicate records on retry.
-- **FIFO Payment Settlement**: Bulk payments are automatically applied to unpaid vouchers in chronological order.
-- **Comprehensive POS Functionality**:
-  - Customer management with balance tracking and address records.
-  - Voucher creation with line items (plastic size, color, pricing).
-  - Payment processing (Cash, Bank Transfer, KBZPay) with history.
-  - Real-time analytics dashboard: 30-day sales trends, debt overview, income by payment method, top customers.
-- **Hybrid Deployment**:
-  - **Frontend**: High-availability React application deployed on Vercel.
-  - **Backend**: Containerized FastAPI application on a VPS, fronted by a Cloudflare Tunnel or direct exposed port.
-- **Native Android Integration**: Android WebView wrapper with network-awareness, pull-to-refresh, and back-button handling.
-- **Resilient Infrastructure**:
-  - Automated daily PostgreSQL backups with local rotation.
-  - **Cloudflare R2 Sync**: Backups are automatically mirrored to Cloudflare R2 storage for off-site disaster recovery.
+- **Offline-First Resilience**: Full capability to create vouchers, manage customers, and process payments without an internet connection. Data is automatically synchronized via a custom sync engine (Dexie.js/IndexedDB) when connectivity is restored.
+- **Idempotent Synchronization**: Prevents duplicate records during sync retries using `client_id` UUID tracking.
+- **Smart Financial Management**:
+  - **FIFO Payment Settlement**: Automatically applies bulk payments to the oldest outstanding vouchers.
+  - **Expense Tracking**: Comprehensive logging of business spendings.
+  - **Balance Tracking**: Real-time customer balance and debt management.
+- **Deep Analytics Dashboard**: Visualizes 30-day sales trends, income by payment method (Cash, Bank Transfer, KBZPay), and top customer performance.
+- **Enterprise-Grade Infrastructure**:
+  - **Hybrid Deployment**: Frontend on Vercel for high availability; Backend on VPS via Docker.
+  - **Automated Backups**: Hourly PostgreSQL dumps with local rotation (7 days/4 weeks/6 months).
+  - **Disaster Recovery**: Automatic mirroring of backups to Cloudflare R2 storage using `rclone`.
+- **Native Android App**: Custom WebView wrapper with network-aware synchronization, pull-to-refresh, and optimized performance.
+- **Audit Logging**: Complete traceability of all system mutations for security and accountability.
 
-## Tech Stack
+## 🛠 Tech Stack
 
 ### Backend
-| Technology | Purpose |
-|------------|---------|
-| FastAPI (Python) | REST API framework |
-| SQLModel (SQLAlchemy + Pydantic) | ORM and schema validation |
-| PostgreSQL 15 | Primary database |
-| Alembic | Database migrations |
-| Passlib + Bcrypt | Password hashing |
-| python-jose | JWT token generation and verification |
-| Uvicorn | ASGI server (2 workers in production) |
-| SlowAPI | Rate limiting (auth routes) |
+- **Framework**: FastAPI (Python)
+- **ORM**: SQLModel (SQLAlchemy + Pydantic)
+- **Database**: PostgreSQL 15
+- **Migrations**: Alembic
+- **Security**: Passlib (Bcrypt) & python-jose (JWT)
+- **Rate Limiting**: SlowAPI
 
 ### Frontend
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| React | 19.x | UI framework (Deployed on Vercel) |
-| Vite | 8.x | Build tool |
-| Tailwind CSS | 4.x | Utility-first styling |
-| Dexie.js | 4.x | IndexedDB (offline storage & sync queue) |
-| React Router | 7.x | Client-side routing with Vercel rewrites |
-| Axios | 1.x | HTTP client with JWT interceptors |
-| Recharts | 3.x | Analytics charts |
-| Lucide React | — | Icons |
+- **Framework**: React 19 + Vite 8
+- **Styling**: Tailwind CSS 4
+- **Storage**: Dexie.js (IndexedDB)
+- **Routing**: React Router 7
+- **Charts**: Recharts 3
+- **Icons**: Lucide React
 
-### Mobile
-- **Language**: Kotlin
-- **Platform**: Android (API 24+) — native WebView wrapper
-- **Features**: Network status monitoring, performance optimizations, native UI controls
+### Mobile & Infrastructure
+- **Android**: Kotlin (API 24+) Native WebView
+- **Deployment**: Docker Compose (Production Stack)
+- **Hosting**: Vercel (Frontend)
+- **Backups**: `postgres-backup-local` + `rclone` (Cloudflare R2)
 
-### Infrastructure
-- **VPS Deployment**: Docker Compose (backend + postgres + backup system)
-- **Frontend Hosting**: Vercel (Production)
-- **Database Backups**: `prodrigestivill/postgres-backup-local`
-- **Cloud Sync**: `rclone` (S3/Cloudflare R2)
-
-## Project Structure
+## 📂 Project Structure
 
 ```text
 TK-Project/
-├── android/                  # Native Android WebView wrapper (Kotlin)
-├── backend/                  # FastAPI application
-│   ├── app/
-│   │   ├── models/           # SQLModel database models
-│   │   ├── routes/           # API route handlers
-│   │   ├── schemas/          # Pydantic request/response schemas
-│   │   ├── services/         # Business logic (audit, balance, vouchers)
-│   │   ├── dependencies/     # Auth dependencies (JWT, role checks)
-│   │   └── core/             # Security utilities
-│   └── alembic/              # Database migrations
-├── frontend/                 # React + Vite application
-│   ├── src/
-│   │   ├── pages/            # Route-level page components
-│   │   ├── components/       # Reusable UI components
-│   │   ├── services/         # API client and sync engine
-│   │   ├── context/          # Auth and Language context providers
-│   │   ├── hooks/            # Custom React hooks
-│   │   └── lib/              # Dexie DB setup
-│   ├── public/               # Static assets & manifest for PWA
-│   └── vercel.json           # Vercel deployment configuration
-├── scripts/                  # Utility scripts (backup sync)
-├── backups/                  # Automated database backup files
-├── docker-compose.yml        # Development Docker orchestration
-├── docker-compose.prod.yml   # Production Docker (Backend-only stack)
-└── .env.example              # Environment variables template
+├── android/              # Native Android App (Kotlin)
+│   └── app/src/main/     # WebView logic and network listeners
+├── backend/              # FastAPI Application
+│   ├── app/              # Core logic (models, routes, schemas, services)
+│   └── alembic/          # DB Migration scripts
+├── frontend/             # React Application
+│   ├── src/              # UI components, sync engine, and hooks
+│   ├── public/           # PWA assets and manifest
+│   └── vercel.json       # Frontend deployment config
+├── scripts/              # Utility scripts (rclone-sync.sh)
+├── docker-compose.yml    # Development stack
+└── docker-compose.prod.yml # Production stack (API + DB + Backups)
 ```
 
-## Setup & Installation
+## ⚙️ Quick Start
 
-### Prerequisites
-- Docker and Docker Compose
-- (For Android) Android Studio
-
-### 1. Environment Configuration
-
-Copy the `.env.example` to `.env` and fill in your values:
+### 1. Environment Setup
+Create a `.env` file in the root directory based on `.env.example`:
 
 ```bash
 cp .env.example .env
 ```
 
-**Required environment variables:**
+### 2. Development (Local)
+Launch the full stack (Backend + Frontend + DB):
+```bash
+docker-compose up -d --build
+```
+- Frontend: `http://localhost:5173`
+- API Docs: `http://localhost:8001/api/docs` (if `SHOW_DOCS=true`)
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `DATABASE_URL` | Full PostgreSQL connection string | `postgresql://user:pass@postgres:5432/tkdb` |
-| `POSTGRES_USER` | Database username | `tkadmin` |
-| `POSTGRES_PASSWORD` | Database password | `strongpassword` |
-| `POSTGRES_DB` | Database name | `tkdb` |
-| `SECRET_KEY` | JWT signing secret | `abc123...` |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | JWT token lifetime | `480` (8 hours) |
-| `TZ` | Server timezone | `Asia/Yangon` |
-| `ALLOWED_ORIGINS` | CORS origins (add your Vercel domain here) | `https://your-pos.vercel.app` |
-| `SHOW_DOCS` | Enable Swagger UI (`true`/`false`) | `false` |
-| `R2_ACCOUNT_ID` | Cloudflare R2 Account ID | `your-id` |
-| `R2_ACCESS_KEY_ID` | R2 API Access Key | `your-key` |
-| `R2_SECRET_ACCESS_KEY` | R2 API Secret Key | `your-secret` |
-| `R2_BUCKET` | R2 Bucket Name | `your-bucket` |
-
-### 2. Deployment (VPS - Backend)
-
-Deploy the backend services (API, DB, Backup Sync) on your VPS:
-
+### 3. Production Deployment (VPS)
+Deploy the backend infrastructure:
 ```bash
 docker-compose -f docker-compose.prod.yml up -d --build
-```
-
-### 3. Deployment (Vercel - Frontend)
-
-1. Connect the `frontend/` directory to Vercel.
-2. Set `VITE_API_URL` environment variable to your VPS backend URL (e.g., `https://api.yourdomain.com`).
-3. Deploy. The `vercel.json` ensures that React Router handles all sub-paths.
-
-### 4. Database Migrations
-
-Apply the schema on your VPS:
-
-```bash
 docker-compose exec backend alembic upgrade head
 ```
 
-### 5. Backup & Recovery
-
-- **Local Backups**: Managed by `db-backup` container. Retains 7 days of daily, 4 weeks of weekly, and 6 months of monthly backups in `./backups/`.
-- **Cloud Sync**: Managed by `backup-uploader` container. Uses `rclone` to sync the `./backups/` directory to Cloudflare R2 storage every hour.
-- **Recovery**: To restore, copy a `.sql` file from backups into the postgres container and run `psql -U $USER -d $DB < backup.sql`.
-
-### 6. Android Build
-
-1. Open the `android/` directory in Android Studio.
-2. Define your POS server URL (the Vercel frontend URL) in `android/local.properties`:
+### 4. Android Build
+1. Open `android/` in Android Studio.
+2. Set your frontend URL in `android/local.properties`:
    ```properties
-   pos.url=https://your-pos.vercel.app
+   pos.url=https://your-app.vercel.app
    ```
-3. Build and deploy to device.
+3. Build and install the APK.
 
-## Key Architectural Patterns
+## 💾 Backup & Recovery
 
-- **Offline-First Sync**: Frontend queues operations (Vouchers, Customers, Payments) in IndexedDB. A background worker replays these every 15 seconds when connectivity is restored.
-- **Idempotency**: All creation routes accept a `client_id` (UUID) from the frontend to prevent duplicate records during sync retries.
-- **FIFO Settlement**: When a bulk payment is made, the system automatically applies it to the oldest unpaid vouchers first.
-- **Audit Trail**: Every mutation records the performing user, action type, and JSON details for accountability.
+- **Local Storage**: Backups are stored in `./backups/` on the host machine.
+- **Cloud Sync**: The `backup-uploader` service syncs `./backups/` to Cloudflare R2 every hour.
+- **Restoration**:
+  ```bash
+  cat ./backups/latest.sql | docker exec -i plastic_press_db psql -U $POSTGRES_USER -d $POSTGRES_DB
+  ```
 
-## License
-
+## 📝 License
 Proprietary — TK Plastic Press. All rights reserved.
