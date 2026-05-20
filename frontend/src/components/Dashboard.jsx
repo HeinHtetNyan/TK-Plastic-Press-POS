@@ -7,7 +7,11 @@ const Dashboard = ({ data }) => {
   const { t } = useLanguage();
   if (!data) return null;
 
-  const periodLabel = data.period === '3months' ? 'Last 3 Months' : 'This Month';
+  const periodLabel =
+    data.period === '3months' ? 'Last 3 Months' :
+    data.period === '6months' ? 'Last 6 Months' :
+    data.period === '1year'   ? 'Last 1 Year'   :
+    'This Month';
   const totalSpending = data.total_spending ?? 0;
   const netIncome = (data.total_revenue ?? 0) - totalSpending;
 

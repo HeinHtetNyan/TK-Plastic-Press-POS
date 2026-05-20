@@ -10,7 +10,7 @@ router = APIRouter(tags=["analytics"])
 
 @router.get("/analytics/dashboard")
 def get_dashboard_data(
-    period: str = Query(default="month", pattern="^(month|3months)$"),
+    period: str = Query(default="month", pattern="^(month|3months|6months|1year)$"),
     session: Session = Depends(get_session),
     current_user: User = Depends(require_staff_or_admin)
 ):
@@ -18,6 +18,10 @@ def get_dashboard_data(
 
     if period == "3months":
         start_date = today - timedelta(days=90)
+    elif period == "6months":
+        start_date = today - timedelta(days=180)
+    elif period == "1year":
+        start_date = today - timedelta(days=365)
     else:
         start_date = today.replace(day=1)
 

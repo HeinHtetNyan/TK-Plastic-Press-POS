@@ -521,17 +521,22 @@ const Home = () => {
         {!selectedCustomer && !showAll && (
           <div className="space-y-8 animate-in fade-in duration-700">
             <div className="flex items-center gap-2 justify-end">
-              {['month', '3months'].map((p) => (
+              {[
+                { value: 'month', label: 'This Month' },
+                { value: '3months', label: '3 Months' },
+                { value: '6months', label: '6 Months' },
+                { value: '1year', label: '1 Year' },
+              ].map((p) => (
                 <button
-                  key={p}
-                  onClick={() => setDashboardPeriod(p)}
+                  key={p.value}
+                  onClick={() => setDashboardPeriod(p.value)}
                   className={`px-4 py-1.5 rounded-full text-xs font-black uppercase transition-all ${
-                    dashboardPeriod === p
+                    dashboardPeriod === p.value
                       ? 'bg-blue-600 text-white shadow-sm'
                       : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                   }`}
                 >
-                  {p === 'month' ? 'This Month' : '3 Months'}
+                  {p.label}
                 </button>
               ))}
             </div>
