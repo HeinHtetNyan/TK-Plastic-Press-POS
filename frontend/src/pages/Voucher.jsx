@@ -276,23 +276,23 @@ const Voucher = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
                   <div className="space-y-1 sm:col-span-1">
-                    <label className="text-[10px] font-black text-gray-400 uppercase px-1 tracking-widest">{t('weight_lb')}</label>
+                    <label className="text-[10px] font-black text-gray-400 uppercase px-1 tracking-widest">{t('size')}</label>
                     <input
                       autoFocus={index === items.length - 1}
+                      type="text" required placeholder="e.g. 10x15"
+                      className="w-full p-2 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none transition-all font-bold"
+                      value={item.plastic_size}
+                      onChange={(e) => handleItemChange(index, 'plastic_size', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1 sm:col-span-1">
+                    <label className="text-[10px] font-black text-gray-400 uppercase px-1 tracking-widest">{t('weight_lb')}</label>
+                    <input
                       type="number" step="any" required min="0"
                       className="w-full p-2 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none transition-all font-bold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                       value={item.lb}
                       onKeyDown={(e) => e.key === '-' && e.preventDefault()}
                       onChange={(e) => handleItemChange(index, 'lb', e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1 sm:col-span-1">
-                    <label className="text-[10px] font-black text-gray-400 uppercase px-1 tracking-widest">{t('size')}</label>
-                    <input
-                      type="text" required placeholder="e.g. 10x15"
-                      className="w-full p-2 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none transition-all font-bold"
-                      value={item.plastic_size}
-                      onChange={(e) => handleItemChange(index, 'plastic_size', e.target.value)}
                     />
                   </div>
                   <div className="space-y-1 sm:col-span-1">
