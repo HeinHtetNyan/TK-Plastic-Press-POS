@@ -30,6 +30,7 @@ class VoucherBase(BaseModel):
     note: Optional[str] = None
     extra_charge_note: Optional[str] = None
     extra_charge_amount: float = Field(default=0.0, ge=0)
+    discount_amount: float = Field(default=0.0, ge=0)
 
     @field_validator("voucher_date", mode="before")
     @classmethod
@@ -59,6 +60,7 @@ class VoucherUpdate(BaseModel):
     note: Optional[str] = None
     extra_charge_note: Optional[str] = None
     extra_charge_amount: float = Field(default=0.0, ge=0)
+    discount_amount: float = Field(default=0.0, ge=0)
     items: List[ItemCreate]
 
     @field_validator("voucher_date", mode="before")

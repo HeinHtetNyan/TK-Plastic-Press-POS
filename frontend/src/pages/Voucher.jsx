@@ -24,6 +24,7 @@ const Voucher = () => {
   const [note, setNote] = useState('');
   const [extraChargeNote, setExtraChargeNote] = useState('');
   const [extraChargeAmount, setExtraChargeAmount] = useState('');
+  const [discountAmount, setDiscountAmount] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -82,7 +83,8 @@ const Voucher = () => {
 
   const itemsTotal = items.reduce((sum, item) => sum + item.total_price, 0);
   const extraCharge = parseFloat(extraChargeAmount) || 0;
-  const finalTotal = itemsTotal + extraCharge + balance;
+  const discount = parseFloat(discountAmount) || 0;
+  const finalTotal = itemsTotal + extraCharge - discount + balance;
   const remainingBalance = finalTotal - (parseFloat(paidAmount) || 0);
 
   const handleSubmit = async (e) => {
@@ -114,11 +116,12 @@ const Voucher = () => {
       note: note,
       extra_charge_note: extraChargeNote || null,
       extra_charge_amount: parseFloat(extraChargeAmount) || 0,
+      discount_amount: discount,
       items: mappedItems,
       client_id: clientId,
     };
 
-    // ── ONLINE PATH: call API first; IndexedDB is best-effort ──────────
+    // ONLINE PATH: call API first; IndexedDB is best-effort
     if (navigator.onLine && serverId) {
       try {
         await voucherService.create(apiPayload);
@@ -134,6 +137,7 @@ const Voucher = () => {
           items_total: itemsTotal,
           extra_charge_note: extraChargeNote || null,
           extra_charge_amount: extraCharge,
+          discount_amount: discount,
           paid_amount: paid,
           payment_method: paid > 0 ? paymentMethod : null,
           note: note,
@@ -157,7 +161,7 @@ const Voucher = () => {
       }
     }
 
-    // ── OFFLINE PATH: IndexedDB is required ────────────────────────────
+    // OFFLINE PATH: IndexedDB is required
     try {
       // Wrap both writes in one transaction — either both succeed or neither does
       await db.transaction('rw', db.vouchers, db.sync_queue, async () => {
@@ -171,6 +175,7 @@ const Voucher = () => {
           items_total: itemsTotal,
           extra_charge_note: extraChargeNote || null,
           extra_charge_amount: extraCharge,
+          discount_amount: discount,
           paid_amount: paid,
           payment_method: paid > 0 ? paymentMethod : null,
           note: note,
@@ -384,6 +389,23 @@ const Voucher = () => {
             </div>
           </div>
 
+          <div className="bg-white p-4 rounded-3xl border-2 border-dashed border-gray-200 space-y-3">
+            <label className="text-sm font-black text-gray-500 uppercase tracking-widest">{t('discount')} <span className="text-gray-300 font-bold normal-case">({t('optional')})</span></label>
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-gray-400 uppercase px-1">{t('amount')}</label>
+              <input
+                type="number"
+                min="0"
+                step="any"
+                className="w-full p-3 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-red-400 outline-none transition-all font-bold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                placeholder="0"
+                value={discountAmount}
+                onKeyDown={(e) => e.key === '-' && e.preventDefault()}
+                onChange={(e) => setDiscountAmount(e.target.value)}
+              />
+            </div>
+          </div>
+
           <div className="bg-gray-800 p-6 rounded-3xl shadow-xl text-white space-y-4">
             <div className="flex justify-between items-center opacity-70">
               <span className="font-bold">{t('previous_balance')}{balanceIsEstimate ? ` ${t('est')}` : ''}</span>
@@ -397,6 +419,12 @@ const Voucher = () => {
               <div className="flex justify-between items-center opacity-70">
                 <span className="font-bold">{extraChargeNote || 'Extra Charge'}</span>
                 <span className="font-bold text-orange-300">+{extraCharge.toLocaleString()} MMK</span>
+              </div>
+            )}
+            {discount > 0 && (
+              <div className="flex justify-between items-center opacity-70">
+                <span className="font-bold">{t('discount')}</span>
+                <span className="font-bold text-red-300">-{discount.toLocaleString()} MMK</span>
               </div>
             )}
             <div className="border-t border-gray-700 pt-4 flex justify-between items-center">

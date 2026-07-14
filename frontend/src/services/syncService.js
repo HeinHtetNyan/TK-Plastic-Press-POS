@@ -7,17 +7,13 @@ const SYNC_INTERVAL_MS = 15_000; // 15 seconds
 let syncIntervalId = null;
 let isSyncing = false;
 
-// --------------------------------------------------------------------------
 // Pending-count helpers (used by SyncStatus component)
-// --------------------------------------------------------------------------
 
 export async function getPendingCount() {
   return db.sync_queue.where('status').anyOf(['pending', 'processing', 'failed']).count();
 }
 
-// --------------------------------------------------------------------------
 // Balance cache helpers
-// --------------------------------------------------------------------------
 
 /**
  * Persist the last-known server balance for a customer so we can
@@ -62,20 +58,18 @@ export async function getOfflineBalance(customerClientId, customerServerId) {
   ]);
 
   const voucherDelta = pendingVouchers.reduce(
-    (sum, v) => sum + (v.items_total || 0) - (v.paid_amount || 0),
+    (sum, v) => sum + (v.items_total || 0) + (v.extra_charge_amount || 0) - (v.discount_amount || 0) - (v.paid_amount || 0),
     0
   );
   const paymentDelta = pendingPayments.reduce(
-    (sum, p) => sum + (p.amount_paid || 0),
+    (sum, p) => sum + (p.amount_paid || 0) + (p.discount_amount || 0),
     0
   );
 
   return base + voucherDelta - paymentDelta;
 }
 
-// --------------------------------------------------------------------------
 // Customer sync
-// --------------------------------------------------------------------------
 
 async function syncCustomer(item) {
   const res = await api.post('/customers/', {
@@ -104,9 +98,7 @@ async function syncCustomer(item) {
     .modify({ customer_server_id: serverCustomer.id });
 }
 
-// --------------------------------------------------------------------------
 // Voucher sync
-// --------------------------------------------------------------------------
 
 async function syncVoucher(item) {
   const { customer_client_id, ...payload } = { ...item.payload };
@@ -131,15 +123,14 @@ async function syncVoucher(item) {
     items_total: res.data.items_total,
     extra_charge_note: res.data.extra_charge_note ?? null,
     extra_charge_amount: res.data.extra_charge_amount ?? 0,
+    discount_amount: res.data.discount_amount ?? 0,
     previous_balance: res.data.previous_balance,
     final_total: res.data.final_total,
     remaining_balance: res.data.remaining_balance,
   });
 }
 
-// --------------------------------------------------------------------------
 // Payment sync
-// --------------------------------------------------------------------------
 
 async function syncPayment(item) {
   const { customer_client_id, ...payload } = { ...item.payload };
@@ -163,9 +154,7 @@ async function syncPayment(item) {
   });
 }
 
-// --------------------------------------------------------------------------
 // Spending sync
-// --------------------------------------------------------------------------
 
 async function syncSpending(item) {
   const res = await api.post('/spendings', {
@@ -198,9 +187,7 @@ async function syncSpendingDelete(item) {
   await db.spendings.delete(item.client_id);
 }
 
-// --------------------------------------------------------------------------
 // Customer update sync
-// --------------------------------------------------------------------------
 
 async function syncCustomerUpdate(item) {
   const { server_id, ...fields } = item.payload;
@@ -213,9 +200,7 @@ async function syncCustomerUpdate(item) {
   });
 }
 
-// --------------------------------------------------------------------------
 // Voucher / Payment delete sync
-// --------------------------------------------------------------------------
 
 async function syncVoucherDelete(item) {
   try {
@@ -235,9 +220,7 @@ async function syncPaymentDelete(item) {
   await db.payments.delete(item.client_id);
 }
 
-// --------------------------------------------------------------------------
 // Core sync loop
-// --------------------------------------------------------------------------
 
 async function processQueueItem(item) {
   // If this item depends on another, verify the dependency is done
@@ -314,9 +297,7 @@ export async function syncAll() {
   }
 }
 
-// --------------------------------------------------------------------------
 // Interval / lifecycle
-// --------------------------------------------------------------------------
 
 export async function startSyncEngine() {
   if (syncIntervalId) return; // already running
@@ -337,9 +318,7 @@ export function stopSyncEngine() {
   }
 }
 
-// --------------------------------------------------------------------------
 // Helpers for pages: enrich a server customer with client_id fields
-// --------------------------------------------------------------------------
 
 /**
  * Converts a server customer object (from API) into the enriched shape
@@ -403,9 +382,7 @@ export async function loadCachedCustomers() {
   }));
 }
 
-// --------------------------------------------------------------------------
 // Voucher / Payment cache helpers (used by History page)
-// --------------------------------------------------------------------------
 
 export async function cacheVouchers(customerClientId, serverVouchers) {
   const rows = serverVouchers.map(v => ({
@@ -418,6 +395,7 @@ export async function cacheVouchers(customerClientId, serverVouchers) {
     items_total: v.items_total,
     extra_charge_note: v.extra_charge_note ?? null,
     extra_charge_amount: v.extra_charge_amount ?? 0,
+    discount_amount: v.discount_amount ?? 0,
     paid_amount: v.paid_amount,
     payment_method: v.payment_method,
     note: v.note,
@@ -438,6 +416,7 @@ export async function cachePayments(customerClientId, serverPayments) {
     customer_client_id: customerClientId,
     customer_server_id: p.customer_id,
     amount_paid: p.amount_paid,
+    discount_amount: p.discount_amount ?? 0,
     payment_method: p.payment_method,
     payment_date: p.payment_date,
     note: p.note,
@@ -461,6 +440,7 @@ export async function loadCachedVouchers(customerClientId) {
     items_total: v.items_total ?? 0,
     extra_charge_note: v.extra_charge_note ?? null,
     extra_charge_amount: v.extra_charge_amount ?? 0,
+    discount_amount: v.discount_amount ?? 0,
     paid_amount: v.paid_amount ?? 0,
     payment_method: v.payment_method,
     note: v.note,
@@ -483,6 +463,7 @@ export async function loadCachedPayments(customerClientId) {
     client_id: p.client_id,
     server_id: p.server_id,
     amount_paid: p.amount_paid,
+    discount_amount: p.discount_amount ?? 0,
     payment_method: p.payment_method,
     payment_date: p.payment_date,
     note: p.note,

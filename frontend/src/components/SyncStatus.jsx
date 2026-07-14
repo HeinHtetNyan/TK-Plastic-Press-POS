@@ -38,7 +38,7 @@ const SyncStatus = () => {
     return () => clearInterval(id);
   }, [refreshCount]);
 
-  // ---- Offline ----
+  // Offline
   if (!isOnline) {
     return (
       <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-100 text-red-700 text-[11px] font-black uppercase tracking-wider select-none">
@@ -53,7 +53,7 @@ const SyncStatus = () => {
     );
   }
 
-  // ---- Syncing ----
+  // Syncing
   if (syncing) {
     return (
       <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-100 text-blue-700 text-[11px] font-black uppercase tracking-wider select-none">
@@ -63,7 +63,7 @@ const SyncStatus = () => {
     );
   }
 
-  // ---- Pending items ----
+  // Pending items
   if (pendingCount > 0) {
     return (
       <button
@@ -80,7 +80,7 @@ const SyncStatus = () => {
     );
   }
 
-  // ---- All synced ----
+  // All synced
   return (
     <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-100 text-green-700 text-[11px] font-black uppercase tracking-wider select-none">
       <CheckCircle2 size={13} />

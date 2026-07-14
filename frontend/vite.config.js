@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
 
-  // ── Development server ───────────────────────────────────────────────────
+  // Development server
   server: {
     host: true,
     port: 5173,
@@ -22,7 +22,7 @@ export default defineConfig({
     }
   },
 
-  // ── Production build ─────────────────────────────────────────────────────
+  // Production build
   build: {
     outDir: 'dist',
     sourcemap: false,          // No source maps in production (don't expose source)

@@ -31,7 +31,8 @@ def create_voucher_service(session: Session, voucher_in: VoucherCreate, user_id:
         
     # 4. Calculate totals
     extra_charge = voucher_in.extra_charge_amount or 0.0
-    final_total = items_total + extra_charge + previous_balance
+    discount = voucher_in.discount_amount or 0.0
+    final_total = items_total + extra_charge - discount + previous_balance
     remaining_balance = final_total - (voucher_in.paid_amount or 0.0)
 
     # 5. Create voucher
@@ -43,6 +44,7 @@ def create_voucher_service(session: Session, voucher_in: VoucherCreate, user_id:
         items_total=items_total,
         extra_charge_note=voucher_in.extra_charge_note or None,
         extra_charge_amount=extra_charge,
+        discount_amount=discount,
         previous_balance=previous_balance,
         final_total=final_total,
         paid_amount=voucher_in.paid_amount or 0.0,

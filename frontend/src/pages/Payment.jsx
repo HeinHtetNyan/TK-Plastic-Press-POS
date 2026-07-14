@@ -18,6 +18,7 @@ const Payment = () => {
   const [balanceIsEstimate, setBalanceIsEstimate] = useState(false);
 
   const [amount, setAmount] = useState('');
+  const [discountAmount, setDiscountAmount] = useState('');
   const [note, setNote] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [paymentDate, setPaymentDate] = useState(new Date().toLocaleDateString('en-GB').split('/').join('-'));
@@ -66,19 +67,21 @@ const Payment = () => {
     const clientId = generateUUID();
     const now = new Date().toISOString();
     const paid = parseFloat(amount);
+    const discount = parseFloat(discountAmount) || 0;
     const serverId = customer.server_id ?? (typeof customer.id === 'number' ? customer.id : null);
 
     const apiPayload = {
       customer_id: serverId,
       customer_client_id: customer.client_id ?? null,
       amount_paid: paid,
+      discount_amount: discount,
       payment_method: paymentMethod,
       payment_date: paymentDate,
       note: note,
       client_id: clientId,
     };
 
-    // ── ONLINE PATH: call API first; IndexedDB is best-effort ──────────
+    // ONLINE PATH: call API first; IndexedDB is best-effort
     if (navigator.onLine && serverId) {
       try {
         await paymentService.create(apiPayload);
@@ -90,6 +93,7 @@ const Payment = () => {
           customer_client_id: customer.client_id ?? `server_${serverId}`,
           customer_server_id: serverId,
           amount_paid: paid,
+          discount_amount: discount,
           payment_method: paymentMethod,
           payment_date: paymentDate,
           note: note,
@@ -112,7 +116,7 @@ const Payment = () => {
       }
     }
 
-    // ── OFFLINE PATH: IndexedDB is required ────────────────────────────
+    // OFFLINE PATH: IndexedDB is required
     try {
       // Wrap both writes in one transaction — either both succeed or neither does
       await db.transaction('rw', db.payments, db.sync_queue, async () => {
@@ -122,6 +126,7 @@ const Payment = () => {
           customer_client_id: customer.client_id ?? `server_${serverId}`,
           customer_server_id: serverId,
           amount_paid: paid,
+          discount_amount: discount,
           payment_method: paymentMethod,
           payment_date: paymentDate,
           note: note,
@@ -192,6 +197,20 @@ const Payment = () => {
                     value={amount}
                     onKeyDown={(e) => e.key === '-' && e.preventDefault()}
                     onChange={(e) => setAmount(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-gray-600 uppercase px-1">{t('discount')} <span className="text-gray-400 font-bold normal-case">({t('optional')})</span></label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    className="w-full p-3 bg-red-50 border-2 border-red-100 rounded-xl outline-none focus:border-red-400 transition-all font-bold text-red-700 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    placeholder="0"
+                    value={discountAmount}
+                    onKeyDown={(e) => e.key === '-' && e.preventDefault()}
+                    onChange={(e) => setDiscountAmount(e.target.value)}
                   />
                 </div>
 

@@ -113,7 +113,8 @@ def update_voucher(
 
     items_total = sum(i.lb * (i.plastic_price + i.color_price) for i in voucher_in.items)
     extra_charge = voucher_in.extra_charge_amount or 0.0
-    final_total = items_total + extra_charge + voucher.previous_balance
+    discount = voucher_in.discount_amount or 0.0
+    final_total = items_total + extra_charge - discount + voucher.previous_balance
     remaining_balance = final_total - (voucher_in.paid_amount or 0.0)
 
     for old_item in list(voucher.items):
@@ -139,6 +140,7 @@ def update_voucher(
     voucher.items_total = items_total
     voucher.extra_charge_note = voucher_in.extra_charge_note or None
     voucher.extra_charge_amount = extra_charge
+    voucher.discount_amount = discount
     voucher.final_total = final_total
     voucher.paid_amount = voucher_in.paid_amount or 0.0
     voucher.payment_method = voucher_in.payment_method
