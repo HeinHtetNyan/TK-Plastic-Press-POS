@@ -52,10 +52,8 @@ const Home = () => {
     setEditingCustomer(null);
   };
 
-  // ------------------------------------------------------------------
   // Customer loading
   // Rule: always show API data first; Dexie caching is best-effort.
-  // ------------------------------------------------------------------
   const fetchAllCustomers = useCallback(async () => {
     setCustomersLoadError(null);
     try {
@@ -81,9 +79,7 @@ const Home = () => {
     }
   }, []);
 
-  // ------------------------------------------------------------------
   // Balance
-  // ------------------------------------------------------------------
   const fetchBalance = useCallback(async (customer) => {
     if (!customer) return;
     const serverId = customer.server_id ?? customer.id;
@@ -144,16 +140,14 @@ const Home = () => {
     }
   }, [selectedCustomer, fetchBalance]);
 
-  // ------------------------------------------------------------------
   // Customer creation / update
-  // ------------------------------------------------------------------
   const handleAddCustomer = async (e) => {
     e.preventDefault();
     if (!customerForm.name.trim() || isCreatingCustomer) return;
 
     setIsCreatingCustomer(true);
 
-    // ── ONLINE PATH: try the API first ────────────────────────────────
+    // ONLINE PATH: try the API first
     if (navigator.onLine) {
       // Generate client_id before the request so we can use it for idempotent
       // recovery on 5xx — the backend stores it and we can look it up by it.
@@ -217,7 +211,7 @@ const Home = () => {
       }
     }
 
-    // ── OFFLINE PATH: save locally and queue for sync ─────────────────
+    // OFFLINE PATH: save locally and queue for sync
     const clientId = generateUUID();
     const now = new Date().toISOString();
 
@@ -301,7 +295,7 @@ const Home = () => {
       address: customerForm.address || null,
     };
 
-    // ── ONLINE PATH ──────────────────────────────────────────────────
+    // ONLINE PATH
     if (navigator.onLine) {
       try {
         const response = await customerService.update(serverId, updateFields);
@@ -333,7 +327,7 @@ const Home = () => {
       }
     }
 
-    // ── OFFLINE PATH: queue update ────────────────────────────────────
+    // OFFLINE PATH: queue update
     try {
       await db.transaction('rw', db.customers, db.sync_queue, async () => {
         await db.customers.update(clientId, { ...updateFields, sync_status: 'pending' });

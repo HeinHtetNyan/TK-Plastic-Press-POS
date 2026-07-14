@@ -41,6 +41,7 @@ const History = () => {
   const [editingPayment, setEditingPayment] = useState(null);
   const [editPaymentSaving, setEditPaymentSaving] = useState(false);
   const [editPaymentAmount, setEditPaymentAmount] = useState('');
+  const [editPaymentDiscountAmount, setEditPaymentDiscountAmount] = useState('');
   const [editPmtMethod, setEditPmtMethod] = useState('');
   const [editPaymentDate, setEditPaymentDate] = useState('');
   const [editPaymentNote, setEditPaymentNote] = useState('');
@@ -53,6 +54,7 @@ const History = () => {
   const [editItems, setEditItems] = useState([emptyItem()]);
   const [editExtraChargeNote, setEditExtraChargeNote] = useState('');
   const [editExtraChargeAmount, setEditExtraChargeAmount] = useState('');
+  const [editDiscountAmount, setEditDiscountAmount] = useState('');
   const [editPaidAmount, setEditPaidAmount] = useState('');
   const [editPaymentMethod, setEditPaymentMethod] = useState('');
   const [editNote, setEditNote] = useState('');
@@ -193,6 +195,7 @@ const History = () => {
     e.stopPropagation();
     setEditingPayment(item);
     setEditPaymentAmount(String(item.amount_paid));
+    setEditPaymentDiscountAmount(item.discount_amount > 0 ? String(item.discount_amount) : '');
     setEditPmtMethod(item.payment_method || '');
     setEditPaymentDate(item.payment_date || '');
     setEditPaymentNote(item.note || '');
@@ -218,6 +221,7 @@ const History = () => {
     }
     const payload = {
       amount_paid: amount,
+      discount_amount: parseFloat(editPaymentDiscountAmount) || 0,
       payment_method: editPmtMethod || null,
       payment_date: editPaymentDate || null,
       note: editPaymentNote || null,
@@ -253,6 +257,7 @@ const History = () => {
     );
     setEditExtraChargeNote(item.extra_charge_note || '');
     setEditExtraChargeAmount(item.extra_charge_amount > 0 ? String(item.extra_charge_amount) : '');
+    setEditDiscountAmount(item.discount_amount > 0 ? String(item.discount_amount) : '');
     setEditPaidAmount(item.paid_amount > 0 ? String(item.paid_amount) : '');
     setEditPaymentMethod(item.payment_method || '');
     setEditNote(item.note || '');
@@ -304,6 +309,7 @@ const History = () => {
       items: parsedItems,
       extra_charge_note: editExtraChargeNote || null,
       extra_charge_amount: parseFloat(editExtraChargeAmount) || 0,
+      discount_amount: parseFloat(editDiscountAmount) || 0,
       paid_amount: parseFloat(editPaidAmount) || 0,
       payment_method: editPaymentMethod || null,
       note: editNote || null,
@@ -329,9 +335,10 @@ const History = () => {
     return sum + lb * (pp + cp);
   }, 0);
   const editExtraCharge = parseFloat(editExtraChargeAmount) || 0;
+  const editDiscount = parseFloat(editDiscountAmount) || 0;
   const editPaid = parseFloat(editPaidAmount) || 0;
   const editPrevBalance = editingVoucher?.previous_balance || 0;
-  const editFinalTotal = editItemsTotal + editExtraCharge + editPrevBalance;
+  const editFinalTotal = editItemsTotal + editExtraCharge - editDiscount + editPrevBalance;
   const editRemaining = editFinalTotal - editPaid;
 
   const filteredData = [
@@ -501,7 +508,7 @@ const History = () => {
                             </tbody>
                           </table>
                         </div>
-                        <div className={`grid gap-2 text-[9px] font-black uppercase text-center ${item.extra_charge_amount > 0 ? 'grid-cols-4' : 'grid-cols-3'}`}>
+                        <div className={`grid gap-2 text-[9px] font-black uppercase text-center ${(item.extra_charge_amount > 0 ? 1 : 0) + (item.discount_amount > 0 ? 1 : 0) === 2 ? 'grid-cols-5' : (item.extra_charge_amount > 0 || item.discount_amount > 0) ? 'grid-cols-4' : 'grid-cols-3'}`}>
                           <div className="bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
                             <span className="text-gray-400 block mb-1">{t('voucher_total')}</span>
                             <span className="text-gray-700 text-xs">{item.items_total.toLocaleString()}</span>
@@ -510,6 +517,12 @@ const History = () => {
                             <div className="bg-orange-50 p-2 rounded-lg border border-orange-100 shadow-sm">
                               <span className="text-gray-400 block mb-1 tracking-tighter truncate">{item.extra_charge_note || 'Extra'}</span>
                               <span className="text-orange-500 text-xs">+{item.extra_charge_amount.toLocaleString()}</span>
+                            </div>
+                          )}
+                          {item.discount_amount > 0 && (
+                            <div className="bg-red-50 p-2 rounded-lg border border-red-100 shadow-sm">
+                              <span className="text-gray-400 block mb-1 tracking-tighter truncate">{t('discount')}</span>
+                              <span className="text-red-500 text-xs">-{item.discount_amount.toLocaleString()}</span>
                             </div>
                           )}
                           <div className="bg-white p-2 rounded-lg border border-orange-100 shadow-sm">
@@ -528,6 +541,7 @@ const History = () => {
                           <span className="text-[10px] flex items-center gap-1 text-gray-400 font-bold normal-case tracking-normal">
                             {item.items_total.toLocaleString()}
                             {item.extra_charge_amount > 0 && <> + {item.extra_charge_amount.toLocaleString()}</>}
+                            {item.discount_amount > 0 && <> − {item.discount_amount.toLocaleString()}</>}
                             {' '}+ {item.previous_balance.toLocaleString()} − {item.paid_amount.toLocaleString()} =
                             <span className={`font-black text-sm ${item.remaining_balance > 0 ? 'text-red-500' : 'text-green-600'}`}>
                               {item.remaining_balance.toLocaleString()}
@@ -603,7 +617,7 @@ const History = () => {
                             <p className="text-xs font-bold text-green-700 leading-tight italic">"{item.note}"</p>
                           </div>
                         )}
-                        <div className="grid grid-cols-2 gap-2 text-[9px] font-black uppercase text-center">
+                        <div className={`grid gap-2 text-[9px] font-black uppercase text-center ${item.discount_amount > 0 ? 'grid-cols-3' : 'grid-cols-2'}`}>
                           <div className="bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
                             <span className="text-gray-400 block mb-1">{t('payment_method') || 'METHOD'}</span>
                             <span className={`text-xs ${
@@ -618,10 +632,20 @@ const History = () => {
                             <span className="text-gray-400 block mb-1">{t('amount_paid')}</span>
                             <span className="text-green-600 text-xs">{item.amount_paid.toLocaleString()}</span>
                           </div>
+                          {item.discount_amount > 0 && (
+                            <div className="bg-red-50 p-2 rounded-lg border border-red-100 shadow-sm">
+                              <span className="text-gray-400 block mb-1">{t('discount')}</span>
+                              <span className="text-red-500 text-xs">-{item.discount_amount.toLocaleString()}</span>
+                            </div>
+                          )}
                         </div>
                         <div className="flex items-center justify-between px-3 py-2 rounded-lg border bg-green-50 border-green-200 text-[9px] font-black uppercase">
                           <span className="text-gray-500 tracking-widest">{t('amount_paid')}</span>
-                          <span className="font-black text-sm text-green-600">{item.amount_paid.toLocaleString()}</span>
+                          <span className="font-black text-sm text-green-600">
+                            {item.discount_amount > 0
+                              ? `${item.amount_paid.toLocaleString()} + ${item.discount_amount.toLocaleString()} = ${(item.amount_paid + item.discount_amount).toLocaleString()}`
+                              : item.amount_paid.toLocaleString()}
+                          </span>
                         </div>
                       </div>
                     )}
@@ -664,6 +688,18 @@ const History = () => {
                 />
               </div>
 
+              {/* Discount */}
+              <div>
+                <label className="text-[10px] font-black text-red-400 uppercase tracking-widest block mb-1">{t('discount')} ({t('optional')})</label>
+                <input
+                  type="number"
+                  step="any"
+                  value={editPaymentDiscountAmount}
+                  onChange={e => setEditPaymentDiscountAmount(e.target.value)}
+                  className="w-full p-2.5 bg-red-50 border-2 border-red-100 rounded-xl font-bold text-sm outline-none focus:border-red-400"
+                />
+              </div>
+
               {/* Method & Date */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -700,11 +736,17 @@ const History = () => {
               </div>
 
               {/* Summary */}
-              <div className="bg-green-50 rounded-xl p-3 border border-green-100 text-[10px] font-black uppercase">
+              <div className="bg-green-50 rounded-xl p-3 border border-green-100 text-[10px] font-black uppercase space-y-1">
                 <div className="flex justify-between text-green-700">
                   <span>{t('amount_paid')}</span>
                   <span className="text-sm">{(parseFloat(editPaymentAmount) || 0).toLocaleString()}</span>
                 </div>
+                {parseFloat(editPaymentDiscountAmount) > 0 && (
+                  <div className="flex justify-between text-red-500">
+                    <span>{t('discount')}</span>
+                    <span className="text-sm">-{(parseFloat(editPaymentDiscountAmount) || 0).toLocaleString()}</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -835,6 +877,17 @@ const History = () => {
                 </div>
               </div>
 
+              {/* Discount */}
+              <div className="border-2 border-dashed border-red-200 rounded-xl p-3 space-y-2">
+                <label className="text-[10px] font-black text-red-400 uppercase tracking-widest block">{t('discount')} ({t('optional')})</label>
+                <div>
+                  <label className="text-[9px] font-black text-gray-400 uppercase block mb-0.5">{t('amount')}</label>
+                  <input type="number" step="any" value={editDiscountAmount} onChange={e => setEditDiscountAmount(e.target.value)}
+                    placeholder="0"
+                    className="w-full p-2 bg-white border border-red-100 rounded-lg text-xs font-bold outline-none focus:border-red-400" />
+                </div>
+              </div>
+
               {/* Payment */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -871,6 +924,11 @@ const History = () => {
                 {editExtraCharge > 0 && (
                   <div className="flex justify-between text-orange-500">
                     <span>{editExtraChargeNote || 'Extra'}</span><span>+{editExtraCharge.toLocaleString()}</span>
+                  </div>
+                )}
+                {editDiscount > 0 && (
+                  <div className="flex justify-between text-red-500">
+                    <span>{t('discount')}</span><span>-{editDiscount.toLocaleString()}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-gray-500">

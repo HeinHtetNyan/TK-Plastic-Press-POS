@@ -34,6 +34,7 @@ def create_payment(
         client_id=payment_in.client_id,
         customer_id=payment_in.customer_id,
         amount_paid=payment_in.amount_paid,
+        discount_amount=payment_in.discount_amount or 0.0,
         payment_method=payment_in.payment_method,
         payment_date=payment_in.payment_date,
         note=payment_in.note,
@@ -79,6 +80,8 @@ def update_payment(
 
     if payment_in.amount_paid is not None:
         payment.amount_paid = payment_in.amount_paid
+    if payment_in.discount_amount is not None:
+        payment.discount_amount = payment_in.discount_amount
     if payment_in.payment_method is not None:
         payment.payment_method = payment_in.payment_method
     if payment_in.payment_date is not None:

@@ -6,6 +6,7 @@ from app.models.enums import PaymentMethod
 class PaymentBase(BaseModel):
     customer_id: int
     amount_paid: float = Field(ge=0)
+    discount_amount: float = Field(default=0.0, ge=0)
     payment_method: Optional[PaymentMethod] = Field(default=None)
     payment_date: Optional[date] = None
     note: Optional[str] = None
@@ -33,6 +34,7 @@ class PaymentCreate(PaymentBase):
 
 class PaymentUpdate(BaseModel):
     amount_paid: Optional[float] = None
+    discount_amount: Optional[float] = None
     payment_method: Optional[PaymentMethod] = None
     payment_date: Optional[date] = None
     note: Optional[str] = None
