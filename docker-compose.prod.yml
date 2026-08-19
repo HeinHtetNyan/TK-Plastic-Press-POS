@@ -1,6 +1,6 @@
 services:
 
-  # -- FastAPI backend (exposed on port 8000, Cloudflare Tunnel points here) --
+  # FastAPI backend (exposed on port 8000, Cloudflare Tunnel points here)
   backend:
     build: ./backend
     container_name: plastic_press_backend
@@ -17,7 +17,7 @@ services:
     networks:
       - internal
 
-  # -- PostgreSQL ---------------------------------------------------------------
+  # PostgreSQL
   postgres:
     image: postgres:15-alpine
     container_name: plastic_press_db
@@ -41,7 +41,7 @@ services:
     networks:
       - internal
 
-  # -- Hourly pg_dump → ./backups/ ---------------------------------------------
+  # Hourly pg_dump → ./backups/
   db-backup:
     image: prodrigestivill/postgres-backup-local
     container_name: plastic_press_db_backup
@@ -66,7 +66,7 @@ services:
     networks:
       - internal
 
-  # -- R2 backup uploader (rclone syncs ./backups → Cloudflare R2) --------------
+  # R2 backup uploader (rclone syncs ./backups → Cloudflare R2)
   backup-uploader:
     image: rclone/rclone:latest
     container_name: plastic_press_backup_uploader
