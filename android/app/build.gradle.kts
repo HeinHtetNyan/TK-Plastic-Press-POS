@@ -11,6 +11,9 @@ val localProps = Properties().apply {
     if (f.exists()) load(f.inputStream())
 }
 val posUrl: String = localProps.getProperty("pos.url", "https://api.heinh.dev")
+// Comma-separated backup URLs tried in order if pos.url is unreachable (e.g. an
+// intermittently-blocked domain) — leave empty in local.properties if none yet
+val posFallbackUrls: String = localProps.getProperty("pos.fallback_urls", "")
 
 android {
     namespace = "com.tkplasticpress.pos"
@@ -24,6 +27,7 @@ android {
         versionName = "1.0"
         // Injected from local.properties — change pos.url there, not in source code
         buildConfigField("String", "POS_URL", "\"$posUrl\"")
+        buildConfigField("String", "POS_FALLBACK_URLS", "\"$posFallbackUrls\"")
     }
 
     buildFeatures {

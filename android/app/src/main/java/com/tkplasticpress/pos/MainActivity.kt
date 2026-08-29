@@ -10,6 +10,8 @@ import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.View
 import android.webkit.CookieManager
 import android.webkit.WebChromeClient
@@ -29,9 +31,19 @@ class MainActivity : AppCompatActivity() {
     private lateinit var progressBar: ProgressBar
     private lateinit var swipeRefreshLayout: SwipeRefreshLayout
     
-    // URL is set in android/local.properties as pos.url (never hardcoded here)
-    // Change it there and rebuild whenever your Cloudflare tunnel URL rotates
-    private val POS_URL = BuildConfig.POS_URL
+    // URLs are set in android/local.properties as pos.url / pos.fallback_urls
+    // (never hardcoded here). Change them there and rebuild to roll out a new host.
+    private val POS_URLS: List<String> = (listOf(BuildConfig.POS_URL) + BuildConfig.POS_FALLBACK_URLS
+        .split(",")
+        .map { it.trim() }
+        .filter { it.isNotEmpty() })
+        .distinct()
+    private val POS_URL get() = POS_URLS[currentUrlIndex]
+
+    private var currentUrlIndex = 0
+    private var retryCount = 0
+    private val maxRetriesPerUrl = 3
+    private val retryHandler = Handler(Looper.getMainLooper())
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -117,6 +129,9 @@ class MainActivity : AppCompatActivity() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 swipeRefreshLayout.isRefreshing = false
+                // A real page load made it through — stop counting failures against
+                // the current host (stays on a fallback host once one works).
+                retryCount = 0
             }
 
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
@@ -144,11 +159,33 @@ class MainActivity : AppCompatActivity() {
                 error: WebResourceError?
             ) {
                 super.onReceivedError(view, request, error)
-                // App Service Worker should ideally handle offline routing
-                // If Service Worker is completely dead or first load fails without cache:
-                // We could display a local fallback page here if necessary
+                // Only the top-level page load matters here — a failed sub-resource
+                // (an image, an API call) shouldn't restart the whole WebView.
+                if (request?.isForMainFrame != true) return
+                handleMainFrameLoadFailure()
             }
         }
+    }
+
+    private fun handleMainFrameLoadFailure() {
+        retryHandler.removeCallbacksAndMessages(null)
+
+        if (retryCount < maxRetriesPerUrl) {
+            retryCount++
+            // Short exponential-ish backoff: 1.5s, 3s, 4.5s — absorbs transient
+            // network blips before giving up on the current host.
+            val delayMs = 1500L * retryCount
+            retryHandler.postDelayed({ webView.loadUrl(POS_URL) }, delayMs)
+            return
+        }
+
+        // Current host is exhausted — move to the next configured fallback, if any.
+        if (currentUrlIndex < POS_URLS.lastIndex) {
+            currentUrlIndex++
+            retryCount = 0
+            retryHandler.postDelayed({ webView.loadUrl(POS_URL) }, 1000L)
+        }
+        // No hosts left: leave the WebView's own error page showing, as before.
     }
 
     private fun setupNetworkListener() {
@@ -180,5 +217,10 @@ class MainActivity : AppCompatActivity() {
     override fun onRestoreInstanceState(savedInstanceState: Bundle) {
         super.onRestoreInstanceState(savedInstanceState)
         webView.restoreState(savedInstanceState)
+    }
+
+    override fun onDestroy() {
+        retryHandler.removeCallbacksAndMessages(null)
+        super.onDestroy()
     }
 }
