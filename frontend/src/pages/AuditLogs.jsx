@@ -56,11 +56,11 @@ const AuditLogs = () => {
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Time</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">User</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Action</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Entity</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Details</th>
+                  <th className="px-6 py-4 text-sm font-black text-gray-400 uppercase tracking-widest">Time</th>
+                  <th className="px-6 py-4 text-sm font-black text-gray-400 uppercase tracking-widest">User</th>
+                  <th className="px-6 py-4 text-sm font-black text-gray-400 uppercase tracking-widest">Action</th>
+                  <th className="px-6 py-4 text-sm font-black text-gray-400 uppercase tracking-widest">Entity</th>
+                  <th className="px-6 py-4 text-sm font-black text-gray-400 uppercase tracking-widest">Details</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -71,27 +71,27 @@ const AuditLogs = () => {
                 ) : logs.length > 0 ? logs.map((log) => (
                   <tr key={log.id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
+                      <div className="flex items-center gap-2 text-base font-bold text-gray-500">
                         <Clock size={12} />
                         {new Date(log.created_at).toLocaleString('en-GB')}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2 text-sm font-black text-blue-600">
+                      <div className="flex items-center gap-2 text-base font-black text-blue-600">
                         <User size={14} />
                         {log.username}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${getActionColor(log.action)}`}>
+                      <span className={`px-2 py-1 rounded-full text-sm font-black uppercase tracking-tighter ${getActionColor(log.action)}`}>
                         {log.action}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-600">
+                    <td className="px-6 py-4 whitespace-nowrap text-base font-bold text-gray-600">
                       {log.entity_type} <span className="text-gray-400 font-normal">#{log.entity_id}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-start gap-2 text-sm text-gray-500 font-medium max-w-xs">
+                      <div className="flex items-start gap-2 text-base text-gray-500 font-medium max-w-xs">
                         <Info size={14} className="mt-0.5 flex-shrink-0" />
                         {log.details}
                       </div>

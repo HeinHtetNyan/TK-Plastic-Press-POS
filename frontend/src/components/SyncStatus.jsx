@@ -41,11 +41,11 @@ const SyncStatus = () => {
   // Offline
   if (!isOnline) {
     return (
-      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-100 text-red-700 text-[11px] font-black uppercase tracking-wider select-none">
+      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-100 text-red-700 text-sm font-black uppercase tracking-wider select-none">
         <WifiOff size={13} />
         <span>Offline</span>
         {pendingCount > 0 && (
-          <span className="bg-red-600 text-white rounded-full px-1.5 py-0.5 text-[10px] leading-none">
+          <span className="bg-red-600 text-white rounded-full px-1.5 py-0.5 text-sm leading-none">
             {pendingCount}
           </span>
         )}
@@ -56,7 +56,7 @@ const SyncStatus = () => {
   // Syncing
   if (syncing) {
     return (
-      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-100 text-blue-700 text-[11px] font-black uppercase tracking-wider select-none">
+      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-100 text-blue-700 text-sm font-black uppercase tracking-wider select-none">
         <RefreshCw size={13} className="animate-spin" />
         <span>Syncing…</span>
       </div>
@@ -69,11 +69,11 @@ const SyncStatus = () => {
       <button
         onClick={handleSync}
         title="Tap to sync now"
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-yellow-100 text-yellow-800 text-[11px] font-black uppercase tracking-wider hover:bg-yellow-200 active:scale-95 transition-all"
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-yellow-100 text-yellow-800 text-sm font-black uppercase tracking-wider hover:bg-yellow-200 active:scale-95 transition-all"
       >
         <AlertCircle size={13} />
         <span>Pending</span>
-        <span className="bg-yellow-600 text-white rounded-full px-1.5 py-0.5 text-[10px] leading-none">
+        <span className="bg-yellow-600 text-white rounded-full px-1.5 py-0.5 text-sm leading-none">
           {pendingCount}
         </span>
       </button>
@@ -82,7 +82,7 @@ const SyncStatus = () => {
 
   // All synced
   return (
-    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-100 text-green-700 text-[11px] font-black uppercase tracking-wider select-none">
+    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-100 text-green-700 text-sm font-black uppercase tracking-wider select-none">
       <CheckCircle2 size={13} />
       <span>Online</span>
     </div>

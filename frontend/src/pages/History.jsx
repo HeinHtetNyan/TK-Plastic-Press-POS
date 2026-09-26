@@ -357,7 +357,7 @@ const History = () => {
   return (
     <Layout>
       <div className="space-y-4 pb-12 animate-in slide-in-from-right-4 duration-500">
-        <header className="flex items-center justify-between gap-2">
+        <header className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <button onClick={() => navigate('/', { state: { customer: customer } })} className="p-2 bg-white rounded-full shadow-sm hover:bg-gray-100 transition-all">
               <ArrowLeft size={20} className="text-gray-600" />
@@ -365,9 +365,9 @@ const History = () => {
             <h2 className="text-xl font-black text-gray-800">{t('history')}</h2>
           </div>
           {customer && (
-            <div className="bg-blue-50 px-3 py-1 rounded-xl border border-blue-100 text-right">
-              <span className="text-[9px] font-black text-blue-400 uppercase block tracking-tighter leading-none mb-1">{t('customer')}</span>
-              <p className="text-sm font-black text-blue-700 truncate max-w-[120px] leading-none">{customer.name}</p>
+            <div className="bg-blue-50 px-3 py-1 rounded-xl border border-blue-100 text-right min-w-0 max-w-full">
+              <span className="text-base font-black text-blue-400 uppercase block tracking-tighter leading-none mb-1">{t('customer')}</span>
+              <p className="text-base font-black text-blue-700 truncate max-w-[220px] leading-none">{customer.name}</p>
             </div>
           )}
         </header>
@@ -383,7 +383,7 @@ const History = () => {
           {selectedDate && (
             <button
               onClick={() => setSelectedDate('')}
-              className="flex items-center gap-1 text-[10px] font-black text-red-400 bg-red-50 px-3 py-2 rounded-xl border border-red-100 hover:bg-red-100 transition-all mb-0.5"
+              className="flex items-center gap-1 text-base font-black text-red-400 bg-red-50 px-3 py-2 rounded-xl border border-red-100 hover:bg-red-100 transition-all mb-0.5"
             >
               <X size={10} /> {t('clear') || 'Clear'}
             </button>
@@ -393,7 +393,7 @@ const History = () => {
         <div className="flex justify-end">
           <button
             onClick={() => setSortOrder(s => s === 'asc' ? 'desc' : 'asc')}
-            className="flex items-center gap-1.5 text-[10px] font-black text-gray-500 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-gray-100 hover:border-blue-200 hover:text-blue-600 transition-all"
+            className="flex items-center gap-1.5 text-base font-black text-gray-500 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-gray-100 hover:border-blue-200 hover:text-blue-600 transition-all"
           >
             <ArrowUpDown size={10} />
             {sortOrder === 'asc' ? t('oldest_first') : t('newest_first')}
@@ -402,7 +402,7 @@ const History = () => {
 
         <div className="space-y-3">
           {loading ? (
-            <div className="text-center py-12 text-gray-400 font-bold text-sm uppercase tracking-widest animate-pulse">{t('refreshing_records')}</div>
+            <div className="text-center py-12 text-gray-400 font-bold text-base uppercase tracking-widest animate-pulse">{t('refreshing_records')}</div>
           ) : filteredData.length > 0 ? (
             filteredData.map((item) => (
               <div key={`${item.type}-${item.id}`} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-in fade-in transition-all">
@@ -417,14 +417,14 @@ const History = () => {
                           <FileText size={18} />
                         </div>
                         <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-black text-gray-800 text-sm truncate">{item.voucher_number}</span>
-                            <span className="text-[9px] bg-gray-100 px-1.5 py-0.5 rounded font-black text-gray-500 whitespace-nowrap">{item.voucher_date}</span>
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span className="font-black text-gray-800 text-base">{item.voucher_number}</span>
+                            <span className="text-base bg-gray-100 px-1.5 py-0.5 rounded font-black text-gray-500 whitespace-nowrap">{item.voucher_date}</span>
                             {item.sync_status === 'pending' && (
-                              <span className="text-[8px] bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded font-black uppercase">Pending</span>
+                              <span className="text-base bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded font-black uppercase">Pending</span>
                             )}
                             {item.paid_amount > 0 && item.payment_method && (
-                              <span className={`text-[8px] px-1.5 py-0.5 rounded font-black uppercase ${
+                              <span className={`text-base px-1.5 py-0.5 rounded font-black uppercase ${
                                 item.payment_method === 'KBZPAY' ? 'bg-blue-100 text-blue-600' :
                                 item.payment_method === 'BANK_TRANSFER' ? 'bg-purple-100 text-purple-600' :
                                 'bg-green-100 text-green-600'
@@ -433,13 +433,17 @@ const History = () => {
                               </span>
                             )}
                           </div>
-                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{item.items?.length || 0} {t('products')}</p>
+                          <p className="text-base text-gray-400 font-bold uppercase tracking-widest">{item.items?.length || 0} {t('products')}</p>
+                          <p className="sm:hidden text-base font-black mt-0.5">
+                            <span className="text-gray-400 uppercase text-sm">{t('remaining')}: </span>
+                            <span className={item.remaining_balance > 0 ? 'text-red-500' : 'text-green-500'}>{item.remaining_balance.toLocaleString()}</span>
+                          </p>
                         </div>
                       </div>
                       <div className="text-right flex items-center gap-2">
                         <div className="hidden sm:block">
-                          <span className="text-[9px] text-gray-400 font-black uppercase block tracking-tighter">{t('remaining')}</span>
-                          <span className={`text-sm font-black ${item.remaining_balance > 0 ? 'text-red-500' : 'text-green-500'}`}>
+                          <span className="text-base text-gray-400 font-black uppercase block tracking-tighter">{t('remaining')}</span>
+                          <span className={`text-base font-black ${item.remaining_balance > 0 ? 'text-red-500' : 'text-green-500'}`}>
                             {item.remaining_balance.toLocaleString()}
                           </span>
                         </div>
@@ -470,80 +474,65 @@ const History = () => {
                       <div className="bg-gray-50 p-3 border-t border-gray-100 space-y-3 animate-in slide-in-from-top-2">
                         {item.note && (
                           <div className="bg-blue-50/50 p-2 rounded-xl border border-blue-100/50">
-                            <span className="text-[8px] font-black text-blue-400 uppercase block leading-none mb-1">{t('note')}</span>
-                            <p className="text-xs font-bold text-blue-700 leading-tight italic">"{item.note}"</p>
+                            <span className="text-base font-black text-blue-400 uppercase block leading-none mb-1">{t('note')}</span>
+                            <p className="text-base font-bold text-blue-700 leading-tight italic">"{item.note}"</p>
                           </div>
                         )}
-                        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                          <table className="w-full text-[10px] text-left">
-                            <thead className="bg-gray-100 font-black text-gray-500 uppercase">
-                              <tr><th className="p-2">{t('details')}</th><th className="p-2 text-right">{t('price')}</th><th className="p-2 text-right">{t('total')}</th></tr>
-                            </thead>
-                            <tbody className="font-bold text-gray-700">
-                              {item.items?.map((it, idx) => (
-                                <React.Fragment key={idx}>
-                                  <tr className="border-t border-gray-100">
-                                    <td className="p-2 align-top">
-                                      <div className="text-blue-600">{it.lb} {t('weight_lb').split(' ')[1] || 'LB'} - {it.plastic_size} ({it.color})</div>
-                                      <div className="mt-1 space-y-0.5">
-                                        <div className="text-[9px] text-gray-500 uppercase flex justify-between">
-                                          <span>{t('plastic')}: {it.lb} {t('weight_lb').split(' ')[1] || 'LB'} × {it.plastic_price} {t('price')}</span>
-                                          <span className="font-black">{(it.lb * it.plastic_price).toLocaleString()}</span>
-                                        </div>
-                                        <div className="text-[9px] text-gray-500 uppercase flex justify-between border-b border-gray-50 pb-0.5">
-                                          <span>{t('color')}: {it.lb} {t('weight_lb').split(' ')[1] || 'LB'} × {it.color_price} {t('price')}</span>
-                                          <span className="font-black">{(it.lb * it.color_price).toLocaleString()}</span>
-                                        </div>
-                                      </div>
-                                    </td>
-                                    <td className="p-2 text-right align-top text-gray-400 font-medium">
-                                      {it.plastic_price + it.color_price}
-                                    </td>
-                                    <td className="p-2 text-right align-top text-blue-700 font-black">
-                                      {(it.total_price || 0).toLocaleString()}
-                                    </td>
-                                  </tr>
-                                </React.Fragment>
-                              ))}
-                            </tbody>
-                          </table>
+                        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden divide-y divide-gray-100">
+                          {item.items?.map((it, idx) => (
+                            <div key={idx} className="p-3 space-y-1.5 font-bold text-gray-700">
+                              <div className="text-base text-blue-600 break-words">{it.lb} {t('weight_lb').split(' ')[1] || 'LB'} - {it.plastic_size} ({it.color})</div>
+                              <div className="text-sm sm:text-base text-gray-500 uppercase flex justify-between items-start gap-3">
+                                <span className="min-w-0 break-words">{t('plastic')}: {it.lb} {t('weight_lb').split(' ')[1] || 'LB'} × {it.plastic_price} {t('price')}</span>
+                                <span className="font-black text-gray-700 whitespace-nowrap shrink-0">{(it.lb * it.plastic_price).toLocaleString()}</span>
+                              </div>
+                              <div className="text-sm sm:text-base text-gray-500 uppercase flex justify-between items-start gap-3">
+                                <span className="min-w-0 break-words">{t('color')}: {it.lb} {t('weight_lb').split(' ')[1] || 'LB'} × {it.color_price} {t('price')}</span>
+                                <span className="font-black text-gray-700 whitespace-nowrap shrink-0">{(it.lb * it.color_price).toLocaleString()}</span>
+                              </div>
+                              <div className="flex justify-between items-baseline gap-3 pt-1.5 border-t border-gray-100 uppercase">
+                                <span className="text-sm text-gray-400 font-medium">{t('price')}: {it.plastic_price + it.color_price}</span>
+                                <span className="text-lg text-blue-700 font-black whitespace-nowrap">{t('total')}: {(it.total_price || 0).toLocaleString()}</span>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                        <div className={`grid gap-2 text-[9px] font-black uppercase text-center ${(item.extra_charge_amount > 0 ? 1 : 0) + (item.discount_amount > 0 ? 1 : 0) === 2 ? 'grid-cols-5' : (item.extra_charge_amount > 0 || item.discount_amount > 0) ? 'grid-cols-4' : 'grid-cols-3'}`}>
+                        <div className={`grid gap-2 text-base font-black uppercase text-center ${(item.extra_charge_amount > 0 ? 1 : 0) + (item.discount_amount > 0 ? 1 : 0) === 2 ? 'grid-cols-2 sm:grid-cols-5' : (item.extra_charge_amount > 0 || item.discount_amount > 0) ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3'}`}>
                           <div className="bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
                             <span className="text-gray-400 block mb-1">{t('voucher_total')}</span>
-                            <span className="text-gray-700 text-xs">{item.items_total.toLocaleString()}</span>
+                            <span className="text-gray-700 text-base">{item.items_total.toLocaleString()}</span>
                           </div>
                           {item.extra_charge_amount > 0 && (
                             <div className="bg-orange-50 p-2 rounded-lg border border-orange-100 shadow-sm">
                               <span className="text-gray-400 block mb-1 tracking-tighter truncate">{item.extra_charge_note || 'Extra'}</span>
-                              <span className="text-orange-500 text-xs">+{item.extra_charge_amount.toLocaleString()}</span>
+                              <span className="text-orange-500 text-base">+{item.extra_charge_amount.toLocaleString()}</span>
                             </div>
                           )}
                           {item.discount_amount > 0 && (
                             <div className="bg-red-50 p-2 rounded-lg border border-red-100 shadow-sm">
                               <span className="text-gray-400 block mb-1 tracking-tighter truncate">{t('discount')}</span>
-                              <span className="text-red-500 text-xs">-{item.discount_amount.toLocaleString()}</span>
+                              <span className="text-red-500 text-base">-{item.discount_amount.toLocaleString()}</span>
                             </div>
                           )}
                           <div className="bg-white p-2 rounded-lg border border-orange-100 shadow-sm">
                             <span className="text-gray-400 block mb-1 tracking-tighter">{t('previous_balance')}</span>
-                            <span className={`text-xs ${item.previous_balance > 0 ? 'text-orange-500' : 'text-gray-500'}`}>
+                            <span className={`text-base ${item.previous_balance > 0 ? 'text-orange-500' : 'text-gray-500'}`}>
                               {item.previous_balance.toLocaleString()}
                             </span>
                           </div>
                           <div className="bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
                             <span className="text-gray-400 block mb-1 tracking-tighter">{t('paid_at_site')}</span>
-                            <span className="text-green-600 text-xs">{item.paid_amount.toLocaleString()}</span>
+                            <span className="text-green-600 text-base">{item.paid_amount.toLocaleString()}</span>
                           </div>
                         </div>
-                        <div className={`flex items-center justify-between px-3 py-2 rounded-lg border text-[9px] font-black uppercase ${item.remaining_balance > 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+                        <div className={`flex items-center justify-between px-3 py-2 rounded-lg border text-base font-black uppercase ${item.remaining_balance > 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
                           <span className="text-gray-500 tracking-widest">{t('overall_total')}</span>
-                          <span className="text-[10px] flex items-center gap-1 text-gray-400 font-bold normal-case tracking-normal">
+                          <span className="text-base flex items-center gap-1 text-gray-400 font-bold normal-case tracking-normal">
                             {item.items_total.toLocaleString()}
                             {item.extra_charge_amount > 0 && <> + {item.extra_charge_amount.toLocaleString()}</>}
                             {item.discount_amount > 0 && <> − {item.discount_amount.toLocaleString()}</>}
                             {' '}+ {item.previous_balance.toLocaleString()} − {item.paid_amount.toLocaleString()} =
-                            <span className={`font-black text-sm ${item.remaining_balance > 0 ? 'text-red-500' : 'text-green-600'}`}>
+                            <span className={`font-black text-base ${item.remaining_balance > 0 ? 'text-red-500' : 'text-green-600'}`}>
                               {item.remaining_balance.toLocaleString()}
                             </span>
                           </span>
@@ -562,14 +551,14 @@ const History = () => {
                           <CreditCard size={18} />
                         </div>
                         <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-black text-green-700 text-sm">{t('direct_payment')}</span>
-                            <span className="text-[9px] bg-gray-100 px-1.5 py-0.5 rounded font-black text-gray-500 whitespace-nowrap">{item.payment_date}</span>
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span className="font-black text-green-700 text-base">{t('direct_payment')}</span>
+                            <span className="text-base bg-gray-100 px-1.5 py-0.5 rounded font-black text-gray-500 whitespace-nowrap">{item.payment_date}</span>
                             {item.sync_status === 'pending' && (
-                              <span className="text-[8px] bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded font-black uppercase">Pending</span>
+                              <span className="text-base bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded font-black uppercase">Pending</span>
                             )}
                             {item.payment_method && (
-                              <span className={`text-[8px] px-1.5 py-0.5 rounded font-black uppercase ${
+                              <span className={`text-base px-1.5 py-0.5 rounded font-black uppercase ${
                                 item.payment_method === 'KBZPAY' ? 'bg-blue-100 text-blue-600' :
                                 item.payment_method === 'BANK_TRANSFER' ? 'bg-purple-100 text-purple-600' :
                                 'bg-green-100 text-green-600'
@@ -578,13 +567,14 @@ const History = () => {
                               </span>
                             )}
                           </div>
-                          {item.note && <p className="text-[10px] text-gray-500 italic truncate max-w-[150px]">"{item.note}"</p>}
+                          {item.note && <p className="text-base text-gray-500 italic truncate max-w-[200px]">"{item.note}"</p>}
+                          <p className="sm:hidden font-black text-green-600 text-xl mt-0.5">{item.amount_paid.toLocaleString()}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div className="text-right">
-                          <span className="text-[9px] text-gray-400 font-black uppercase block tracking-tighter leading-none mb-1">{t('amount_paid')}</span>
-                          <span className="font-black text-green-600 text-base leading-none whitespace-nowrap">
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="text-right hidden sm:block">
+                          <span className="text-base text-gray-400 font-black uppercase block tracking-tighter leading-none mb-1">{t('amount_paid')}</span>
+                          <span className="font-black text-green-600 text-xl leading-none whitespace-nowrap">
                             {item.amount_paid.toLocaleString()}
                           </span>
                         </div>
@@ -613,14 +603,14 @@ const History = () => {
                       <div className="bg-gray-50 p-3 border-t border-gray-100 space-y-3 animate-in slide-in-from-top-2">
                         {item.note && (
                           <div className="bg-green-50/50 p-2 rounded-xl border border-green-100/50">
-                            <span className="text-[8px] font-black text-green-400 uppercase block leading-none mb-1">{t('note')}</span>
-                            <p className="text-xs font-bold text-green-700 leading-tight italic">"{item.note}"</p>
+                            <span className="text-base font-black text-green-400 uppercase block leading-none mb-1">{t('note')}</span>
+                            <p className="text-base font-bold text-green-700 leading-tight italic">"{item.note}"</p>
                           </div>
                         )}
-                        <div className={`grid gap-2 text-[9px] font-black uppercase text-center ${item.discount_amount > 0 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                        <div className={`grid gap-2 text-base font-black uppercase text-center ${item.discount_amount > 0 ? 'grid-cols-3' : 'grid-cols-2'}`}>
                           <div className="bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
                             <span className="text-gray-400 block mb-1">{t('payment_method') || 'METHOD'}</span>
-                            <span className={`text-xs ${
+                            <span className={`text-base ${
                               item.payment_method === 'KBZPAY' ? 'text-blue-600' :
                               item.payment_method === 'BANK_TRANSFER' ? 'text-purple-600' :
                               'text-green-600'
@@ -630,18 +620,18 @@ const History = () => {
                           </div>
                           <div className="bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
                             <span className="text-gray-400 block mb-1">{t('amount_paid')}</span>
-                            <span className="text-green-600 text-xs">{item.amount_paid.toLocaleString()}</span>
+                            <span className="text-green-600 text-base">{item.amount_paid.toLocaleString()}</span>
                           </div>
                           {item.discount_amount > 0 && (
                             <div className="bg-red-50 p-2 rounded-lg border border-red-100 shadow-sm">
                               <span className="text-gray-400 block mb-1">{t('discount')}</span>
-                              <span className="text-red-500 text-xs">-{item.discount_amount.toLocaleString()}</span>
+                              <span className="text-red-500 text-base">-{item.discount_amount.toLocaleString()}</span>
                             </div>
                           )}
                         </div>
-                        <div className="flex items-center justify-between px-3 py-2 rounded-lg border bg-green-50 border-green-200 text-[9px] font-black uppercase">
+                        <div className="flex items-center justify-between px-3 py-2 rounded-lg border bg-green-50 border-green-200 text-xs font-black uppercase">
                           <span className="text-gray-500 tracking-widest">{t('amount_paid')}</span>
-                          <span className="font-black text-sm text-green-600">
+                          <span className="font-black text-base text-green-600">
                             {item.discount_amount > 0
                               ? `${item.amount_paid.toLocaleString()} + ${item.discount_amount.toLocaleString()} = ${(item.amount_paid + item.discount_amount).toLocaleString()}`
                               : item.amount_paid.toLocaleString()}
@@ -654,7 +644,7 @@ const History = () => {
               </div>
             ))
           ) : (
-            <div className="text-center py-12 text-gray-400 bg-white rounded-3xl border-2 border-dashed border-gray-100 text-sm font-bold animate-in zoom-in duration-300">
+            <div className="text-center py-12 text-gray-400 bg-white rounded-3xl border-2 border-dashed border-gray-100 text-base font-bold animate-in zoom-in duration-300">
               {t('no_activity_found')}
             </div>
           )}
@@ -668,7 +658,7 @@ const History = () => {
             <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100 shrink-0">
               <div>
                 <h3 className="text-base font-black text-gray-800">Edit Payment</h3>
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{editingPayment.payment_date}</p>
+                <p className="text-sm text-gray-400 font-bold uppercase tracking-widest">{editingPayment.payment_date}</p>
               </div>
               <button onClick={closeEditPaymentModal} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 transition-all">
                 <X size={18} />
@@ -678,36 +668,36 @@ const History = () => {
             <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
               {/* Amount */}
               <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">{t('amount_paid')}</label>
+                <label className="text-sm font-black text-gray-400 uppercase tracking-widest block mb-1">{t('amount_paid')}</label>
                 <input
                   type="number"
                   step="any"
                   value={editPaymentAmount}
                   onChange={e => setEditPaymentAmount(e.target.value)}
-                  className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-green-400"
+                  className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-base outline-none focus:border-green-400"
                 />
               </div>
 
               {/* Discount */}
               <div>
-                <label className="text-[10px] font-black text-red-400 uppercase tracking-widest block mb-1">{t('discount')} ({t('optional')})</label>
+                <label className="text-sm font-black text-red-400 uppercase tracking-widest block mb-1">{t('discount')} ({t('optional')})</label>
                 <input
                   type="number"
                   step="any"
                   value={editPaymentDiscountAmount}
                   onChange={e => setEditPaymentDiscountAmount(e.target.value)}
-                  className="w-full p-2.5 bg-red-50 border-2 border-red-100 rounded-xl font-bold text-sm outline-none focus:border-red-400"
+                  className="w-full p-2.5 bg-red-50 border-2 border-red-100 rounded-xl font-bold text-base outline-none focus:border-red-400"
                 />
               </div>
 
               {/* Method & Date */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">{t('payment_method') || 'Method'}</label>
+                  <label className="text-sm font-black text-gray-400 uppercase tracking-widest block mb-1">{t('payment_method') || 'Method'}</label>
                   <select
                     value={editPmtMethod}
                     onChange={e => setEditPmtMethod(e.target.value)}
-                    className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-green-400"
+                    className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-base outline-none focus:border-green-400"
                   >
                     <option value="">—</option>
                     {PAYMENT_METHODS.map(m => (
@@ -726,38 +716,38 @@ const History = () => {
 
               {/* Note */}
               <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">{t('note') || 'Note'}</label>
+                <label className="text-sm font-black text-gray-400 uppercase tracking-widest block mb-1">{t('note') || 'Note'}</label>
                 <textarea
                   value={editPaymentNote}
                   onChange={e => setEditPaymentNote(e.target.value)}
                   rows={3}
-                  className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-green-400 resize-none"
+                  className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-base outline-none focus:border-green-400 resize-none"
                 />
               </div>
 
               {/* Summary */}
-              <div className="bg-green-50 rounded-xl p-3 border border-green-100 text-[10px] font-black uppercase space-y-1">
+              <div className="bg-green-50 rounded-xl p-3 border border-green-100 text-sm font-black uppercase space-y-1">
                 <div className="flex justify-between text-green-700">
                   <span>{t('amount_paid')}</span>
-                  <span className="text-sm">{(parseFloat(editPaymentAmount) || 0).toLocaleString()}</span>
+                  <span className="text-base">{(parseFloat(editPaymentAmount) || 0).toLocaleString()}</span>
                 </div>
                 {parseFloat(editPaymentDiscountAmount) > 0 && (
                   <div className="flex justify-between text-red-500">
                     <span>{t('discount')}</span>
-                    <span className="text-sm">-{(parseFloat(editPaymentDiscountAmount) || 0).toLocaleString()}</span>
+                    <span className="text-base">-{(parseFloat(editPaymentDiscountAmount) || 0).toLocaleString()}</span>
                   </div>
                 )}
               </div>
             </div>
 
             <div className="px-5 pb-5 pt-3 border-t border-gray-100 flex gap-3 shrink-0">
-              <button onClick={closeEditPaymentModal} className="flex-1 py-3 rounded-2xl border-2 border-gray-100 font-black text-gray-500 text-sm hover:bg-gray-50 transition-all">
+              <button onClick={closeEditPaymentModal} className="flex-1 py-3 rounded-2xl border-2 border-gray-100 font-black text-gray-500 text-base hover:bg-gray-50 transition-all">
                 Cancel
               </button>
               <button
                 onClick={handleSavePaymentEdit}
                 disabled={editPaymentSaving || !editPaymentAmount}
-                className="flex-1 py-3 rounded-2xl bg-green-600 text-white font-black text-sm flex items-center justify-center gap-2 hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-3 rounded-2xl bg-green-600 text-white font-black text-base flex items-center justify-center gap-2 hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save size={15} />
                 {editPaymentSaving ? 'Saving...' : 'Save Changes'}
@@ -775,7 +765,7 @@ const History = () => {
             <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100 shrink-0">
               <div>
                 <h3 className="text-base font-black text-gray-800">Edit Voucher</h3>
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{editingVoucher.voucher_number}</p>
+                <p className="text-sm text-gray-400 font-bold uppercase tracking-widest">{editingVoucher.voucher_number}</p>
               </div>
               <button onClick={closeEditModal} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 transition-all">
                 <X size={18} />
@@ -786,12 +776,12 @@ const History = () => {
               {/* Voucher Number & Date */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Voucher No.</label>
+                  <label className="text-sm font-black text-gray-400 uppercase tracking-widest block mb-1">Voucher No.</label>
                   <input
                     type="text"
                     value={editVoucherNumber}
                     onChange={e => setEditVoucherNumber(e.target.value)}
-                    className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-blue-400"
+                    className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-base outline-none focus:border-blue-400"
                   />
                 </div>
                 <div>
@@ -806,8 +796,8 @@ const History = () => {
               {/* Items */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('products') || 'Items'}</label>
-                  <button onClick={addEditItem} className="flex items-center gap-1 text-[10px] font-black text-blue-500 bg-blue-50 px-2 py-1 rounded-lg border border-blue-100 hover:bg-blue-100 transition-all">
+                  <label className="text-sm font-black text-gray-400 uppercase tracking-widest">{t('products') || 'Items'}</label>
+                  <button onClick={addEditItem} className="flex items-center gap-1 text-sm font-black text-blue-500 bg-blue-50 px-2 py-1 rounded-lg border border-blue-100 hover:bg-blue-100 transition-all">
                     <Plus size={10} /> Add
                   </button>
                 </div>
@@ -821,35 +811,35 @@ const History = () => {
                       )}
                       <div className="grid grid-cols-3 gap-2">
                         <div>
-                          <label className="text-[9px] font-black text-gray-400 uppercase block mb-0.5">LB</label>
+                          <label className="text-xs font-black text-gray-400 uppercase block mb-0.5">LB</label>
                           <input type="number" step="any" value={it.lb} onChange={e => handleEditItemChange(idx, 'lb', e.target.value)}
-                            className="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs font-bold outline-none focus:border-blue-400" />
+                            className="w-full p-2 bg-white border border-gray-200 rounded-lg text-base font-bold outline-none focus:border-blue-400" />
                         </div>
                         <div>
-                          <label className="text-[9px] font-black text-gray-400 uppercase block mb-0.5">Size</label>
+                          <label className="text-xs font-black text-gray-400 uppercase block mb-0.5">Size</label>
                           <input type="text" value={it.plastic_size} onChange={e => handleEditItemChange(idx, 'plastic_size', e.target.value)}
-                            className="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs font-bold outline-none focus:border-blue-400" />
+                            className="w-full p-2 bg-white border border-gray-200 rounded-lg text-base font-bold outline-none focus:border-blue-400" />
                         </div>
                         <div>
-                          <label className="text-[9px] font-black text-gray-400 uppercase block mb-0.5">Plastic ฿</label>
+                          <label className="text-xs font-black text-gray-400 uppercase block mb-0.5">Plastic ฿</label>
                           <input type="number" step="any" value={it.plastic_price} onChange={e => handleEditItemChange(idx, 'plastic_price', e.target.value)}
-                            className="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs font-bold outline-none focus:border-blue-400" />
+                            className="w-full p-2 bg-white border border-gray-200 rounded-lg text-base font-bold outline-none focus:border-blue-400" />
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <label className="text-[9px] font-black text-gray-400 uppercase block mb-0.5">Color</label>
+                          <label className="text-xs font-black text-gray-400 uppercase block mb-0.5">Color</label>
                           <input type="text" value={it.color} onChange={e => handleEditItemChange(idx, 'color', e.target.value)}
-                            className="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs font-bold outline-none focus:border-blue-400" />
+                            className="w-full p-2 bg-white border border-gray-200 rounded-lg text-base font-bold outline-none focus:border-blue-400" />
                         </div>
                         <div>
-                          <label className="text-[9px] font-black text-gray-400 uppercase block mb-0.5">Color ฿</label>
+                          <label className="text-xs font-black text-gray-400 uppercase block mb-0.5">Color ฿</label>
                           <input type="number" step="any" value={it.color_price} onChange={e => handleEditItemChange(idx, 'color_price', e.target.value)}
-                            className="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs font-bold outline-none focus:border-blue-400" />
+                            className="w-full p-2 bg-white border border-gray-200 rounded-lg text-base font-bold outline-none focus:border-blue-400" />
                         </div>
                       </div>
                       {(parseFloat(it.lb) > 0) && (
-                        <div className="text-right text-[9px] font-black text-blue-600">
+                        <div className="text-right text-xs font-black text-blue-600">
                           = {((parseFloat(it.lb) || 0) * ((parseFloat(it.plastic_price) || 0) + (parseFloat(it.color_price) || 0))).toLocaleString()}
                         </div>
                       )}
@@ -860,46 +850,46 @@ const History = () => {
 
               {/* Extra Charge */}
               <div className="border-2 border-dashed border-orange-200 rounded-xl p-3 space-y-2">
-                <label className="text-[10px] font-black text-orange-400 uppercase tracking-widest block">Extra Charge (Optional)</label>
+                <label className="text-sm font-black text-orange-400 uppercase tracking-widest block">Extra Charge (Optional)</label>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-[9px] font-black text-gray-400 uppercase block mb-0.5">Label</label>
+                    <label className="text-xs font-black text-gray-400 uppercase block mb-0.5">Label</label>
                     <input type="text" value={editExtraChargeNote} onChange={e => setEditExtraChargeNote(e.target.value)}
                       placeholder="e.g. Delivery fee"
-                      className="w-full p-2 bg-white border border-orange-100 rounded-lg text-xs font-bold outline-none focus:border-orange-400" />
+                      className="w-full p-2 bg-white border border-orange-100 rounded-lg text-base font-bold outline-none focus:border-orange-400" />
                   </div>
                   <div>
-                    <label className="text-[9px] font-black text-gray-400 uppercase block mb-0.5">Amount</label>
+                    <label className="text-xs font-black text-gray-400 uppercase block mb-0.5">Amount</label>
                     <input type="number" step="any" value={editExtraChargeAmount} onChange={e => setEditExtraChargeAmount(e.target.value)}
                       placeholder="0"
-                      className="w-full p-2 bg-white border border-orange-100 rounded-lg text-xs font-bold outline-none focus:border-orange-400" />
+                      className="w-full p-2 bg-white border border-orange-100 rounded-lg text-base font-bold outline-none focus:border-orange-400" />
                   </div>
                 </div>
               </div>
 
               {/* Discount */}
               <div className="border-2 border-dashed border-red-200 rounded-xl p-3 space-y-2">
-                <label className="text-[10px] font-black text-red-400 uppercase tracking-widest block">{t('discount')} ({t('optional')})</label>
+                <label className="text-sm font-black text-red-400 uppercase tracking-widest block">{t('discount')} ({t('optional')})</label>
                 <div>
-                  <label className="text-[9px] font-black text-gray-400 uppercase block mb-0.5">{t('amount')}</label>
+                  <label className="text-xs font-black text-gray-400 uppercase block mb-0.5">{t('amount')}</label>
                   <input type="number" step="any" value={editDiscountAmount} onChange={e => setEditDiscountAmount(e.target.value)}
                     placeholder="0"
-                    className="w-full p-2 bg-white border border-red-100 rounded-lg text-xs font-bold outline-none focus:border-red-400" />
+                    className="w-full p-2 bg-white border border-red-100 rounded-lg text-base font-bold outline-none focus:border-red-400" />
                 </div>
               </div>
 
               {/* Payment */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">{t('paid_amount') || 'Paid Amount'}</label>
+                  <label className="text-sm font-black text-gray-400 uppercase tracking-widest block mb-1">{t('paid_amount') || 'Paid Amount'}</label>
                   <input type="number" step="any" value={editPaidAmount} onChange={e => setEditPaidAmount(e.target.value)}
                     placeholder="0"
-                    className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-blue-400" />
+                    className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-base outline-none focus:border-blue-400" />
                 </div>
                 <div>
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">{t('payment_method') || 'Method'}</label>
+                  <label className="text-sm font-black text-gray-400 uppercase tracking-widest block mb-1">{t('payment_method') || 'Method'}</label>
                   <select value={editPaymentMethod} onChange={e => setEditPaymentMethod(e.target.value)}
-                    className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-blue-400">
+                    className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-base outline-none focus:border-blue-400">
                     <option value="">—</option>
                     {PAYMENT_METHODS.map(m => (
                       <option key={m} value={m}>{m === 'BANK_TRANSFER' ? 'BANK' : m}</option>
@@ -910,14 +900,14 @@ const History = () => {
 
               {/* Note */}
               <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">{t('note') || 'Note'}</label>
+                <label className="text-sm font-black text-gray-400 uppercase tracking-widest block mb-1">{t('note') || 'Note'}</label>
                 <textarea value={editNote} onChange={e => setEditNote(e.target.value)}
                   rows={2}
-                  className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-blue-400 resize-none" />
+                  className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-base outline-none focus:border-blue-400 resize-none" />
               </div>
 
               {/* Live summary */}
-              <div className="bg-gray-50 rounded-xl p-3 border border-gray-100 text-[10px] font-black uppercase space-y-1.5">
+              <div className="bg-gray-50 rounded-xl p-3 border border-gray-100 text-sm font-black uppercase space-y-1.5">
                 <div className="flex justify-between text-gray-500">
                   <span>Items Total</span><span className="text-gray-700">{editItemsTotal.toLocaleString()}</span>
                 </div>
@@ -940,7 +930,7 @@ const History = () => {
                 <div className="flex justify-between text-green-600">
                   <span>Paid</span><span>−{editPaid.toLocaleString()}</span>
                 </div>
-                <div className={`flex justify-between text-sm border-t border-gray-200 pt-1.5 ${editRemaining > 0 ? 'text-red-500' : 'text-green-600'}`}>
+                <div className={`flex justify-between text-base border-t border-gray-200 pt-1.5 ${editRemaining > 0 ? 'text-red-500' : 'text-green-600'}`}>
                   <span>Remaining</span><span>{editRemaining.toLocaleString()}</span>
                 </div>
               </div>
@@ -948,13 +938,13 @@ const History = () => {
 
             {/* Modal footer */}
             <div className="px-5 pb-5 pt-3 border-t border-gray-100 flex gap-3 shrink-0">
-              <button onClick={closeEditModal} className="flex-1 py-3 rounded-2xl border-2 border-gray-100 font-black text-gray-500 text-sm hover:bg-gray-50 transition-all">
+              <button onClick={closeEditModal} className="flex-1 py-3 rounded-2xl border-2 border-gray-100 font-black text-gray-500 text-base hover:bg-gray-50 transition-all">
                 Cancel
               </button>
               <button
                 onClick={handleSaveEdit}
                 disabled={editSaving || !editVoucherNumber.trim()}
-                className="flex-1 py-3 rounded-2xl bg-blue-600 text-white font-black text-sm flex items-center justify-center gap-2 hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-3 rounded-2xl bg-blue-600 text-white font-black text-base flex items-center justify-center gap-2 hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save size={15} />
                 {editSaving ? 'Saving...' : 'Save Changes'}

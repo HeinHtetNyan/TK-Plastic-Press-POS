@@ -8,7 +8,7 @@ const BalanceDisplay = ({ balance, label = "Current Outstanding Balance" }) => {
     <div className={`p-6 rounded-xl shadow-lg border-2 ${
       isDebt ? 'bg-red-50 border-red-200' : isCredit ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
     }`}>
-      <p className="text-gray-600 font-semibold mb-1 text-sm uppercase tracking-wider">{label}</p>
+      <p className="text-gray-600 font-semibold mb-1 text-base uppercase tracking-wider">{label}</p>
       <div className="flex items-baseline gap-2">
         <span className={`text-4xl md:text-5xl font-black ${
           isDebt ? 'text-red-600' : isCredit ? 'text-green-600' : 'text-gray-700'

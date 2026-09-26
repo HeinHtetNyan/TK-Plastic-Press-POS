@@ -32,10 +32,10 @@ const Dashboard = ({ data }) => {
             <DollarSign size={24} />
           </div>
           <div>
-            <span className="text-xs font-bold text-gray-400 uppercase block tracking-wider">Total Revenue <span className="text-blue-300 normal-case font-bold">({periodLabel})</span></span>
+            <span className="text-base font-bold text-gray-400 uppercase block tracking-wider">Total Revenue <span className="text-blue-300 normal-case font-bold">({periodLabel})</span></span>
             <span className="text-xl font-black text-gray-800">
               {data.total_revenue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-              <span className="text-xs ml-1 font-bold opacity-40">MMK</span>
+              <span className="text-base ml-1 font-bold opacity-40">MMK</span>
             </span>
           </div>
         </div>
@@ -44,10 +44,10 @@ const Dashboard = ({ data }) => {
             <CreditCard size={24} />
           </div>
           <div>
-            <span className="text-xs font-bold text-gray-400 uppercase block tracking-wider">Total Debt</span>
+            <span className="text-base font-bold text-gray-400 uppercase block tracking-wider">Total Debt</span>
             <span className="text-xl font-black text-red-600">
               {data.total_debt.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-              <span className="text-xs ml-1 font-bold opacity-40">MMK</span>
+              <span className="text-base ml-1 font-bold opacity-40">MMK</span>
             </span>
           </div>
         </div>
@@ -56,14 +56,14 @@ const Dashboard = ({ data }) => {
             <TrendingDown size={24} />
           </div>
           <div>
-            <span className="text-xs font-bold text-gray-400 uppercase block tracking-wider">
+            <span className="text-base font-bold text-gray-400 uppercase block tracking-wider">
               {t('net_income')} <span className="text-blue-300 normal-case font-bold">({periodLabel})</span>
             </span>
             <span className={`text-xl font-black ${netIncome >= 0 ? 'text-green-600' : 'text-orange-600'}`}>
               {netIncome.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-              <span className="text-xs ml-1 font-bold opacity-40">MMK</span>
+              <span className="text-base ml-1 font-bold opacity-40">MMK</span>
             </span>
-            <span className="text-[10px] text-gray-400 font-bold block">
+            <span className="text-sm text-gray-400 font-bold block">
               {t('total_spending')}: {totalSpending.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} MMK
             </span>
           </div>
@@ -80,10 +80,10 @@ const Dashboard = ({ data }) => {
                 <method.icon size={24} />
               </div>
               <div>
-                <span className="text-[10px] font-black text-gray-400 uppercase block tracking-widest">{method.label} Income <span className="text-blue-300 normal-case font-bold">({periodLabel})</span></span>
+                <span className="text-sm font-black text-gray-400 uppercase block tracking-widest">{method.label} Income <span className="text-blue-300 normal-case font-bold">({periodLabel})</span></span>
                 <span className={`text-xl font-black ${method.color}`}>
                   {income.toLocaleString()}
-                  <span className="text-xs ml-1 font-bold opacity-40">MMK</span>
+                  <span className="text-base ml-1 font-bold opacity-40">MMK</span>
                 </span>
               </div>
             </div>
@@ -133,7 +133,7 @@ const Dashboard = ({ data }) => {
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 space-y-4">
           <div className="flex items-center gap-2 px-1">
             <Users size={20} className="text-blue-600" />
-            <h3 className="text-lg font-black text-gray-800">Top Customers <span className="text-sm text-blue-400 font-bold normal-case">({periodLabel})</span></h3>
+            <h3 className="text-lg font-black text-gray-800">Top Customers <span className="text-base text-blue-400 font-bold normal-case">({periodLabel})</span></h3>
           </div>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -182,23 +182,23 @@ const Dashboard = ({ data }) => {
               <div className="flex justify-between items-start mb-2">
                 <span className="text-lg font-black text-gray-800 leading-tight truncate mr-2">{c.name}</span>
                 {c.debt > 0 && (
-                  <span className="bg-red-100 text-red-600 text-[10px] font-black px-2 py-0.5 rounded-full uppercase whitespace-nowrap">
+                  <span className="bg-red-100 text-red-600 text-sm font-black px-2 py-0.5 rounded-full uppercase whitespace-nowrap">
                     Pending
                   </span>
                 )}
                 {c.debt <= 0 && (
-                  <span className="bg-green-100 text-green-600 text-[10px] font-black px-2 py-0.5 rounded-full uppercase whitespace-nowrap">
+                  <span className="bg-green-100 text-green-600 text-sm font-black px-2 py-0.5 rounded-full uppercase whitespace-nowrap">
                     Clear
                   </span>
                 )}
               </div>
               <div>
-                <span className={`text-[10px] font-black uppercase tracking-widest block mb-1 ${c.debt > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                <span className={`text-sm font-black uppercase tracking-widest block mb-1 ${c.debt > 0 ? 'text-red-400' : 'text-green-400'}`}>
                   {c.debt > 0 ? 'Outstanding Debt' : 'Account Balance'}
                 </span>
                 <span className={`text-2xl font-black tabular-nums ${c.debt > 0 ? 'text-red-600' : 'text-green-600'}`}>
                   {c.debt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  <span className="text-xs ml-1 font-bold opacity-60">MMK</span>
+                  <span className="text-base ml-1 font-bold opacity-60">MMK</span>
                 </span>
               </div>
             </div>

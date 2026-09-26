@@ -104,7 +104,7 @@ const Users = () => {
 
         {error && (
           <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-xl">
-            <p className="text-red-700 font-bold text-sm">{error}</p>
+            <p className="text-red-700 font-bold text-base">{error}</p>
           </div>
         )}
 
@@ -115,7 +115,7 @@ const Users = () => {
           </h2>
           <form onSubmit={handleCreateUser} className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Username</label>
+              <label className="text-sm font-black text-gray-400 uppercase tracking-widest px-1">Username</label>
               <input
                 type="text"
                 required
@@ -126,7 +126,7 @@ const Users = () => {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Password</label>
+              <label className="text-sm font-black text-gray-400 uppercase tracking-widest px-1">Password</label>
               <input
                 type="password"
                 required
@@ -139,12 +139,12 @@ const Users = () => {
             <button
               type="submit"
               disabled={submitting}
-              className="bg-blue-600 text-white px-6 py-4 rounded-2xl hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-all font-black uppercase text-xs shadow-lg shadow-blue-100 h-[52px]"
+              className="bg-blue-600 text-white px-6 py-4 rounded-2xl hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-all font-black uppercase text-base shadow-lg shadow-blue-100 h-[52px]"
             >
               {submitting ? <Loader2 className="animate-spin" size={20} /> : 'Create Account'}
             </button>
           </form>
-          <p className="mt-4 text-[10px] text-gray-400 font-black uppercase tracking-widest italic flex items-center gap-1">
+          <p className="mt-4 text-sm text-gray-400 font-black uppercase tracking-widest italic flex items-center gap-1">
             <Shield size={10} /> Note: New accounts are created with STAFF privileges.
           </p>
         </div>
@@ -152,7 +152,7 @@ const Users = () => {
         {/* User List */}
         <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
           <div className="px-8 py-4 border-b border-gray-100 bg-gray-50/50">
-            <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Active System Accounts</h2>
+            <h2 className="text-sm font-black text-gray-400 uppercase tracking-widest">Active System Accounts</h2>
           </div>
           
           {loading ? (
@@ -163,7 +163,7 @@ const Users = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50">
+                  <tr className="text-sm font-black text-gray-400 uppercase tracking-widest border-b border-gray-50">
                     <th className="px-8 py-4">User Identity</th>
                     <th className="px-8 py-4">Access Level</th>
                     <th className="px-8 py-4">Joined Date</th>
@@ -180,18 +180,18 @@ const Users = () => {
                         <div>
                           <span className="font-black text-gray-800 text-lg tracking-tight">{u.username}</span>
                           {!u.is_active && (
-                            <span className="ml-2 text-[9px] font-black uppercase bg-red-100 text-red-500 px-2 py-0.5 rounded-full">Disabled</span>
+                            <span className="ml-2 text-xs font-black uppercase bg-red-100 text-red-500 px-2 py-0.5 rounded-full">Disabled</span>
                           )}
                         </div>
                       </td>
                       <td className="px-8 py-5">
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-black tracking-widest ${
+                        <span className={`px-3 py-1 rounded-full text-sm font-black tracking-widest ${
                           u.role === 'ADMIN' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
                         }`}>
                           {u.role}
                         </span>
                       </td>
-                      <td className="px-8 py-5 text-sm font-bold text-gray-400">
+                      <td className="px-8 py-5 text-base font-bold text-gray-400">
                         {new Date(u.created_at).toLocaleDateString()}
                       </td>
                       <td className="px-8 py-5 text-right">
@@ -199,7 +199,7 @@ const Users = () => {
                           <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
                             <button
                               onClick={() => handleToggleActive(u.id)}
-                              className={`p-2 rounded-xl transition-all flex items-center gap-1.5 text-[10px] font-black uppercase ${
+                              className={`p-2 rounded-xl transition-all flex items-center gap-1.5 text-sm font-black uppercase ${
                                 u.is_active
                                   ? 'text-yellow-500 hover:bg-yellow-50'
                                   : 'text-green-500 hover:bg-green-50'

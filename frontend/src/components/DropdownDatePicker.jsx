@@ -54,10 +54,10 @@ const DropdownDatePicker = ({ value, onChange, label }) => {
 
   return (
     <div className="space-y-1">
-      {label && <label className="text-[10px] font-black text-gray-400 uppercase px-1">{label}</label>}
+      {label && <label className="text-sm font-black text-gray-400 uppercase px-1">{label}</label>}
       <div className="flex gap-1">
         <select
-          className="flex-1 p-2 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-blue-500"
+          className="flex-1 p-2 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-base outline-none focus:border-blue-500"
           value={localDay}
           onChange={(e) => handleDay(e.target.value)}
         >
@@ -65,7 +65,7 @@ const DropdownDatePicker = ({ value, onChange, label }) => {
           {days.map(d => <option key={d} value={d}>{d}</option>)}
         </select>
         <select
-          className="flex-1 p-2 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-blue-500"
+          className="flex-1 p-2 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-base outline-none focus:border-blue-500"
           value={localMonth}
           onChange={(e) => handleMonth(e.target.value)}
         >
@@ -73,7 +73,7 @@ const DropdownDatePicker = ({ value, onChange, label }) => {
           {months.map(m => <option key={m} value={m}>{m}</option>)}
         </select>
         <select
-          className="flex-1 p-2 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-blue-500"
+          className="flex-1 p-2 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-base outline-none focus:border-blue-500"
           value={localYear}
           onChange={(e) => handleYear(e.target.value)}
         >

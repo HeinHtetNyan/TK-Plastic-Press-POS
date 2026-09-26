@@ -171,7 +171,7 @@ const Payment = () => {
         </header>
 
         {!navigator.onLine && (
-          <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-200 text-yellow-800 text-xs font-bold px-4 py-3 rounded-xl">
+          <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-200 text-yellow-800 text-base font-bold px-4 py-3 rounded-xl">
             <WifiOff size={14} />
             {t('offline_payment_notice')}
           </div>
@@ -180,7 +180,7 @@ const Payment = () => {
         {customer && (
           <div className="space-y-6">
             <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-              <span className="text-xs font-bold text-gray-400 uppercase px-1">{t('customer')}</span>
+              <span className="text-base font-bold text-gray-400 uppercase px-1">{t('customer')}</span>
               <p className="text-xl font-black text-blue-600 truncate">{customer.name}</p>
             </div>
 
@@ -189,7 +189,7 @@ const Payment = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 space-y-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-black text-gray-600 uppercase px-1">{t('payment_amount')}</label>
+                  <label className="text-base font-black text-gray-600 uppercase px-1">{t('payment_amount')}</label>
                   <input
                     autoFocus type="number" step="any"
                     className="w-full p-4 bg-green-50 border-2 border-green-100 rounded-2xl outline-none focus:border-green-500 transition-all text-3xl font-black text-green-700 text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
@@ -201,7 +201,7 @@ const Payment = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-gray-600 uppercase px-1">{t('discount')} <span className="text-gray-400 font-bold normal-case">({t('optional')})</span></label>
+                  <label className="text-base font-bold text-gray-600 uppercase px-1">{t('discount')} <span className="text-gray-400 font-bold normal-case">({t('optional')})</span></label>
                   <input
                     type="number"
                     min="0"
@@ -222,7 +222,7 @@ const Payment = () => {
                   />
 
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-600 uppercase px-1">{t('payment_method')}</label>
+                    <label className="text-base font-bold text-gray-600 uppercase px-1">{t('payment_method')}</label>
                     <div className="grid grid-cols-3 gap-2">
                       {paymentMethods.map((m) => (
                         <button
@@ -236,14 +236,14 @@ const Payment = () => {
                           }`}
                         >
                           <m.icon size={20} />
-                          <span className="text-[10px] font-black uppercase">{m.label}</span>
+                          <span className="text-sm font-black uppercase">{m.label}</span>
                         </button>
                       ))}
                     </div>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-sm font-bold text-gray-600 uppercase px-1">{t('note_optional')}</label>
+                    <label className="text-base font-bold text-gray-600 uppercase px-1">{t('note_optional')}</label>
                     <textarea
                       className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-500 font-bold transition-all"
                       rows="2"

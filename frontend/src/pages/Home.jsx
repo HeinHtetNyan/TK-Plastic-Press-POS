@@ -383,14 +383,14 @@ const Home = () => {
             <div className="flex items-center gap-2">
               <h2 className="text-2xl font-black text-gray-800">{t('select_customer')}</h2>
               {allCustomers.length > 0 && (
-                <span className="text-xs font-black text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
+                <span className="text-base font-black text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
                   {allCustomers.length}
                 </span>
               )}
             </div>
             <button
               onClick={() => setShowAll(!showAll)}
-              className="text-blue-600 font-bold text-xs uppercase flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-all"
+              className="text-blue-600 font-bold text-base uppercase flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-all"
             >
               {showAll ? <SearchIcon size={14} /> : <Users size={14} />}
               {showAll ? t('search_mode') : t('browse_all')}
@@ -407,8 +407,8 @@ const Home = () => {
           ) : (
             <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-2 space-y-2 animate-in fade-in zoom-in duration-200">
               <div className="flex items-center justify-between px-2 pt-1 pb-0.5">
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('browse_all')}</span>
-                <span className="text-[10px] font-black text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full">
+                <span className="text-sm font-black text-gray-400 uppercase tracking-widest">{t('browse_all')}</span>
+                <span className="text-sm font-black text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full">
                   {allCustomers.length} {allCustomers.length === 1 ? 'customer' : 'customers'}
                 </span>
               </div>
@@ -425,13 +425,13 @@ const Home = () => {
                   >
                     <div className="flex flex-col">
                       <span className="text-lg">{c.name}</span>
-                      {c.phone_numbers && <span className={`text-[10px] font-medium ${(selectedCustomer?.client_id === c.client_id || selectedCustomer?.id === c.id) ? 'text-blue-100' : 'text-gray-400'}`}>{c.phone_numbers}</span>}
+                      {c.phone_numbers && <span className={`text-sm font-medium ${(selectedCustomer?.client_id === c.client_id || selectedCustomer?.id === c.id) ? 'text-blue-100' : 'text-gray-400'}`}>{c.phone_numbers}</span>}
                     </div>
                     <div className="flex items-center gap-1.5">
                       {c.sync_status === 'pending' && (
-                        <span className="text-[9px] bg-yellow-400 text-yellow-900 px-1.5 py-0.5 rounded-full font-black uppercase">{t('offline_notice')}</span>
+                        <span className="text-xs bg-yellow-400 text-yellow-900 px-1.5 py-0.5 rounded-full font-black uppercase">{t('offline_notice')}</span>
                       )}
-                      <span className={`text-[10px] uppercase font-black ${
+                      <span className={`text-sm uppercase font-black ${
                         (selectedCustomer?.client_id === c.client_id || selectedCustomer?.id === c.id)
                           ? 'text-blue-200' : 'text-gray-400'
                       }`}>
@@ -465,11 +465,11 @@ const Home = () => {
                   </div>
                 )) : customersLoadError ? (
                   <div className="text-center py-8 space-y-3">
-                    <p className="text-red-400 font-bold text-sm">Could not load customers</p>
-                    <p className="text-gray-400 text-xs">{customersLoadError} — no offline cache available.</p>
+                    <p className="text-red-400 font-bold text-base">Could not load customers</p>
+                    <p className="text-gray-400 text-base">{customersLoadError} — no offline cache available.</p>
                     <button
                       onClick={fetchAllCustomers}
-                      className="text-blue-600 font-black text-xs bg-blue-50 px-4 py-2 rounded-full hover:bg-blue-100 transition-colors"
+                      className="text-blue-600 font-black text-base bg-blue-50 px-4 py-2 rounded-full hover:bg-blue-100 transition-colors"
                     >
                       Retry
                     </button>
@@ -480,7 +480,7 @@ const Home = () => {
               </div>
               <button
                 onClick={() => setShowAddModal(true)}
-                className="w-full py-4 bg-gray-50 text-blue-600 rounded-2xl font-black uppercase text-xs hover:bg-blue-50 transition-colors border-2 border-dashed border-blue-100"
+                className="w-full py-4 bg-gray-50 text-blue-600 rounded-2xl font-black uppercase text-base hover:bg-blue-50 transition-colors border-2 border-dashed border-blue-100"
               >
                 + {t('add_new_customer')}
               </button>
@@ -492,7 +492,7 @@ const Home = () => {
           <div className="space-y-6 animate-in fade-in duration-300">
             <BalanceDisplay balance={balance} />
             {balanceIsEstimate && (
-              <p className="text-center text-[11px] text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-2 font-bold">
+              <p className="text-center text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-2 font-bold">
                 {t('balance_estimate_notice')}
               </p>
             )}
@@ -514,7 +514,7 @@ const Home = () => {
 
         {!selectedCustomer && !showAll && (
           <div className="space-y-8 animate-in fade-in duration-700">
-            <div className="flex items-center gap-2 justify-end">
+            <div className="flex flex-wrap items-center gap-2 justify-end">
               {[
                 { value: 'month', label: 'This Month' },
                 { value: '3months', label: '3 Months' },
@@ -524,7 +524,7 @@ const Home = () => {
                 <button
                   key={p.value}
                   onClick={() => setDashboardPeriod(p.value)}
-                  className={`px-4 py-1.5 rounded-full text-xs font-black uppercase transition-all ${
+                  className={`px-3 py-1.5 rounded-full text-base font-black uppercase whitespace-nowrap transition-all ${
                     dashboardPeriod === p.value
                       ? 'bg-blue-600 text-white shadow-sm'
                       : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
@@ -548,13 +548,13 @@ const Home = () => {
             <div className="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl animate-in zoom-in duration-200">
               <h3 className="text-2xl font-black mb-6 text-gray-800">New Customer</h3>
               {!navigator.onLine && (
-                <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-2 text-[11px] font-bold text-yellow-700">
+                <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-2 text-sm font-bold text-yellow-700">
                   You are offline. Customer will sync when internet is available.
                 </div>
               )}
               <form onSubmit={handleAddCustomer} className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Customer Name *</label>
+                  <label className="text-sm font-black text-gray-400 uppercase tracking-widest px-1">Customer Name *</label>
                   <input
                     autoFocus
                     type="text"
@@ -566,7 +566,7 @@ const Home = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Phone Number</label>
+                  <label className="text-sm font-black text-gray-400 uppercase tracking-widest px-1">Phone Number</label>
                   <input
                     type="text"
                     className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-500 font-bold text-lg transition-all"
@@ -576,7 +576,7 @@ const Home = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Address</label>
+                  <label className="text-sm font-black text-gray-400 uppercase tracking-widest px-1">Address</label>
                   <textarea
                     className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-500 font-bold text-lg transition-all resize-none"
                     rows="2"
@@ -589,14 +589,14 @@ const Home = () => {
                   <button
                     type="button"
                     onClick={() => { setShowAddModal(false); resetForm(); }}
-                    className="flex-1 px-4 py-4 bg-gray-100 rounded-2xl font-black text-gray-500 uppercase text-xs"
+                    className="flex-1 px-4 py-4 bg-gray-100 rounded-2xl font-black text-gray-500 uppercase text-base"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isCreatingCustomer}
-                    className={`flex-1 px-4 py-4 rounded-2xl font-black shadow-lg uppercase text-xs transition-all ${
+                    className={`flex-1 px-4 py-4 rounded-2xl font-black shadow-lg uppercase text-base transition-all ${
                       isCreatingCustomer
                         ? 'bg-blue-300 text-white cursor-not-allowed'
                         : 'bg-blue-600 text-white shadow-blue-200'
@@ -616,7 +616,7 @@ const Home = () => {
               <h3 className="text-2xl font-black mb-6 text-gray-800">Edit Customer</h3>
               <form onSubmit={handleUpdateCustomer} className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Customer Name *</label>
+                  <label className="text-sm font-black text-gray-400 uppercase tracking-widest px-1">Customer Name *</label>
                   <input
                     autoFocus
                     type="text"
@@ -628,7 +628,7 @@ const Home = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Phone Number</label>
+                  <label className="text-sm font-black text-gray-400 uppercase tracking-widest px-1">Phone Number</label>
                   <input
                     type="text"
                     className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-500 font-bold text-lg transition-all"
@@ -638,7 +638,7 @@ const Home = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Address</label>
+                  <label className="text-sm font-black text-gray-400 uppercase tracking-widest px-1">Address</label>
                   <textarea
                     className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-500 font-bold text-lg transition-all resize-none"
                     rows="2"
@@ -651,13 +651,13 @@ const Home = () => {
                   <button
                     type="button"
                     onClick={() => { setShowEditModal(false); resetForm(); }}
-                    className="flex-1 px-4 py-4 bg-gray-100 rounded-2xl font-black text-gray-500 uppercase text-xs"
+                    className="flex-1 px-4 py-4 bg-gray-100 rounded-2xl font-black text-gray-500 uppercase text-base"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-4 bg-blue-600 text-white rounded-2xl font-black shadow-lg shadow-blue-200 uppercase text-xs"
+                    className="flex-1 px-4 py-4 bg-blue-600 text-white rounded-2xl font-black shadow-lg shadow-blue-200 uppercase text-base"
                   >
                     Save Changes
                   </button>

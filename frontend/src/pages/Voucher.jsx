@@ -222,7 +222,7 @@ const Voucher = () => {
         </header>
 
         {!navigator.onLine && (
-          <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-200 text-yellow-800 text-xs font-bold px-4 py-3 rounded-xl">
+          <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-200 text-yellow-800 text-base font-bold px-4 py-3 rounded-xl">
             <WifiOff size={14} />
             {t('offline_voucher_notice')}
           </div>
@@ -232,7 +232,7 @@ const Voucher = () => {
           <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex justify-between items-center">
             <span className="font-bold text-blue-800 text-lg">{customer.name}</span>
             <div className="text-right">
-              <span className="text-xs text-blue-600 uppercase font-bold block">
+              <span className="text-base text-blue-600 uppercase font-bold block">
                 {t('previous_balance')}{balanceIsEstimate ? ` ${t('est')}` : ''}
               </span>
               <span className="text-lg font-black text-blue-700">{balance.toLocaleString()} MMK</span>
@@ -243,7 +243,7 @@ const Voucher = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-sm font-bold text-gray-600 uppercase px-1">{t('voucher_number')}</label>
+              <label className="text-base font-bold text-gray-600 uppercase px-1">{t('voucher_number')}</label>
               <input
                 required
                 type="text"
@@ -271,7 +271,7 @@ const Voucher = () => {
             {items.map((item, index) => (
               <div key={index} className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 space-y-4 relative overflow-hidden">
                 <div className="flex justify-between items-center">
-                  <span className="bg-gray-100 px-3 py-1 rounded-full text-[10px] font-black text-gray-500 uppercase tracking-widest">{t('item')} {index + 1}</span>
+                  <span className="bg-gray-100 px-3 py-1 rounded-full text-sm font-black text-gray-500 uppercase tracking-widest">{t('item')} {index + 1}</span>
                   {items.length > 1 && (
                     <button type="button" onClick={() => removeItem(index)} className="text-red-400 hover:text-red-600 transition-colors">
                       <Trash2 size={18} />
@@ -281,7 +281,7 @@ const Voucher = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
                   <div className="space-y-1 sm:col-span-1">
-                    <label className="text-[10px] font-black text-gray-400 uppercase px-1 tracking-widest">{t('size')}</label>
+                    <label className="text-sm font-black text-gray-400 uppercase px-1 tracking-widest">{t('size')}</label>
                     <input
                       autoFocus={index === items.length - 1}
                       type="text" required placeholder="e.g. 10x15"
@@ -291,7 +291,7 @@ const Voucher = () => {
                     />
                   </div>
                   <div className="space-y-1 sm:col-span-1">
-                    <label className="text-[10px] font-black text-gray-400 uppercase px-1 tracking-widest">{t('weight_lb')}</label>
+                    <label className="text-sm font-black text-gray-400 uppercase px-1 tracking-widest">{t('weight_lb')}</label>
                     <input
                       type="number" step="any" required min="0"
                       className="w-full p-2 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none transition-all font-bold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
@@ -301,7 +301,7 @@ const Voucher = () => {
                     />
                   </div>
                   <div className="space-y-1 sm:col-span-1">
-                    <label className="text-[10px] font-black text-gray-400 uppercase px-1 tracking-widest">{t('plastic_price')}</label>
+                    <label className="text-sm font-black text-gray-400 uppercase px-1 tracking-widest">{t('plastic_price')}</label>
                     <input
                       type="number" required min="0" step="any"
                       className="w-full p-2 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none transition-all font-bold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
@@ -311,7 +311,7 @@ const Voucher = () => {
                     />
                   </div>
                   <div className="space-y-1 sm:col-span-1">
-                    <label className="text-[10px] font-black text-gray-400 uppercase px-1 tracking-widest">{t('color')}</label>
+                    <label className="text-sm font-black text-gray-400 uppercase px-1 tracking-widest">{t('color')}</label>
                     <input
                       type="text" required placeholder="e.g. Blue"
                       className="w-full p-2 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none transition-all font-bold"
@@ -320,7 +320,7 @@ const Voucher = () => {
                     />
                   </div>
                   <div className="space-y-1 sm:col-span-1">
-                    <label className="text-[10px] font-black text-gray-400 uppercase px-1 tracking-widest">{t('color_price')}</label>
+                    <label className="text-sm font-black text-gray-400 uppercase px-1 tracking-widest">{t('color_price')}</label>
                     <input
                       type="number" required min="0" step="any"
                       className="w-full p-2 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none transition-all font-bold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
@@ -332,17 +332,17 @@ const Voucher = () => {
                 </div>
 
                 <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="text-[11px] font-bold text-gray-500">
-                    <span className="block uppercase text-[9px] mb-0.5 tracking-tighter">{t('plastic')}: {item.lb || 0} × {item.plastic_price || 0}</span>
+                  <div className="text-sm font-bold text-gray-500">
+                    <span className="block uppercase text-xs mb-0.5 tracking-tighter">{t('plastic')}: {item.lb || 0} × {item.plastic_price || 0}</span>
                     <div className="text-blue-600 font-black">{((item.lb || 0) * (item.plastic_price || 0)).toLocaleString()}</div>
                   </div>
-                  <div className="text-[11px] font-bold text-gray-500">
-                    <span className="block uppercase text-[9px] mb-0.5 tracking-tighter">{t('color')}: {item.lb || 0} × {item.color_price || 0}</span>
+                  <div className="text-sm font-bold text-gray-500">
+                    <span className="block uppercase text-xs mb-0.5 tracking-tighter">{t('color')}: {item.lb || 0} × {item.color_price || 0}</span>
                     <div className="text-blue-600 font-black">{((item.lb || 0) * (item.color_price || 0)).toLocaleString()}</div>
                   </div>
                   <div className="text-right flex flex-col justify-center">
-                    <span className="text-[9px] font-black text-gray-400 uppercase block tracking-widest">{t('total')}</span>
-                    <span className="text-lg font-black text-blue-700">{(item.total_price || 0).toLocaleString()} <span className="text-xs">MMK</span></span>
+                    <span className="text-xs font-black text-gray-400 uppercase block tracking-widest">{t('total')}</span>
+                    <span className="text-lg font-black text-blue-700">{(item.total_price || 0).toLocaleString()} <span className="text-base">MMK</span></span>
                   </div>
                 </div>
               </div>
@@ -350,7 +350,7 @@ const Voucher = () => {
           </div>
 
           <div className="space-y-1 px-1">
-            <label className="text-sm font-bold text-gray-600 uppercase">{t('voucher_note')}</label>
+            <label className="text-base font-bold text-gray-600 uppercase">{t('voucher_note')}</label>
             <textarea
               className="w-full p-4 border-2 border-gray-200 rounded-2xl focus:border-blue-500 outline-none transition-all font-bold"
               placeholder={t('add_note_placeholder')}
@@ -361,10 +361,10 @@ const Voucher = () => {
           </div>
 
           <div className="bg-white p-4 rounded-3xl border-2 border-dashed border-gray-200 space-y-3">
-            <label className="text-sm font-black text-gray-500 uppercase tracking-widest">Extra Charge <span className="text-gray-300 font-bold normal-case">(optional)</span></label>
+            <label className="text-base font-black text-gray-500 uppercase tracking-widest">Extra Charge <span className="text-gray-300 font-bold normal-case">(optional)</span></label>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-[10px] font-black text-gray-400 uppercase px-1">Label</label>
+                <label className="text-sm font-black text-gray-400 uppercase px-1">Label</label>
                 <input
                   type="text"
                   className="w-full p-3 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-orange-400 outline-none transition-all font-bold"
@@ -374,7 +374,7 @@ const Voucher = () => {
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-black text-gray-400 uppercase px-1">Amount</label>
+                <label className="text-sm font-black text-gray-400 uppercase px-1">Amount</label>
                 <input
                   type="number"
                   min="0"
@@ -390,9 +390,9 @@ const Voucher = () => {
           </div>
 
           <div className="bg-white p-4 rounded-3xl border-2 border-dashed border-gray-200 space-y-3">
-            <label className="text-sm font-black text-gray-500 uppercase tracking-widest">{t('discount')} <span className="text-gray-300 font-bold normal-case">({t('optional')})</span></label>
+            <label className="text-base font-black text-gray-500 uppercase tracking-widest">{t('discount')} <span className="text-gray-300 font-bold normal-case">({t('optional')})</span></label>
             <div className="space-y-1">
-              <label className="text-[10px] font-black text-gray-400 uppercase px-1">{t('amount')}</label>
+              <label className="text-sm font-black text-gray-400 uppercase px-1">{t('amount')}</label>
               <input
                 type="number"
                 min="0"
@@ -435,7 +435,7 @@ const Voucher = () => {
 
           <div className="bg-white p-6 rounded-3xl border-2 border-blue-100 shadow-sm space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-black text-gray-600 uppercase px-1">{t('paid_amount')}</label>
+              <label className="text-base font-black text-gray-600 uppercase px-1">{t('paid_amount')}</label>
               <input
                 type="number"
                 min="0"
@@ -448,7 +448,7 @@ const Voucher = () => {
               />
             </div>
             <div className="flex justify-between items-center bg-gray-50 p-4 rounded-2xl">
-              <span className="font-bold text-gray-500 uppercase text-xs">{t('remaining_balance')}</span>
+              <span className="font-bold text-gray-500 uppercase text-base">{t('remaining_balance')}</span>
               <span className={`text-2xl font-black ${remainingBalance > 0 ? 'text-red-500' : 'text-green-500'}`}>
                 {remainingBalance.toLocaleString()} MMK
               </span>
@@ -457,7 +457,7 @@ const Voucher = () => {
 
           {parseFloat(paidAmount) > 0 && (
             <div className="space-y-2 px-1 animate-in fade-in slide-in-from-top-2 duration-300">
-              <label className="text-sm font-bold text-gray-600 uppercase">{t('payment_method')}</label>
+              <label className="text-base font-bold text-gray-600 uppercase">{t('payment_method')}</label>
               <div className="grid grid-cols-3 gap-3">
                 {paymentMethods.map((m) => (
                   <button
@@ -471,7 +471,7 @@ const Voucher = () => {
                     }`}
                   >
                     <m.icon size={20} />
-                    <span className="text-[10px] font-black uppercase">{m.label}</span>
+                    <span className="text-sm font-black uppercase">{m.label}</span>
                   </button>
                 ))}
               </div>
