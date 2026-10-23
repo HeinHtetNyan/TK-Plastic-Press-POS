@@ -4,6 +4,7 @@ from app.db import get_session
 from app.models import Voucher, Customer, Payment, User, Spending
 from app.dependencies.auth import require_staff_or_admin
 from app.services.balance import calculate_customer_balance
+from app.services.splits import split_amounts
 from datetime import datetime, timedelta, date
 
 router = APIRouter(tags=["analytics"])
@@ -54,26 +55,27 @@ def get_dashboard_data(
 
     # 4. Income by Payment Method for selected period
     voucher_payments = session.exec(
-        select(Voucher.payment_method, func.sum(Voucher.paid_amount)).where(
+        select(Voucher.payment_method, Voucher.payment_splits, Voucher.paid_amount).where(
             Voucher.paid_amount > 0,
             Voucher.payment_method.isnot(None),
             Voucher.voucher_date >= start_date,
-        ).group_by(Voucher.payment_method)
+        )
     ).all()
 
     standalone_payments = session.exec(
-        select(Payment.payment_method, func.sum(Payment.amount_paid)).where(
+        select(Payment.payment_method, Payment.payment_splits, Payment.amount_paid).where(
             Payment.payment_method.isnot(None),
             Payment.payment_date >= start_date,
-        ).group_by(Payment.payment_method)
+        )
     ).all()
 
     income_by_method: dict = {}
 
     def process_results(results):
-        for method, amount in results:
-            m_str = method.value if hasattr(method, "value") else (str(method) if method else "CASH")
-            income_by_method[m_str] = income_by_method.get(m_str, 0) + (amount or 0)
+        # A split row counts each method for its own part; older rows count their single method.
+        for method, splits, amount in results:
+            for m_str, part in split_amounts(method, splits, amount):
+                income_by_method[m_str] = income_by_method.get(m_str, 0) + part
 
     process_results(voucher_payments)
     process_results(standalone_payments)

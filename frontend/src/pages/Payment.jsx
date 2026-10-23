@@ -8,6 +8,8 @@ import { cacheBalance, getOfflineBalance, syncAll } from '../services/syncServic
 import BalanceDisplay from '../components/BalanceDisplay';
 import db, { generateUUID } from '../lib/db';
 import { useLanguage } from '../context/LanguageContext';
+import SplitPicker from '../components/SplitPicker';
+import { emptyParts, partsToSplits, splitError, primaryMethod } from '../utils/paymentSplits';
 
 const Payment = () => {
   const { t } = useLanguage();
@@ -21,6 +23,8 @@ const Payment = () => {
   const [discountAmount, setDiscountAmount] = useState('');
   const [note, setNote] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('CASH');
+  const [splitMode, setSplitMode] = useState(false);
+  const [parts, setParts] = useState(emptyParts());
   const [paymentDate, setPaymentDate] = useState(new Date().toLocaleDateString('en-GB').split('/').join('-'));
   const [loading, setLoading] = useState(false);
 
@@ -62,6 +66,15 @@ const Payment = () => {
     e.preventDefault();
     if (!amount || parseFloat(amount) <= 0) return alert(t('enter_valid_amount'));
 
+    let splits = null;
+    let method = paymentMethod;
+    if (splitMode) {
+      const err = splitError(parts, amount);
+      if (err) return alert(t(err));
+      splits = partsToSplits(parts);
+      method = primaryMethod(splits);
+    }
+
     setLoading(true);
 
     const clientId = generateUUID();
@@ -75,7 +88,8 @@ const Payment = () => {
       customer_client_id: customer.client_id ?? null,
       amount_paid: paid,
       discount_amount: discount,
-      payment_method: paymentMethod,
+      payment_method: method,
+      payment_splits: splits,
       payment_date: paymentDate,
       note: note,
       client_id: clientId,
@@ -94,7 +108,8 @@ const Payment = () => {
           customer_server_id: serverId,
           amount_paid: paid,
           discount_amount: discount,
-          payment_method: paymentMethod,
+          payment_method: method,
+      payment_splits: splits,
           payment_date: paymentDate,
           note: note,
           sync_status: 'synced',
@@ -127,7 +142,8 @@ const Payment = () => {
           customer_server_id: serverId,
           amount_paid: paid,
           discount_amount: discount,
-          payment_method: paymentMethod,
+          payment_method: method,
+      payment_splits: splits,
           payment_date: paymentDate,
           note: note,
           sync_status: 'pending',
@@ -223,7 +239,15 @@ const Payment = () => {
 
                   <div className="space-y-2">
                     <label className="text-base font-bold text-gray-600 uppercase px-1">{t('payment_method')}</label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <SplitPicker
+                      total={amount}
+                      split={splitMode}
+                      onSplitChange={setSplitMode}
+                      parts={parts}
+                      onParts={setParts}
+                      method={paymentMethod}
+                      single={(
+                        <div className="grid grid-cols-3 gap-2">
                       {paymentMethods.map((m) => (
                         <button
                           key={m.id}
@@ -240,6 +264,8 @@ const Payment = () => {
                         </button>
                       ))}
                     </div>
+                      )}
+                    />
                   </div>
 
                   <div className="space-y-1">

@@ -7,6 +7,8 @@ import { customerService, voucherService } from '../services/api';
 import { cacheBalance, getOfflineBalance, syncAll } from '../services/syncService';
 import db, { generateUUID } from '../lib/db';
 import { useLanguage } from '../context/LanguageContext';
+import SplitPicker from '../components/SplitPicker';
+import { emptyParts, partsToSplits, splitError, primaryMethod } from '../utils/paymentSplits';
 
 const Voucher = () => {
   const { t } = useLanguage();
@@ -21,6 +23,8 @@ const Voucher = () => {
   const [items, setItems] = useState([{ lb: '', plastic_size: '', plastic_price: '', color: '', color_price: '', total_price: 0 }]);
   const [paidAmount, setPaidAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('CASH');
+  const [splitMode, setSplitMode] = useState(false);
+  const [parts, setParts] = useState(emptyParts());
   const [note, setNote] = useState('');
   const [extraChargeNote, setExtraChargeNote] = useState('');
   const [extraChargeAmount, setExtraChargeAmount] = useState('');
@@ -91,6 +95,16 @@ const Voucher = () => {
     e.preventDefault();
     if (!voucherNumber) return alert(t('enter_voucher_number'));
 
+    const paidNow = parseFloat(paidAmount) || 0;
+    let splits = null;
+    let method = paymentMethod;
+    if (splitMode && paidNow > 0) {
+      const err = splitError(parts, paidNow);
+      if (err) return alert(t(err));
+      splits = partsToSplits(parts);
+      method = primaryMethod(splits);
+    }
+
     setLoading(true);
 
     const clientId = generateUUID();
@@ -112,7 +126,8 @@ const Voucher = () => {
       voucher_number: voucherNumber,
       voucher_date: voucherDate,
       paid_amount: paid,
-      payment_method: paid > 0 ? paymentMethod : null,
+      payment_method: paid > 0 ? method : null,
+      payment_splits: paid > 0 ? splits : null,
       note: note,
       extra_charge_note: extraChargeNote || null,
       extra_charge_amount: parseFloat(extraChargeAmount) || 0,
@@ -139,7 +154,8 @@ const Voucher = () => {
           extra_charge_amount: extraCharge,
           discount_amount: discount,
           paid_amount: paid,
-          payment_method: paid > 0 ? paymentMethod : null,
+          payment_method: paid > 0 ? method : null,
+      payment_splits: paid > 0 ? splits : null,
           note: note,
           items: mappedItems,
           sync_status: 'synced',
@@ -177,7 +193,8 @@ const Voucher = () => {
           extra_charge_amount: extraCharge,
           discount_amount: discount,
           paid_amount: paid,
-          payment_method: paid > 0 ? paymentMethod : null,
+          payment_method: paid > 0 ? method : null,
+      payment_splits: paid > 0 ? splits : null,
           note: note,
           items: mappedItems,
           sync_status: 'pending',
@@ -458,7 +475,15 @@ const Voucher = () => {
           {parseFloat(paidAmount) > 0 && (
             <div className="space-y-2 px-1 animate-in fade-in slide-in-from-top-2 duration-300">
               <label className="text-base font-bold text-gray-600 uppercase">{t('payment_method')}</label>
-              <div className="grid grid-cols-3 gap-3">
+              <SplitPicker
+                total={paidAmount}
+                split={splitMode}
+                onSplitChange={setSplitMode}
+                parts={parts}
+                onParts={setParts}
+                method={paymentMethod}
+                single={(
+                  <div className="grid grid-cols-3 gap-3">
                 {paymentMethods.map((m) => (
                   <button
                     key={m.id}
@@ -475,6 +500,8 @@ const Voucher = () => {
                   </button>
                 ))}
               </div>
+                )}
+              />
             </div>
           )}
 

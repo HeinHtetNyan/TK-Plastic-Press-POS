@@ -1,5 +1,6 @@
 from datetime import datetime, date
 from typing import Optional, TYPE_CHECKING
+from sqlalchemy import Column, JSON
 from sqlmodel import SQLModel, Field, Relationship
 from .customer import get_yangon_date, get_yangon_now
 from .enums import PaymentMethod
@@ -15,6 +16,9 @@ class Payment(SQLModel, table=True):
     amount_paid: float = Field(ge=0)
     discount_amount: float = Field(default=0.0)
     payment_method: PaymentMethod
+    # Optional split across several methods: [{"method": "CASH", "amount": 500000}, ...].
+    # NULL = the whole amount was paid with payment_method. payment_method always holds the largest part.
+    payment_splits: Optional[list] = Field(default=None, sa_column=Column(JSON, nullable=True))
     payment_date: date = Field(default_factory=get_yangon_date)
     note: Optional[str] = None
     created_at: datetime = Field(default_factory=get_yangon_now)

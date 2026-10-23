@@ -1,8 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, FileText, CreditCard, ChevronDown, ChevronUp, Trash2, ArrowUpDown, Pencil, Plus, Save, X } from 'lucide-react';
+import { ArrowLeft, FileText, Table2, List, CreditCard, ChevronDown, ChevronUp, Trash2, ArrowUpDown, Pencil, Plus, Save, X } from 'lucide-react';
 import Layout from '../components/Layout';
 import DropdownDatePicker from '../components/DropdownDatePicker';
+import HistorySheet from '../components/HistorySheet';
+import RowActions from '../components/RowActions';
+import MethodPicker from '../components/MethodPicker';
+import SplitPicker from '../components/SplitPicker';
+import MethodTags from '../components/MethodTags';
+import { paidLaterIds } from '../utils/paidLater';
+import { emptyParts, splitsToParts, partsToSplits, splitError, primaryMethod } from '../utils/paymentSplits';
 import { voucherService, paymentService } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import { useLanguage } from '../context/LanguageContext';
@@ -36,6 +43,14 @@ const History = () => {
   const [expandedPayment, setExpandedPayment] = useState(null);
   const [sortOrder, setSortOrder] = useState('desc');
   const [selectedDate, setSelectedDate] = useState('');
+  const [viewMode, setViewMode] = useState(() => {
+    try { return localStorage.getItem('history_view') || 'sheet'; } catch { return 'sheet'; }
+  });
+  const changeView = (mode) => {
+    setViewMode(mode);
+    try { localStorage.setItem('history_view', mode); } catch { /* storage unavailable */ }
+  };
+  const canEditItem = (item) => !!(item.server_id ?? (typeof item.id === 'number' ? item.id : null));
 
   // Edit payment modal state
   const [editingPayment, setEditingPayment] = useState(null);
@@ -43,6 +58,8 @@ const History = () => {
   const [editPaymentAmount, setEditPaymentAmount] = useState('');
   const [editPaymentDiscountAmount, setEditPaymentDiscountAmount] = useState('');
   const [editPmtMethod, setEditPmtMethod] = useState('');
+  const [editPmtSplit, setEditPmtSplit] = useState(false);
+  const [editPmtParts, setEditPmtParts] = useState(emptyParts());
   const [editPaymentDate, setEditPaymentDate] = useState('');
   const [editPaymentNote, setEditPaymentNote] = useState('');
 
@@ -57,6 +74,8 @@ const History = () => {
   const [editDiscountAmount, setEditDiscountAmount] = useState('');
   const [editPaidAmount, setEditPaidAmount] = useState('');
   const [editPaymentMethod, setEditPaymentMethod] = useState('');
+  const [editSplit, setEditSplit] = useState(false);
+  const [editParts, setEditParts] = useState(emptyParts());
   const [editNote, setEditNote] = useState('');
 
   const loadFromCache = useCallback(async () => {
@@ -197,6 +216,8 @@ const History = () => {
     setEditPaymentAmount(String(item.amount_paid));
     setEditPaymentDiscountAmount(item.discount_amount > 0 ? String(item.discount_amount) : '');
     setEditPmtMethod(item.payment_method || '');
+    setEditPmtSplit(!!item.payment_splits?.length);
+    setEditPmtParts(splitsToParts(item.payment_splits));
     setEditPaymentDate(item.payment_date || '');
     setEditPaymentNote(item.note || '');
   };
@@ -219,10 +240,22 @@ const History = () => {
       alert('Amount must be greater than 0.');
       return;
     }
+    let pmtSplits = [];
+    let pmtMethod = editPmtMethod || null;
+    if (editPmtSplit) {
+      const err = splitError(editPmtParts, amount);
+      if (err) {
+        alert(t(err));
+        return;
+      }
+      pmtSplits = partsToSplits(editPmtParts);
+      pmtMethod = primaryMethod(pmtSplits);
+    }
     const payload = {
       amount_paid: amount,
       discount_amount: parseFloat(editPaymentDiscountAmount) || 0,
-      payment_method: editPmtMethod || null,
+      payment_method: pmtMethod,
+      payment_splits: pmtSplits,
       payment_date: editPaymentDate || null,
       note: editPaymentNote || null,
     };
@@ -260,6 +293,8 @@ const History = () => {
     setEditDiscountAmount(item.discount_amount > 0 ? String(item.discount_amount) : '');
     setEditPaidAmount(item.paid_amount > 0 ? String(item.paid_amount) : '');
     setEditPaymentMethod(item.payment_method || '');
+    setEditSplit(!!item.payment_splits?.length);
+    setEditParts(splitsToParts(item.payment_splits));
     setEditNote(item.note || '');
   };
 
@@ -303,6 +338,18 @@ const History = () => {
       return;
     }
 
+    const paidNow = parseFloat(editPaidAmount) || 0;
+    let voucherSplits = [];
+    let voucherMethod = editPaymentMethod || null;
+    if (editSplit && paidNow > 0) {
+      const err = splitError(editParts, paidNow);
+      if (err) {
+        alert(t(err));
+        return;
+      }
+      voucherSplits = partsToSplits(editParts);
+      voucherMethod = primaryMethod(voucherSplits);
+    }
     const payload = {
       voucher_number: editVoucherNumber,
       voucher_date: editVoucherDate || null,
@@ -311,7 +358,8 @@ const History = () => {
       extra_charge_amount: parseFloat(editExtraChargeAmount) || 0,
       discount_amount: parseFloat(editDiscountAmount) || 0,
       paid_amount: parseFloat(editPaidAmount) || 0,
-      payment_method: editPaymentMethod || null,
+      payment_method: voucherMethod,
+      payment_splits: voucherSplits,
       note: editNote || null,
     };
 
@@ -341,6 +389,13 @@ const History = () => {
   const editFinalTotal = editItemsTotal + editExtraCharge - editDiscount + editPrevBalance;
   const editRemaining = editFinalTotal - editPaid;
 
+  // Same rule as the backend customer balance: all vouchers minus all payments (date filter does not apply).
+  const owesNow =
+    vouchers.reduce((a, v) => a + (v.items_total || 0) + (v.extra_charge_amount || 0) - (v.discount_amount || 0) - (v.paid_amount || 0), 0) -
+    payments.reduce((a, p) => a + (p.amount_paid || 0) + (p.discount_amount || 0), 0);
+  const owesRounded = Math.round(owesNow * 100) / 100;
+  const paidLater = paidLaterIds(vouchers, payments);
+
   const filteredData = [
     ...vouchers.map(v => ({ ...v, type: 'voucher' })),
     ...payments.map(p => ({ ...p, type: 'payment' }))
@@ -355,7 +410,7 @@ const History = () => {
   });
 
   return (
-    <Layout>
+    <Layout wide={viewMode === 'sheet'}>
       <div className="space-y-4 pb-12 animate-in slide-in-from-right-4 duration-500">
         <header className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -390,7 +445,15 @@ const History = () => {
           )}
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          <div className="flex rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-white">
+            <button onClick={() => changeView('sheet')} className={`flex items-center gap-1.5 text-base font-black px-3 py-1.5 transition-all ${viewMode === 'sheet' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-blue-600'}`}>
+              <Table2 size={12} /> Sheet
+            </button>
+            <button onClick={() => changeView('list')} className={`flex items-center gap-1.5 text-base font-black px-3 py-1.5 transition-all ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-blue-600'}`}>
+              <List size={12} /> List
+            </button>
+          </div>
           <button
             onClick={() => setSortOrder(s => s === 'asc' ? 'desc' : 'asc')}
             className="flex items-center gap-1.5 text-base font-black text-gray-500 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-gray-100 hover:border-blue-200 hover:text-blue-600 transition-all"
@@ -400,6 +463,25 @@ const History = () => {
           </button>
         </div>
 
+        {viewMode === 'sheet' && !loading && (vouchers.length > 0 || payments.length > 0) && (
+          <div className={`flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border-2 ${owesRounded > 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+            <span className="text-sm font-black uppercase tracking-widest text-gray-500">{owesRounded < 0 ? t('credit') : t('owes_now')}</span>
+            <span className={`text-2xl font-black tabular-nums ${owesRounded > 0 ? 'text-red-500' : 'text-green-600'}`}>{Math.abs(owesRounded).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+          </div>
+        )}
+
+        {viewMode === 'sheet' && !loading && filteredData.length > 0 ? (
+          <HistorySheet
+            rows={filteredData}
+            paidLater={paidLater}
+            isAdmin={isAdmin()}
+            canEdit={canEditItem}
+            onEditVoucher={openEditModal}
+            onDeleteVoucher={handleDeleteVoucher}
+            onEditPayment={openEditPaymentModal}
+            onDeletePayment={handleDeletePayment}
+          />
+        ) : (
         <div className="space-y-3">
           {loading ? (
             <div className="text-center py-12 text-gray-400 font-bold text-base uppercase tracking-widest animate-pulse">{t('refreshing_records')}</div>
@@ -423,15 +505,7 @@ const History = () => {
                             {item.sync_status === 'pending' && (
                               <span className="text-base bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded font-black uppercase">Pending</span>
                             )}
-                            {item.paid_amount > 0 && item.payment_method && (
-                              <span className={`text-base px-1.5 py-0.5 rounded font-black uppercase ${
-                                item.payment_method === 'KBZPAY' ? 'bg-blue-100 text-blue-600' :
-                                item.payment_method === 'BANK_TRANSFER' ? 'bg-purple-100 text-purple-600' :
-                                'bg-green-100 text-green-600'
-                              }`}>
-                                {item.payment_method === 'BANK_TRANSFER' ? 'BANK' : item.payment_method}
-                              </span>
-                            )}
+                            {item.paid_amount > 0 && item.payment_method && <MethodTags row={item} className="!text-base" />}
                           </div>
                           <p className="text-base text-gray-400 font-bold uppercase tracking-widest">{item.items?.length || 0} {t('products')}</p>
                           <p className="sm:hidden text-base font-black mt-0.5">
@@ -448,28 +522,21 @@ const History = () => {
                           </span>
                         </div>
                         <div className="flex flex-col gap-1 items-end sm:flex-row sm:items-center sm:gap-2 ml-2">
-                          {isAdmin() && (item.server_id ?? (typeof item.id === 'number' ? item.id : null)) && (
-                            <button
-                              onClick={(e) => openEditModal(e, item)}
-                              className="p-1.5 text-gray-300 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all order-2 sm:order-1"
-                            >
-                              <Pencil size={15} />
-                            </button>
-                          )}
-                          {isAdmin() && (
-                            <button
-                              onClick={(e) => handleDeleteVoucher(e, item)}
-                              className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all order-2 sm:order-1"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          )}
                           <div className="order-1 sm:order-2">
                             {expandedVoucher === item.id ? <ChevronUp size={16} className="text-gray-300" /> : <ChevronDown size={16} className="text-gray-300" />}
                           </div>
                         </div>
                       </div>
                     </div>
+                    {isAdmin() && (
+                      <div className="px-3 pb-3">
+                        <RowActions
+                          horizontal
+                          onEdit={canEditItem(item) ? (e) => openEditModal(e, item) : null}
+                          onDelete={(e) => handleDeleteVoucher(e, item)}
+                        />
+                      </div>
+                    )}
                     {expandedVoucher === item.id && (
                       <div className="bg-gray-50 p-3 border-t border-gray-100 space-y-3 animate-in slide-in-from-top-2">
                         {item.note && (
@@ -557,15 +624,7 @@ const History = () => {
                             {item.sync_status === 'pending' && (
                               <span className="text-base bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded font-black uppercase">Pending</span>
                             )}
-                            {item.payment_method && (
-                              <span className={`text-base px-1.5 py-0.5 rounded font-black uppercase ${
-                                item.payment_method === 'KBZPAY' ? 'bg-blue-100 text-blue-600' :
-                                item.payment_method === 'BANK_TRANSFER' ? 'bg-purple-100 text-purple-600' :
-                                'bg-green-100 text-green-600'
-                              }`}>
-                                {item.payment_method === 'BANK_TRANSFER' ? 'BANK' : item.payment_method}
-                              </span>
-                            )}
+                            {item.payment_method && <MethodTags row={item} className="!text-base" />}
                           </div>
                           {item.note && <p className="text-base text-gray-500 italic truncate max-w-[200px]">"{item.note}"</p>}
                           <p className="sm:hidden font-black text-green-600 text-xl mt-0.5">{item.amount_paid.toLocaleString()}</p>
@@ -578,27 +637,21 @@ const History = () => {
                             {item.amount_paid.toLocaleString()}
                           </span>
                         </div>
-                        {isAdmin() && (item.server_id ?? (typeof item.id === 'number' ? item.id : null)) && (
-                          <button
-                            onClick={(e) => openEditPaymentModal(e, item)}
-                            className="p-1.5 text-gray-300 hover:text-green-500 hover:bg-green-50 rounded-lg transition-all"
-                          >
-                            <Pencil size={15} />
-                          </button>
-                        )}
-                        {isAdmin() && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleDeletePayment(item); }}
-                            className="p-1.5 text-gray-200 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        )}
                         <div>
                           {expandedPayment === item.id ? <ChevronUp size={16} className="text-gray-300" /> : <ChevronDown size={16} className="text-gray-300" />}
                         </div>
                       </div>
                     </div>
+                    {isAdmin() && (
+                      <div className="px-3 pb-3">
+                        <RowActions
+                          horizontal
+                          accent="green"
+                          onEdit={canEditItem(item) ? (e) => openEditPaymentModal(e, item) : null}
+                          onDelete={(e) => { e.stopPropagation(); handleDeletePayment(item); }}
+                        />
+                      </div>
+                    )}
                     {expandedPayment === item.id && (
                       <div className="bg-gray-50 p-3 border-t border-gray-100 space-y-3 animate-in slide-in-from-top-2">
                         {item.note && (
@@ -610,13 +663,7 @@ const History = () => {
                         <div className={`grid gap-2 text-base font-black uppercase text-center ${item.discount_amount > 0 ? 'grid-cols-3' : 'grid-cols-2'}`}>
                           <div className="bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
                             <span className="text-gray-400 block mb-1">{t('payment_method') || 'METHOD'}</span>
-                            <span className={`text-base ${
-                              item.payment_method === 'KBZPAY' ? 'text-blue-600' :
-                              item.payment_method === 'BANK_TRANSFER' ? 'text-purple-600' :
-                              'text-green-600'
-                            }`}>
-                              {item.payment_method === 'BANK_TRANSFER' ? 'BANK' : item.payment_method || '-'}
-                            </span>
+                            <span className="flex flex-wrap justify-center gap-1">{item.payment_method ? <MethodTags row={item} className="!text-base" /> : '-'}</span>
                           </div>
                           <div className="bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
                             <span className="text-gray-400 block mb-1">{t('amount_paid')}</span>
@@ -649,23 +696,24 @@ const History = () => {
             </div>
           )}
         </div>
+        )}
       </div>
 
       {/* Edit Payment Modal */}
       {editingPayment && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4">
-          <div className="bg-white w-full sm:max-w-sm sm:rounded-3xl rounded-t-3xl shadow-2xl flex flex-col max-h-[92vh]">
+          <div className="bg-white w-full h-[100dvh] sm:h-auto sm:max-w-sm sm:rounded-3xl shadow-2xl flex flex-col sm:max-h-[92vh]">
             <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100 shrink-0">
               <div>
                 <h3 className="text-base font-black text-gray-800">Edit Payment</h3>
                 <p className="text-sm text-gray-400 font-bold uppercase tracking-widest">{editingPayment.payment_date}</p>
               </div>
-              <button onClick={closeEditPaymentModal} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 transition-all">
-                <X size={18} />
+              <button onClick={closeEditPaymentModal} className="p-3 rounded-xl bg-gray-100 text-gray-500 transition-all">
+                <X size={22} />
               </button>
             </div>
 
-            <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
+            <div className="overflow-y-auto overflow-x-hidden flex-1 px-4 sm:px-5 py-4 space-y-5">
               {/* Amount */}
               <div>
                 <label className="text-sm font-black text-gray-400 uppercase tracking-widest block mb-1">{t('amount_paid')}</label>
@@ -674,7 +722,7 @@ const History = () => {
                   step="any"
                   value={editPaymentAmount}
                   onChange={e => setEditPaymentAmount(e.target.value)}
-                  className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-base outline-none focus:border-green-400"
+                  className="w-full p-3 bg-gray-50 border-2 border-gray-200 rounded-xl font-bold text-lg leading-normal outline-none focus:border-green-400"
                 />
               </div>
 
@@ -691,27 +739,17 @@ const History = () => {
               </div>
 
               {/* Method & Date */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-black text-gray-400 uppercase tracking-widest block mb-1">{t('payment_method') || 'Method'}</label>
-                  <select
-                    value={editPmtMethod}
-                    onChange={e => setEditPmtMethod(e.target.value)}
-                    className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-base outline-none focus:border-green-400"
-                  >
-                    <option value="">—</option>
-                    {PAYMENT_METHODS.map(m => (
-                      <option key={m} value={m}>{m === 'BANK_TRANSFER' ? 'BANK' : m}</option>
-                    ))}
-                  </select>
+                  <label className="text-sm font-black text-gray-400 uppercase tracking-widest block mb-2">{t('payment_method') || 'Method'}</label>
+                  <SplitPicker total={editPaymentAmount} split={editPmtSplit} onSplitChange={setEditPmtSplit} parts={editPmtParts} onParts={setEditPmtParts} method={editPmtMethod}
+                    single={<MethodPicker value={editPmtMethod} onChange={setEditPmtMethod} />} />
                 </div>
-                <div>
-                  <DropdownDatePicker
-                    label={t('date') || 'Date'}
-                    value={editPaymentDate}
-                    onChange={setEditPaymentDate}
-                  />
-                </div>
+                <DropdownDatePicker
+                  label={t('date') || 'Date'}
+                  value={editPaymentDate}
+                  onChange={setEditPaymentDate}
+                />
               </div>
 
               {/* Note */}
@@ -721,7 +759,7 @@ const History = () => {
                   value={editPaymentNote}
                   onChange={e => setEditPaymentNote(e.target.value)}
                   rows={3}
-                  className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-base outline-none focus:border-green-400 resize-none"
+                  className="w-full p-3 bg-gray-50 border-2 border-gray-200 rounded-xl font-bold text-lg leading-normal outline-none focus:border-green-400 resize-none"
                 />
               </div>
 
@@ -740,14 +778,14 @@ const History = () => {
               </div>
             </div>
 
-            <div className="px-5 pb-5 pt-3 border-t border-gray-100 flex gap-3 shrink-0">
-              <button onClick={closeEditPaymentModal} className="flex-1 py-3 rounded-2xl border-2 border-gray-100 font-black text-gray-500 text-base hover:bg-gray-50 transition-all">
+            <div className="px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] border-t border-gray-100 flex gap-4 shrink-0">
+              <button onClick={closeEditPaymentModal} className="flex-1 py-4 rounded-2xl border-2 border-gray-200 font-black text-gray-500 text-base hover:bg-gray-50 transition-all">
                 Cancel
               </button>
               <button
                 onClick={handleSavePaymentEdit}
                 disabled={editPaymentSaving || !editPaymentAmount}
-                className="flex-1 py-3 rounded-2xl bg-green-600 text-white font-black text-base flex items-center justify-center gap-2 hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-4 rounded-2xl bg-green-600 text-white font-black text-base flex items-center justify-center gap-2 hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save size={15} />
                 {editPaymentSaving ? 'Saving...' : 'Save Changes'}
@@ -760,28 +798,28 @@ const History = () => {
       {/* Edit Voucher Modal */}
       {editingVoucher && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4">
-          <div className="bg-white w-full sm:max-w-lg sm:rounded-3xl rounded-t-3xl shadow-2xl flex flex-col max-h-[92vh]">
+          <div className="bg-white w-full h-[100dvh] sm:h-auto sm:max-w-lg sm:rounded-3xl shadow-2xl flex flex-col sm:max-h-[92vh]">
             {/* Modal header */}
             <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100 shrink-0">
               <div>
                 <h3 className="text-base font-black text-gray-800">Edit Voucher</h3>
                 <p className="text-sm text-gray-400 font-bold uppercase tracking-widest">{editingVoucher.voucher_number}</p>
               </div>
-              <button onClick={closeEditModal} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 transition-all">
-                <X size={18} />
+              <button onClick={closeEditModal} className="p-3 rounded-xl bg-gray-100 text-gray-500 transition-all">
+                <X size={22} />
               </button>
             </div>
 
-            <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
+            <div className="overflow-y-auto overflow-x-hidden flex-1 px-4 sm:px-5 py-4 space-y-5">
               {/* Voucher Number & Date */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-black text-gray-400 uppercase tracking-widest block mb-1">Voucher No.</label>
                   <input
                     type="text"
                     value={editVoucherNumber}
                     onChange={e => setEditVoucherNumber(e.target.value)}
-                    className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-base outline-none focus:border-blue-400"
+                    className="w-full p-3 bg-gray-50 border-2 border-gray-200 rounded-xl font-bold text-lg leading-normal outline-none focus:border-blue-400"
                   />
                 </div>
                 <div>
@@ -805,41 +843,39 @@ const History = () => {
                   {editItems.map((it, idx) => (
                     <div key={idx} className="bg-gray-50 rounded-xl p-2.5 border border-gray-100 space-y-2 relative">
                       {editItems.length > 1 && (
-                        <button onClick={() => removeEditItem(idx)} className="absolute top-2 right-2 text-gray-300 hover:text-red-400 transition-all">
-                          <X size={13} />
+                        <button onClick={() => removeEditItem(idx)} className="absolute top-2 right-2 p-2 text-gray-400 hover:text-red-500 transition-all">
+                          <X size={20} />
                         </button>
                       )}
-                      <div className="grid grid-cols-3 gap-2">
-                        <div>
-                          <label className="text-xs font-black text-gray-400 uppercase block mb-0.5">LB</label>
-                          <input type="number" step="any" value={it.lb} onChange={e => handleEditItemChange(idx, 'lb', e.target.value)}
-                            className="w-full p-2 bg-white border border-gray-200 rounded-lg text-base font-bold outline-none focus:border-blue-400" />
-                        </div>
-                        <div>
-                          <label className="text-xs font-black text-gray-400 uppercase block mb-0.5">Size</label>
-                          <input type="text" value={it.plastic_size} onChange={e => handleEditItemChange(idx, 'plastic_size', e.target.value)}
-                            className="w-full p-2 bg-white border border-gray-200 rounded-lg text-base font-bold outline-none focus:border-blue-400" />
-                        </div>
-                        <div>
-                          <label className="text-xs font-black text-gray-400 uppercase block mb-0.5">Plastic ฿</label>
-                          <input type="number" step="any" value={it.plastic_price} onChange={e => handleEditItemChange(idx, 'plastic_price', e.target.value)}
-                            className="w-full p-2 bg-white border border-gray-200 rounded-lg text-base font-bold outline-none focus:border-blue-400" />
-                        </div>
+                      <div>
+                        <label className="text-xs font-black text-gray-400 uppercase block mb-0.5">Size</label>
+                        <input type="text" value={it.plastic_size} onChange={e => handleEditItemChange(idx, 'plastic_size', e.target.value)}
+                          className="w-full p-3 bg-white border-2 border-gray-200 rounded-xl text-lg leading-normal font-bold outline-none focus:border-blue-400" />
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-xs font-black text-gray-400 uppercase block mb-0.5">Color</label>
-                          <input type="text" value={it.color} onChange={e => handleEditItemChange(idx, 'color', e.target.value)}
-                            className="w-full p-2 bg-white border border-gray-200 rounded-lg text-base font-bold outline-none focus:border-blue-400" />
+                      <div>
+                        <label className="text-xs font-black text-gray-400 uppercase block mb-0.5">Color</label>
+                        <input type="text" value={it.color} onChange={e => handleEditItemChange(idx, 'color', e.target.value)}
+                          className="w-full p-3 bg-white border-2 border-gray-200 rounded-xl text-lg leading-normal font-bold outline-none focus:border-blue-400" />
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="min-w-0">
+                          <label className="text-xs font-black text-gray-400 uppercase block mb-0.5">LB</label>
+                          <input type="number" step="any" inputMode="decimal" value={it.lb} onChange={e => handleEditItemChange(idx, 'lb', e.target.value)}
+                            className="w-full p-3 bg-white border-2 border-gray-200 rounded-xl text-lg font-bold outline-none focus:border-blue-400" />
                         </div>
-                        <div>
-                          <label className="text-xs font-black text-gray-400 uppercase block mb-0.5">Color ฿</label>
-                          <input type="number" step="any" value={it.color_price} onChange={e => handleEditItemChange(idx, 'color_price', e.target.value)}
-                            className="w-full p-2 bg-white border border-gray-200 rounded-lg text-base font-bold outline-none focus:border-blue-400" />
+                        <div className="min-w-0">
+                          <label className="text-xs font-black text-gray-400 uppercase block mb-0.5">Plastic</label>
+                          <input type="number" step="any" inputMode="decimal" value={it.plastic_price} onChange={e => handleEditItemChange(idx, 'plastic_price', e.target.value)}
+                            className="w-full p-3 bg-white border-2 border-gray-200 rounded-xl text-lg font-bold outline-none focus:border-blue-400" />
+                        </div>
+                        <div className="min-w-0">
+                          <label className="text-xs font-black text-gray-400 uppercase block mb-0.5">Color</label>
+                          <input type="number" step="any" inputMode="decimal" value={it.color_price} onChange={e => handleEditItemChange(idx, 'color_price', e.target.value)}
+                            className="w-full p-3 bg-white border-2 border-gray-200 rounded-xl text-lg font-bold outline-none focus:border-blue-400" />
                         </div>
                       </div>
                       {(parseFloat(it.lb) > 0) && (
-                        <div className="text-right text-xs font-black text-blue-600">
+                        <div className="text-right text-base font-black text-blue-600">
                           = {((parseFloat(it.lb) || 0) * ((parseFloat(it.plastic_price) || 0) + (parseFloat(it.color_price) || 0))).toLocaleString()}
                         </div>
                       )}
@@ -856,13 +892,13 @@ const History = () => {
                     <label className="text-xs font-black text-gray-400 uppercase block mb-0.5">Label</label>
                     <input type="text" value={editExtraChargeNote} onChange={e => setEditExtraChargeNote(e.target.value)}
                       placeholder="e.g. Delivery fee"
-                      className="w-full p-2 bg-white border border-orange-100 rounded-lg text-base font-bold outline-none focus:border-orange-400" />
+                      className="w-full p-3 bg-white border-2 border-orange-100 rounded-xl text-lg leading-normal font-bold outline-none focus:border-orange-400" />
                   </div>
                   <div>
                     <label className="text-xs font-black text-gray-400 uppercase block mb-0.5">Amount</label>
                     <input type="number" step="any" value={editExtraChargeAmount} onChange={e => setEditExtraChargeAmount(e.target.value)}
                       placeholder="0"
-                      className="w-full p-2 bg-white border border-orange-100 rounded-lg text-base font-bold outline-none focus:border-orange-400" />
+                      className="w-full p-3 bg-white border-2 border-orange-100 rounded-xl text-lg leading-normal font-bold outline-none focus:border-orange-400" />
                   </div>
                 </div>
               </div>
@@ -874,27 +910,22 @@ const History = () => {
                   <label className="text-xs font-black text-gray-400 uppercase block mb-0.5">{t('amount')}</label>
                   <input type="number" step="any" value={editDiscountAmount} onChange={e => setEditDiscountAmount(e.target.value)}
                     placeholder="0"
-                    className="w-full p-2 bg-white border border-red-100 rounded-lg text-base font-bold outline-none focus:border-red-400" />
+                    className="w-full p-3 bg-white border-2 border-red-100 rounded-xl text-lg leading-normal font-bold outline-none focus:border-red-400" />
                 </div>
               </div>
 
               {/* Payment */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className="text-sm font-black text-gray-400 uppercase tracking-widest block mb-1">{t('paid_amount') || 'Paid Amount'}</label>
                   <input type="number" step="any" value={editPaidAmount} onChange={e => setEditPaidAmount(e.target.value)}
                     placeholder="0"
-                    className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-base outline-none focus:border-blue-400" />
+                    className="w-full p-3 bg-gray-50 border-2 border-gray-200 rounded-xl font-bold text-lg leading-normal outline-none focus:border-blue-400" />
                 </div>
                 <div>
-                  <label className="text-sm font-black text-gray-400 uppercase tracking-widest block mb-1">{t('payment_method') || 'Method'}</label>
-                  <select value={editPaymentMethod} onChange={e => setEditPaymentMethod(e.target.value)}
-                    className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-base outline-none focus:border-blue-400">
-                    <option value="">—</option>
-                    {PAYMENT_METHODS.map(m => (
-                      <option key={m} value={m}>{m === 'BANK_TRANSFER' ? 'BANK' : m}</option>
-                    ))}
-                  </select>
+                  <label className="text-sm font-black text-gray-400 uppercase tracking-widest block mb-2">{t('payment_method') || 'Method'}</label>
+                  <SplitPicker total={editPaidAmount} split={editSplit} onSplitChange={setEditSplit} parts={editParts} onParts={setEditParts} method={editPaymentMethod}
+                    single={<MethodPicker value={editPaymentMethod} onChange={setEditPaymentMethod} />} />
                 </div>
               </div>
 
@@ -903,7 +934,7 @@ const History = () => {
                 <label className="text-sm font-black text-gray-400 uppercase tracking-widest block mb-1">{t('note') || 'Note'}</label>
                 <textarea value={editNote} onChange={e => setEditNote(e.target.value)}
                   rows={2}
-                  className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-base outline-none focus:border-blue-400 resize-none" />
+                  className="w-full p-3 bg-gray-50 border-2 border-gray-200 rounded-xl font-bold text-lg leading-normal outline-none focus:border-blue-400 resize-none" />
               </div>
 
               {/* Live summary */}
@@ -936,15 +967,20 @@ const History = () => {
               </div>
             </div>
 
+            <div className={`shrink-0 flex items-center justify-between px-5 py-3 border-t-2 ${editRemaining > 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+              <span className="text-sm font-black uppercase tracking-widest text-gray-500">{t('remaining')}</span>
+              <span className={`text-2xl font-black tabular-nums ${editRemaining > 0 ? 'text-red-500' : 'text-green-600'}`}>{editRemaining.toLocaleString()}</span>
+            </div>
+
             {/* Modal footer */}
-            <div className="px-5 pb-5 pt-3 border-t border-gray-100 flex gap-3 shrink-0">
-              <button onClick={closeEditModal} className="flex-1 py-3 rounded-2xl border-2 border-gray-100 font-black text-gray-500 text-base hover:bg-gray-50 transition-all">
+            <div className="px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] border-t border-gray-100 flex gap-4 shrink-0">
+              <button onClick={closeEditModal} className="flex-1 py-4 rounded-2xl border-2 border-gray-200 font-black text-gray-500 text-base hover:bg-gray-50 transition-all">
                 Cancel
               </button>
               <button
                 onClick={handleSaveEdit}
                 disabled={editSaving || !editVoucherNumber.trim()}
-                className="flex-1 py-3 rounded-2xl bg-blue-600 text-white font-black text-base flex items-center justify-center gap-2 hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-4 rounded-2xl bg-blue-600 text-white font-black text-base flex items-center justify-center gap-2 hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save size={15} />
                 {editSaving ? 'Saving...' : 'Save Changes'}

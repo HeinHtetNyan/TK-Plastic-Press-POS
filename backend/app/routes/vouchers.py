@@ -10,6 +10,7 @@ from app.services.voucher import create_voucher_service
 from app.dependencies.auth import require_staff_or_admin, require_admin
 from app.services.balance import calculate_customer_balance
 from app.services.audit import log_action
+from app.services.splits import normalize_splits
 
 router = APIRouter(tags=["vouchers"])
 
@@ -143,7 +144,9 @@ def update_voucher(
     voucher.discount_amount = discount
     voucher.final_total = final_total
     voucher.paid_amount = voucher_in.paid_amount or 0.0
-    voucher.payment_method = voucher_in.payment_method
+    splits, primary = normalize_splits(voucher_in.payment_splits, voucher.paid_amount)
+    voucher.payment_method = primary or voucher_in.payment_method
+    voucher.payment_splits = splits
     voucher.remaining_balance = remaining_balance
     voucher.note = voucher_in.note
 

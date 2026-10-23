@@ -2,6 +2,7 @@ from datetime import datetime, date
 from typing import List, Optional, Any
 from pydantic import BaseModel, Field, field_validator, field_serializer
 from app.models.enums import PaymentMethod
+from app.schemas.payment import PaymentSplit
 
 class ItemBase(BaseModel):
     lb: float = Field(gt=0)
@@ -27,6 +28,7 @@ class VoucherBase(BaseModel):
     voucher_date: Optional[date] = None
     paid_amount: float = Field(default=0.0, ge=0)
     payment_method: Optional[PaymentMethod] = Field(default=None)
+    payment_splits: Optional[List[PaymentSplit]] = None
     note: Optional[str] = None
     extra_charge_note: Optional[str] = None
     extra_charge_amount: float = Field(default=0.0, ge=0)
@@ -57,6 +59,7 @@ class VoucherUpdate(BaseModel):
     voucher_date: Optional[date] = None
     paid_amount: float = Field(default=0.0, ge=0)
     payment_method: Optional[PaymentMethod] = Field(default=None)
+    payment_splits: Optional[List[PaymentSplit]] = None
     note: Optional[str] = None
     extra_charge_note: Optional[str] = None
     extra_charge_amount: float = Field(default=0.0, ge=0)

@@ -6,6 +6,7 @@ from app.schemas.voucher import VoucherCreate
 from app.services.balance import calculate_customer_balance
 from app.models.customer import get_yangon_date
 from app.services.audit import log_action
+from app.services.splits import normalize_splits
 
 def create_voucher_service(session: Session, voucher_in: VoucherCreate, user_id: int, client_id: str = None) -> Voucher:
     # 1. Lock the customer record to prevent concurrent balance changes
@@ -35,6 +36,8 @@ def create_voucher_service(session: Session, voucher_in: VoucherCreate, user_id:
     final_total = items_total + extra_charge - discount + previous_balance
     remaining_balance = final_total - (voucher_in.paid_amount or 0.0)
 
+    splits, primary = normalize_splits(voucher_in.payment_splits, voucher_in.paid_amount or 0.0)
+
     # 5. Create voucher
     voucher = Voucher(
         client_id=client_id,
@@ -48,7 +51,8 @@ def create_voucher_service(session: Session, voucher_in: VoucherCreate, user_id:
         previous_balance=previous_balance,
         final_total=final_total,
         paid_amount=voucher_in.paid_amount or 0.0,
-        payment_method=voucher_in.payment_method,
+        payment_method=primary or voucher_in.payment_method,
+        payment_splits=splits,
         remaining_balance=remaining_balance,
         note=voucher_in.note,
         items=items_to_create

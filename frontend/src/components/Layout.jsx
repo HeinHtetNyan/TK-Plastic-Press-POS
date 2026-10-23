@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useLanguage } from '../context/LanguageContext';
 import SyncStatus from './SyncStatus';
 
-const Layout = ({ children }) => {
+const Layout = ({ children, wide = false }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout, isAdmin } = useAuth();
@@ -118,7 +118,7 @@ const Layout = ({ children }) => {
 
       {/* Main Content Area */}
       <main className="flex-grow min-w-0 p-4 lg:p-8 lg:ml-64 transition-all">
-        <div className="max-w-5xl mx-auto mb-20 lg:mb-0">
+        <div className={`${wide ? 'max-w-[1500px]' : 'max-w-5xl'} mx-auto mb-20 lg:mb-0`}>
           {children}
         </div>
       </main>

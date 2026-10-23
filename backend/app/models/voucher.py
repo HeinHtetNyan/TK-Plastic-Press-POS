@@ -1,5 +1,6 @@
 from datetime import datetime, date
 from typing import Optional, List, TYPE_CHECKING
+from sqlalchemy import Column, JSON
 from sqlmodel import SQLModel, Field, Relationship
 from .customer import get_yangon_date, get_yangon_now
 from .enums import PaymentMethod
@@ -20,6 +21,9 @@ class Voucher(SQLModel, table=True):
     final_total: float = Field(default=0.0)
     paid_amount: float = Field(default=0.0)
     payment_method: Optional[PaymentMethod] = Field(default=None) # Used if paid_amount > 0
+    # Optional split across several methods: [{"method": "CASH", "amount": 500000}, ...].
+    # NULL = the whole amount was paid with payment_method. payment_method always holds the largest part.
+    payment_splits: Optional[list] = Field(default=None, sa_column=Column(JSON, nullable=True))
     remaining_balance: float = Field(default=0.0)
     note: Optional[str] = None
     extra_charge_note: Optional[str] = None
