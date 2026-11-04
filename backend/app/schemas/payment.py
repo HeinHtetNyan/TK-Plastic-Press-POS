@@ -1,13 +1,18 @@
 from datetime import datetime, date
-from typing import Optional, Any
+from typing import Optional, Any, List
 from pydantic import BaseModel, Field, field_validator, field_serializer
 from app.models.enums import PaymentMethod
+
+class PaymentSplit(BaseModel):
+    method: PaymentMethod
+    amount: float = Field(ge=0)
 
 class PaymentBase(BaseModel):
     customer_id: int
     amount_paid: float = Field(ge=0)
     discount_amount: float = Field(default=0.0, ge=0)
     payment_method: Optional[PaymentMethod] = Field(default=None)
+    payment_splits: Optional[List[PaymentSplit]] = None
     payment_date: Optional[date] = None
     note: Optional[str] = None
 
@@ -36,6 +41,7 @@ class PaymentUpdate(BaseModel):
     amount_paid: Optional[float] = None
     discount_amount: Optional[float] = None
     payment_method: Optional[PaymentMethod] = None
+    payment_splits: Optional[List[PaymentSplit]] = None
     payment_date: Optional[date] = None
     note: Optional[str] = None
 

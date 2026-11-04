@@ -98,8 +98,8 @@ const Users = ({ embedded = false }) => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             {!embedded && (
-              <button
-                onClick={() => navigate('/')}
+              <button 
+                onClick={() => navigate('/')} 
                 className="p-2 bg-white rounded-full shadow-sm hover:bg-gray-100 transition-all border border-gray-100"
               >
                 <ArrowLeft size={20} className="text-gray-600" />

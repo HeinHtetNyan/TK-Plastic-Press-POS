@@ -8,6 +8,7 @@ from app.schemas.payment import PaymentCreate, PaymentRead, PaymentUpdate
 from app.dependencies.auth import require_staff_or_admin, require_admin
 
 from app.services.audit import log_action
+from app.services.splits import normalize_splits
 
 router = APIRouter(tags=["payments"])
 
@@ -30,12 +31,15 @@ def create_payment(
     except NoResultFound:
         raise HTTPException(status_code=404, detail="Customer not found")
 
+    splits, primary = normalize_splits(payment_in.payment_splits, payment_in.amount_paid)
+
     db_payment = Payment(
         client_id=payment_in.client_id,
         customer_id=payment_in.customer_id,
         amount_paid=payment_in.amount_paid,
         discount_amount=payment_in.discount_amount or 0.0,
-        payment_method=payment_in.payment_method,
+        payment_method=primary or payment_in.payment_method,
+        payment_splits=splits,
         payment_date=payment_in.payment_date,
         note=payment_in.note,
     )
@@ -78,12 +82,24 @@ def update_payment(
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
 
+    amount_changed = payment_in.amount_paid is not None and abs(payment_in.amount_paid - payment.amount_paid) > 0.001
     if payment_in.amount_paid is not None:
         payment.amount_paid = payment_in.amount_paid
     if payment_in.discount_amount is not None:
         payment.discount_amount = payment_in.discount_amount
-    if payment_in.payment_method is not None:
-        payment.payment_method = payment_in.payment_method
+    if "payment_splits" in payment_in.model_fields_set and payment_in.payment_splits is not None:
+        splits, primary = normalize_splits(payment_in.payment_splits, payment.amount_paid)
+        payment.payment_splits = splits
+        if primary:
+            payment.payment_method = primary
+        elif payment_in.payment_method is not None:
+            payment.payment_method = payment_in.payment_method
+    else:
+        if payment_in.payment_method is not None:
+            payment.payment_method = payment_in.payment_method
+        # a single method (or a changed amount) replaces any old split
+        if payment_in.payment_method is not None or amount_changed:
+            payment.payment_splits = None
     if payment_in.payment_date is not None:
         payment.payment_date = payment_in.payment_date
     if "note" in payment_in.model_fields_set:
