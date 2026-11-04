@@ -33,7 +33,6 @@ const Login = () => {
 
   useEffect(() => {
     checkStatus();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSetup = async (e) => {

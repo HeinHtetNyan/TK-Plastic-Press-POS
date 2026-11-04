@@ -36,9 +36,12 @@ export const usePlasticOptions = () => {
   }, []);
 
   useEffect(() => {
-    refresh();
+    const initialRefresh = setTimeout(refresh, 0);
     window.addEventListener('online', refresh);
-    return () => window.removeEventListener('online', refresh);
+    return () => {
+      clearTimeout(initialRefresh);
+      window.removeEventListener('online', refresh);
+    };
   }, [refresh]);
 
   /** Add a new choice. Resolves to the saved name. Works offline (kept locally, sent later). */

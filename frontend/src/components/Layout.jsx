@@ -11,10 +11,6 @@ const Layout = ({ children, wide = false }) => {
   const { user, logout, isAdmin } = useAuth();
   const { lang, setLang, t } = useLanguage();
 
-  const toggleLang = () => {
-    setLang(lang === 'EN' ? 'MM' : 'EN');
-  };
-
   const navItems = [
     { path: '/', icon: Home, label: t('home'), short: t('nav_home') },
     { path: '/stock', icon: Boxes, label: t('stock'), short: t('nav_stock') },

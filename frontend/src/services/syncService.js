@@ -35,7 +35,7 @@ export function getCachedBalance(customerServerId) {
     const raw = localStorage.getItem(`balance_${customerServerId}`);
     if (!raw) return null;
     return JSON.parse(raw).balance;
-  } catch (_) {
+  } catch {
     return null;
   }
 }

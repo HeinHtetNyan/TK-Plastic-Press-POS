@@ -35,9 +35,12 @@ const SyncStatus = () => {
 
   // Poll pending count every 5 s so the badge stays accurate
   useEffect(() => {
-    refreshCount();
+    const initialRefresh = setTimeout(refreshCount, 0);
     const id = setInterval(refreshCount, 5_000);
-    return () => clearInterval(id);
+    return () => {
+      clearTimeout(initialRefresh);
+      clearInterval(id);
+    };
   }, [refreshCount]);
 
   // Offline

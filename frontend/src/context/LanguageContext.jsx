@@ -128,7 +128,6 @@ const translations = {
     details: 'Details',
     price: 'Price',
     voucher_total: 'Voucher Total',
-    previous_balance: 'Prev. Balance',
     paid_at_site: 'Paid at Site',
     overall_total: 'Overall Total',
     direct_payment: 'Direct Payment',
@@ -480,7 +479,6 @@ const translations = {
     details: 'အသေးစိတ်',
     price: 'စျေးနှုန်း',
     voucher_total: 'ဘောက်ချာစုစုပေါင်း',
-    previous_balance: 'ယခင်ကြွေးကျန်',
     paid_at_site: 'ပေးချေပြီးငွေ',
     overall_total: 'စုစုပေါင်းကျန်ငွေ',
     direct_payment: 'ငွေပေးချေမှု',
@@ -729,6 +727,7 @@ export const LanguageProvider = ({ children }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useLanguage = () => {
   const context = useContext(LanguageContext);
   if (!context) {

@@ -40,7 +40,7 @@ const Spending = () => {
     try {
       const res = await spendingService.list();
       setSpendings(res.data);
-    } catch (_) {
+    } catch {
       // Offline: load from IndexedDB
       try {
         const rows = await db.spendings.orderBy('spending_date').reverse().toArray();
@@ -52,7 +52,7 @@ const Spending = () => {
           spending_date: r.spending_date,
           sync_status: r.sync_status,
         })));
-      } catch (__) {
+      } catch {
         setSpendings([]);
       }
     } finally {
@@ -117,7 +117,7 @@ const Spending = () => {
           syncAll();
           await fetchSpendings();
           resetForm();
-        } catch (err) {
+        } catch {
           alert(t('spending_save_error'));
         }
         setSaving(false);
@@ -179,7 +179,7 @@ const Spending = () => {
         syncAll();
         await fetchSpendings();
         resetForm();
-      } catch (err) {
+      } catch {
         alert(t('spending_save_error'));
       }
     }
@@ -229,7 +229,7 @@ const Spending = () => {
         });
         syncAll();
         await fetchSpendings();
-      } catch (err) {
+      } catch {
         alert(t('spending_delete_error'));
       }
     }

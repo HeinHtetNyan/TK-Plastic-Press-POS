@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { FilePlus, CreditCard, History, UserPlus, Users, Search as SearchIcon, Pencil, Trash2 } from 'lucide-react';
@@ -75,7 +74,7 @@ const Home = () => {
           setAllCustomers([]);
           setCustomersLoadError(errorMsg);
         }
-      } catch (__) {
+      } catch {
         setAllCustomers([]);
         setCustomersLoadError(errorMsg);
       }
@@ -92,16 +91,16 @@ const Home = () => {
       const response = await customerService.getBalance(serverId);
       const bal = response.data.balance;
       // Cache in background
-      try { cacheBalance(serverId, bal); } catch (_) {}
+      try { cacheBalance(serverId, bal); } catch { /* cache is best effort */ }
       setBalance(bal);
       setBalanceIsEstimate(false);
-    } catch (_) {
+    } catch {
       // Offline fallback
       try {
         const estimated = await getOfflineBalance(customer.client_id, serverId);
         setBalance(estimated);
         setBalanceIsEstimate(true);
-      } catch (__) {
+      } catch {
         setBalance(0);
         setBalanceIsEstimate(true);
       }
@@ -112,7 +111,9 @@ const Home = () => {
     try {
       const response = await analyticsService.getDashboard(period);
       setDashboardData(response.data);
-    } catch (_) {}
+    } catch {
+      // Dashboard data is optional while offline.
+    }
   }, []);
 
   useEffect(() => {
@@ -203,7 +204,9 @@ const Home = () => {
                 setIsCreatingCustomer(false);
                 return;
               }
-            } catch (_) {}
+            } catch {
+              // Cache cleanup is best effort.
+            }
           }
 
           setIsCreatingCustomer(false);

@@ -44,11 +44,11 @@ const Payment = () => {
       try {
         const response = await customerService.getBalance(serverId);
         const bal = response.data.balance;
-        try { cacheBalance(serverId, bal); } catch (_) {}
+        try { cacheBalance(serverId, bal); } catch { /* cache is best effort */ }
         setBalance(bal);
         setBalanceIsEstimate(false);
         return;
-      } catch (_) {}
+      } catch { /* server may be unavailable */ }
     }
 
     // Offline fallback — best effort
@@ -56,7 +56,7 @@ const Payment = () => {
       const estimated = await getOfflineBalance(customer.client_id, serverId);
       setBalance(estimated);
       setBalanceIsEstimate(true);
-    } catch (_) {
+    } catch {
       setBalance(0);
       setBalanceIsEstimate(true);
     }

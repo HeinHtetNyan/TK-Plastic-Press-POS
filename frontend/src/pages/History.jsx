@@ -171,7 +171,9 @@ const History = () => {
           });
         });
         syncAll();
-      } catch {}
+      } catch {
+        // Keep the local deletion visible when sync queue cleanup fails.
+      }
       setVouchers(prev => prev.filter(v => v.client_id !== clientId));
       return;
     }
@@ -213,7 +215,9 @@ const History = () => {
           });
         });
         syncAll();
-      } catch {}
+      } catch {
+        // Keep the local deletion visible when sync queue cleanup fails.
+      }
       setPayments(prev => prev.filter(p => p.client_id !== clientId));
       return;
     }

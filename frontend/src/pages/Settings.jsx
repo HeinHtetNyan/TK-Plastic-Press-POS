@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Settings as SettingsIcon, Users as UsersIcon, ShieldAlert } from 'lucide-react';
 import Layout from '../components/Layout';
 import Users from './Users';
@@ -39,7 +39,7 @@ const Settings = () => {
           {TABS.map(({ id, icon: Icon, label }) => (
             <button key={id} onClick={() => setTab(id)}
               className={`flex items-center gap-2 px-4 py-3 rounded-2xl font-black text-base uppercase tracking-wide transition-all ${tab === id ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-gray-500 border-2 border-gray-100'}`}>
-              <Icon size={18} /> {t(label)}
+              {React.createElement(Icon, { size: 18 })} {t(label)}
             </button>
           ))}
         </div>

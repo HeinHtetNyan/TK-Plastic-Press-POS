@@ -19,11 +19,13 @@ const DropdownDatePicker = ({ value, onChange, label }) => {
 
   // Sync from parent only when value changes externally (e.g. reset)
   useEffect(() => {
-    const { d, m, y } = splitValue(value);
-    setLocalDay(d);
-    setLocalMonth(m);
-    setLocalYear(y);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    const timeoutId = setTimeout(() => {
+      const { d, m, y } = splitValue(value);
+      setLocalDay(d);
+      setLocalMonth(m);
+      setLocalYear(y);
+    }, 0);
+    return () => clearTimeout(timeoutId);
   }, [value]);
 
   const emit = (d, m, y) => {
