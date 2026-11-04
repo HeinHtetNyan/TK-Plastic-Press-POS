@@ -17,5 +17,11 @@ class Item(SQLModel, table=True):
     color: str
     color_price: float = Field(ge=0)
     total_price: float = Field(default=0.0)
+    gate: Optional[str] = None
+    # Print (ink) colour with its own price (color_price). Does not affect stock.
+    print_color: Optional[str] = None
+    # Stock bookkeeping (set when the voucher took stock). Never sent to the browser.
+    stock_item_id: Optional[int] = Field(default=None, sa_column=Column(Integer, ForeignKey('stockitem.id', ondelete='SET NULL'), nullable=True))
+    cost_per_lb: Optional[float] = None
 
     voucher: "Voucher" = Relationship(back_populates="items")

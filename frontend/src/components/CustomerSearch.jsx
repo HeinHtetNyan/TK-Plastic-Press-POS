@@ -23,8 +23,6 @@ const CustomerSearch = ({ onSelect, onAdd, onEdit, selectedCustomer }) => {
 
   useEffect(() => {
     if (query.trim().length === 0) {
-      setResults([]);
-      setShowResults(false);
       return;
     }
 
@@ -33,7 +31,7 @@ const CustomerSearch = ({ onSelect, onAdd, onEdit, selectedCustomer }) => {
         const response = await customerService.search(query);
         setResults(response.data);
         setShowResults(true);
-      } catch (_) {
+      } catch {
         // API unavailable (offline or tunnel down) — search IndexedDB
         try {
           const lower = query.toLowerCase();
@@ -43,7 +41,7 @@ const CustomerSearch = ({ onSelect, onAdd, onEdit, selectedCustomer }) => {
             .toArray();
           setResults(cached);
           setShowResults(true);
-        } catch (__) {
+        } catch {
           setResults([]);
         }
       }
@@ -53,7 +51,12 @@ const CustomerSearch = ({ onSelect, onAdd, onEdit, selectedCustomer }) => {
   }, [query]);
 
   const handleQueryChange = (e) => {
-    setQuery(e.target.value);
+    const nextQuery = e.target.value;
+    setQuery(nextQuery);
+    if (nextQuery.trim().length === 0) {
+      setResults([]);
+      setShowResults(false);
+    }
   };
 
   const handleSelect = (customer) => {
@@ -139,7 +142,7 @@ const CustomerSearch = ({ onSelect, onAdd, onEdit, selectedCustomer }) => {
               onClick={() => handleSelect(customer)}
             >
               <span className="font-black text-gray-800 text-lg">{customer.name}</span>
-              <span className="text-sm font-black text-gray-400 uppercase">
+              <span className="text-base font-black text-gray-600 uppercase">
                 {customer.server_id ? `${t('id')}: ${customer.server_id}` : customer.id ? `${t('id')}: ${customer.id}` : t('local')}
               </span>
             </li>

@@ -8,10 +8,13 @@ import { cacheBalance, getOfflineBalance, syncAll } from '../services/syncServic
 import db, { generateUUID } from '../lib/db';
 import { useLanguage } from '../context/LanguageContext';
 import SplitPicker from '../components/SplitPicker';
+import Combo from '../components/Combo';
+import { usePlasticOptions } from '../hooks/usePlasticOptions';
 import { emptyParts, partsToSplits, splitError, primaryMethod } from '../utils/paymentSplits';
 
 const Voucher = () => {
   const { t } = useLanguage();
+  const { options, addOption } = usePlasticOptions();
   const location = useLocation();
   const navigate = useNavigate();
   const [customer] = useState(location.state?.customer || null);
@@ -20,7 +23,8 @@ const Voucher = () => {
 
   const [voucherNumber, setVoucherNumber] = useState('');
   const [voucherDate, setVoucherDate] = useState(new Date().toLocaleDateString('en-GB').split('/').join('-'));
-  const [items, setItems] = useState([{ lb: '', plastic_size: '', plastic_price: '', color: '', color_price: '', total_price: 0 }]);
+  const [items, setItems] = useState([{ lb: '', plastic_size: '', gate: '', plastic_price: '', color: '', print_color: '', color_price: '', total_price: 0 }]);
+  const [coreWeight, setCoreWeight] = useState('');
   const [paidAmount, setPaidAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [splitMode, setSplitMode] = useState(false);
@@ -47,11 +51,11 @@ const Voucher = () => {
       try {
         const response = await customerService.getBalance(serverId);
         const bal = response.data.balance;
-        try { cacheBalance(serverId, bal); } catch (_) {}
+        try { cacheBalance(serverId, bal); } catch { /* cache is best effort */ }
         setBalance(bal);
         setBalanceIsEstimate(false);
         return;
-      } catch (_) {}
+      } catch { /* server may be unavailable */ }
     }
 
     // Offline fallback — best effort
@@ -59,7 +63,7 @@ const Voucher = () => {
       const estimated = await getOfflineBalance(customer.client_id, serverId);
       setBalance(estimated);
       setBalanceIsEstimate(true);
-    } catch (_) {
+    } catch {
       setBalance(0);
       setBalanceIsEstimate(true);
     }
@@ -76,7 +80,7 @@ const Voucher = () => {
   };
 
   const addItem = () => {
-    setItems([...items, { lb: '', plastic_size: '', plastic_price: '', color: '', color_price: '', total_price: 0 }]);
+    setItems([...items, { lb: '', plastic_size: '', gate: '', plastic_price: '', color: '', print_color: '', color_price: '', total_price: 0 }]);
   };
 
   const removeItem = (index) => {
@@ -115,6 +119,8 @@ const Voucher = () => {
     const mappedItems = items.map(item => ({
       lb: parseFloat(item.lb),
       plastic_size: item.plastic_size,
+      gate: item.gate || null,
+      print_color: item.print_color || null,
       plastic_price: parseFloat(item.plastic_price) || 0,
       color: item.color,
       color_price: parseFloat(item.color_price) || 0,
@@ -132,6 +138,7 @@ const Voucher = () => {
       extra_charge_note: extraChargeNote || null,
       extra_charge_amount: parseFloat(extraChargeAmount) || 0,
       discount_amount: discount,
+      core_weight_lb: parseFloat(coreWeight) > 0 ? parseFloat(coreWeight) : null,
       items: mappedItems,
       client_id: clientId,
     };
@@ -139,7 +146,8 @@ const Voucher = () => {
     // ONLINE PATH: call API first; IndexedDB is best-effort
     if (navigator.onLine && serverId) {
       try {
-        await voucherService.create(apiPayload);
+        const created = await voucherService.create(apiPayload);
+        const warnings = created?.data?.stock_warnings || [];
 
         // Save to IndexedDB in background (non-blocking, don't fail if Dexie broken)
         db.vouchers.add({
@@ -157,12 +165,13 @@ const Voucher = () => {
           payment_method: paid > 0 ? method : null,
       payment_splits: paid > 0 ? splits : null,
           note: note,
+          core_weight_lb: apiPayload.core_weight_lb,
           items: mappedItems,
           sync_status: 'synced',
           created_at: now,
         }).catch(() => {});
 
-        alert(t('voucher_saved_successfully'));
+        alert(warnings.length ? `${t('stock_warning_title')}\n\n${warnings.join('\n')}` : t('voucher_saved_successfully'));
         setLoading(false);
         navigate('/', { state: { customer } });
         return;
@@ -196,6 +205,7 @@ const Voucher = () => {
           payment_method: paid > 0 ? method : null,
       payment_splits: paid > 0 ? splits : null,
           note: note,
+          core_weight_lb: apiPayload.core_weight_lb,
           items: mappedItems,
           sync_status: 'pending',
           created_at: now,
@@ -230,12 +240,12 @@ const Voucher = () => {
 
   return (
     <Layout>
-      <div className="space-y-6 pb-12 animate-in slide-in-from-right-4 duration-500">
+      <div className="space-y-5 pb-32 lg:pb-12 animate-in slide-in-from-right-4 duration-500">
         <header className="flex items-center gap-4">
           <button onClick={() => navigate('/', { state: { customer } })} className="p-2 bg-white rounded-full shadow-sm hover:bg-gray-100 transition-all">
             <ArrowLeft size={24} className="text-gray-600" />
           </button>
-          <h2 className="text-2xl font-black text-gray-800">{t('create_voucher')}</h2>
+          <h2 className="text-2xl sm:text-3xl font-black text-gray-900">{t('create_voucher')}</h2>
         </header>
 
         {!navigator.onLine && (
@@ -278,7 +288,7 @@ const Voucher = () => {
           </div>
 
           <div className="space-y-4">
-            <h3 className="text-lg font-black text-gray-700 flex justify-between items-center px-1">
+            <h3 className="text-xl font-black text-gray-800 flex justify-between items-center px-1">
               {t('items')}
               <button type="button" onClick={addItem} className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 transition-colors shadow-lg shadow-blue-100">
                 <Plus size={20} />
@@ -286,7 +296,7 @@ const Voucher = () => {
             </h3>
 
             {items.map((item, index) => (
-              <div key={index} className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 space-y-4 relative overflow-hidden">
+              <div key={index} className="bg-white p-3 sm:p-4 rounded-3xl shadow-sm border border-gray-100 space-y-3 sm:space-y-4 relative overflow-hidden">
                 <div className="flex justify-between items-center">
                   <span className="bg-gray-100 px-3 py-1 rounded-full text-sm font-black text-gray-500 uppercase tracking-widest">{t('item')} {index + 1}</span>
                   {items.length > 1 && (
@@ -296,19 +306,56 @@ const Voucher = () => {
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
                   <div className="space-y-1 sm:col-span-1">
-                    <label className="text-sm font-black text-gray-400 uppercase px-1 tracking-widest">{t('size')}</label>
-                    <input
-                      autoFocus={index === items.length - 1}
-                      type="text" required placeholder="e.g. 10x15"
-                      className="w-full p-2 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none transition-all font-bold"
+                    <label className="block truncate text-base font-black text-gray-600 uppercase px-1 tracking-widest">{t('size')}</label>
+                    <Combo
+                      autoFocus={index > 0 && index === items.length - 1}
+                      required
+                      placeholder={t('pick_or_type')}
+                      addLabel={t('add_new')}
+                      options={options.sizes}
                       value={item.plastic_size}
-                      onChange={(e) => handleItemChange(index, 'plastic_size', e.target.value)}
+                      onChange={(v) => handleItemChange(index, 'plastic_size', v)}
+                      onAdd={(name) => addOption('SIZE', name)}
                     />
                   </div>
                   <div className="space-y-1 sm:col-span-1">
-                    <label className="text-sm font-black text-gray-400 uppercase px-1 tracking-widest">{t('weight_lb')}</label>
+                    <label className="block truncate text-base font-black text-gray-600 uppercase px-1 tracking-widest">{t('gate')}</label>
+                    <Combo
+                      placeholder={t('pick_or_type')}
+                      addLabel={t('add_new')}
+                      options={options.gates}
+                      value={item.gate}
+                      onChange={(v) => handleItemChange(index, 'gate', v)}
+                      onAdd={(name) => addOption('GATE', name)}
+                    />
+                  </div>
+                  <div className="space-y-1 sm:col-span-1">
+                    <label className="block truncate text-base font-black text-gray-600 uppercase px-1 tracking-widest">{t('plastic_color')}</label>
+                    <Combo
+                      required
+                      placeholder={t('pick_or_type')}
+                      addLabel={t('add_new')}
+                      options={options.colors}
+                      value={item.color}
+                      onChange={(v) => handleItemChange(index, 'color', v)}
+                      onAdd={(name) => addOption('COLOR', name)}
+                    />
+                  </div>
+                  <div className="space-y-1 sm:col-span-1">
+                    <label className="block truncate text-sm font-black text-gray-400 uppercase px-1 tracking-widest">{t('print_color')}</label>
+                    <Combo
+                      placeholder={t('pick_or_type')}
+                      addLabel={t('add_new')}
+                      options={options.prints || []}
+                      value={item.print_color}
+                      onChange={(v) => handleItemChange(index, 'print_color', v)}
+                      onAdd={(name) => addOption('PRINT', name)}
+                    />
+                  </div>
+                  <div className="space-y-1 sm:col-span-1">
+                    <label className="block truncate text-base font-black text-gray-600 uppercase px-1 tracking-widest">{t('weight_lb')}</label>
                     <input
                       type="number" step="any" required min="0"
                       className="w-full p-2 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none transition-all font-bold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
@@ -318,7 +365,7 @@ const Voucher = () => {
                     />
                   </div>
                   <div className="space-y-1 sm:col-span-1">
-                    <label className="text-sm font-black text-gray-400 uppercase px-1 tracking-widest">{t('plastic_price')}</label>
+                    <label className="block truncate text-base font-black text-gray-600 uppercase px-1 tracking-widest">{t('plastic_price')}</label>
                     <input
                       type="number" required min="0" step="any"
                       className="w-full p-2 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none transition-all font-bold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
@@ -328,16 +375,7 @@ const Voucher = () => {
                     />
                   </div>
                   <div className="space-y-1 sm:col-span-1">
-                    <label className="text-sm font-black text-gray-400 uppercase px-1 tracking-widest">{t('color')}</label>
-                    <input
-                      type="text" required placeholder="e.g. Blue"
-                      className="w-full p-2 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none transition-all font-bold"
-                      value={item.color}
-                      onChange={(e) => handleItemChange(index, 'color', e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1 sm:col-span-1">
-                    <label className="text-sm font-black text-gray-400 uppercase px-1 tracking-widest">{t('color_price')}</label>
+                    <label className="block truncate text-base font-black text-gray-600 uppercase px-1 tracking-widest">{t('color_price')}</label>
                     <input
                       type="number" required min="0" step="any"
                       className="w-full p-2 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none transition-all font-bold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
@@ -348,22 +386,35 @@ const Voucher = () => {
                   </div>
                 </div>
 
-                <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="text-sm font-bold text-gray-500">
+                <div className="bg-gray-50 px-3 py-2 sm:p-3 rounded-2xl border border-gray-100 grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-3">
+                  <div className="hidden sm:block text-sm font-bold text-gray-500">
                     <span className="block uppercase text-xs mb-0.5 tracking-tighter">{t('plastic')}: {item.lb || 0} × {item.plastic_price || 0}</span>
                     <div className="text-blue-600 font-black">{((item.lb || 0) * (item.plastic_price || 0)).toLocaleString()}</div>
                   </div>
-                  <div className="text-sm font-bold text-gray-500">
+                  <div className="hidden sm:block text-sm font-bold text-gray-500">
                     <span className="block uppercase text-xs mb-0.5 tracking-tighter">{t('color')}: {item.lb || 0} × {item.color_price || 0}</span>
                     <div className="text-blue-600 font-black">{((item.lb || 0) * (item.color_price || 0)).toLocaleString()}</div>
                   </div>
-                  <div className="text-right flex flex-col justify-center">
-                    <span className="text-xs font-black text-gray-400 uppercase block tracking-widest">{t('total')}</span>
+                  <div className="flex items-center justify-between sm:text-right sm:flex-col sm:items-end sm:justify-center">
+                    <span className="text-sm font-black text-gray-600 uppercase block tracking-widest">{t('total')}</span>
                     <span className="text-lg font-black text-blue-700">{(item.total_price || 0).toLocaleString()} <span className="text-base">MMK</span></span>
                   </div>
                 </div>
               </div>
             ))}
+          </div>
+
+          <div className="bg-white p-4 rounded-3xl border-2 border-dashed border-gray-200 space-y-2">
+            <label className="text-base font-black text-gray-500 uppercase tracking-widest">{t('core_weight')} <span className="text-gray-300 font-bold normal-case">({t('optional_note')})</span></label>
+            <input
+              type="number" min="0" step="any" inputMode="decimal"
+              className="w-full p-3 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-amber-400 outline-none transition-all font-bold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              placeholder="0"
+              value={coreWeight}
+              onKeyDown={(e) => e.key === '-' && e.preventDefault()}
+              onChange={(e) => setCoreWeight(e.target.value)}
+            />
+            <p className="text-sm text-gray-400 font-bold px-1">{t('core_weight_hint')}</p>
           </div>
 
           <div className="space-y-1 px-1">
@@ -378,20 +429,20 @@ const Voucher = () => {
           </div>
 
           <div className="bg-white p-4 rounded-3xl border-2 border-dashed border-gray-200 space-y-3">
-            <label className="text-base font-black text-gray-500 uppercase tracking-widest">Extra Charge <span className="text-gray-300 font-bold normal-case">(optional)</span></label>
+            <label className="text-base font-black text-gray-500 uppercase tracking-widest">{t('x2_extra_charge')} <span className="text-gray-300 font-bold normal-case">({t('optional')})</span></label>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-sm font-black text-gray-400 uppercase px-1">Label</label>
+                <label className="text-base font-black text-gray-600 uppercase px-1">{t('x2_label')}</label>
                 <input
                   type="text"
                   className="w-full p-3 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-orange-400 outline-none transition-all font-bold"
-                  placeholder="e.g. Delivery Fee"
+                  placeholder={t('x2_ph_delivery')}
                   value={extraChargeNote}
                   onChange={(e) => setExtraChargeNote(e.target.value)}
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-sm font-black text-gray-400 uppercase px-1">Amount</label>
+                <label className="text-base font-black text-gray-600 uppercase px-1">{t('amount')}</label>
                 <input
                   type="number"
                   min="0"
@@ -409,7 +460,7 @@ const Voucher = () => {
           <div className="bg-white p-4 rounded-3xl border-2 border-dashed border-gray-200 space-y-3">
             <label className="text-base font-black text-gray-500 uppercase tracking-widest">{t('discount')} <span className="text-gray-300 font-bold normal-case">({t('optional')})</span></label>
             <div className="space-y-1">
-              <label className="text-sm font-black text-gray-400 uppercase px-1">{t('amount')}</label>
+              <label className="text-base font-black text-gray-600 uppercase px-1">{t('amount')}</label>
               <input
                 type="number"
                 min="0"
@@ -434,7 +485,7 @@ const Voucher = () => {
             </div>
             {extraCharge > 0 && (
               <div className="flex justify-between items-center opacity-70">
-                <span className="font-bold">{extraChargeNote || 'Extra Charge'}</span>
+                <span className="font-bold">{extraChargeNote || t('x2_extra_charge')}</span>
                 <span className="font-bold text-orange-300">+{extraCharge.toLocaleString()} MMK</span>
               </div>
             )}
@@ -508,13 +559,32 @@ const Voucher = () => {
           <button
             type="submit"
             disabled={loading}
-            className={`w-full p-5 rounded-3xl text-white text-xl font-black shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-4 ${
+            className={`hidden lg:flex w-full p-5 rounded-3xl text-white text-xl font-black shadow-lg shadow-blue-200 transition-all items-center justify-center gap-4 ${
               loading ? 'bg-blue-300' : 'bg-blue-600 hover:bg-blue-700 active:scale-95'
             }`}
           >
             <Save size={28} />
             {loading ? t('saving') : t('save_voucher')}
           </button>
+
+          {/* Phone: the total and the Save button stay on screen, just above the bottom menu */}
+          <div className="lg:hidden fixed left-0 right-0 z-30 bg-white/95 backdrop-blur border-t border-gray-200 px-3 py-2 flex items-center gap-3 shadow-[0_-4px_12px_rgba(0,0,0,0.08)]"
+            style={{ bottom: 'calc(4.4rem + env(safe-area-inset-bottom))' }}>
+            <div className="min-w-0 flex-1">
+              <span className="block text-sm font-black text-gray-600 uppercase leading-tight">{t('final_total')}</span>
+              <span className="block text-xl font-black text-blue-700 whitespace-nowrap">{finalTotal.toLocaleString()} <span className="text-sm">MMK</span></span>
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className={`shrink-0 flex items-center gap-2 px-4 py-3 rounded-2xl text-white text-base font-black shadow-md transition-all ${
+                loading ? 'bg-blue-300' : 'bg-blue-600 active:scale-95'
+              }`}
+            >
+              <Save size={20} />
+              {loading ? t('saving') : t('save_voucher')}
+            </button>
+          </div>
         </form>
       </div>
     </Layout>

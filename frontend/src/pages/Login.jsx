@@ -3,8 +3,10 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Lock, User, ShieldCheck } from 'lucide-react';
 import { authService } from '../services/api';
+import { useLanguage } from '../context/LanguageContext';
 
 const Login = () => {
+  const { t } = useLanguage();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -31,7 +33,6 @@ const Login = () => {
 
   useEffect(() => {
     checkStatus();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSetup = async (e) => {
@@ -77,7 +78,7 @@ const Login = () => {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center space-y-3">
           <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto" />
-          <p className="text-base font-bold text-gray-400 uppercase tracking-widest">Connecting...</p>
+          <p className="text-base font-bold text-gray-600 uppercase tracking-widest">{t('x2_connecting')}</p>
         </div>
       </div>
     );
@@ -127,7 +128,7 @@ const Login = () => {
             )}
             <div className="space-y-3">
               <div>
-                <label className="text-base font-bold text-gray-400 uppercase">Username</label>
+                <label className="text-base font-bold text-gray-600 uppercase">{t('x2_username')}</label>
                 <input
                   type="text"
                   required
@@ -138,7 +139,7 @@ const Login = () => {
                 />
               </div>
               <div>
-                <label className="text-base font-bold text-gray-400 uppercase">Password</label>
+                <label className="text-base font-bold text-gray-600 uppercase">{t('x2_password')}</label>
                 <input
                   type="password"
                   required
@@ -149,7 +150,7 @@ const Login = () => {
                 />
               </div>
               <div>
-                <label className="text-base font-bold text-gray-400 uppercase">Confirm Password</label>
+                <label className="text-base font-bold text-gray-600 uppercase">{t('x2_confirm_pw')}</label>
                 <input
                   type="password"
                   required
@@ -182,7 +183,7 @@ const Login = () => {
             {import.meta.env.VITE_APP_NAME} POS
           </h2>
           <p className="mt-2 text-center text-base text-gray-600">
-            Please sign in to your account
+            {t('x2_please_signin')}
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -226,7 +227,7 @@ const Login = () => {
               disabled={loading}
               className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? t('x2_signing_in') : t('x2_signin')}
             </button>
           </div>
         </form>

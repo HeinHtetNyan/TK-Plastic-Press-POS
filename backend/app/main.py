@@ -6,7 +6,7 @@ import os
 import logging
 from app.db import init_db
 from app.core.limiter import limiter
-from app.routes import customers, vouchers, payments, auth, users, analytics, audit, spendings
+from app.routes import customers, vouchers, payments, auth, users, analytics, audit, spendings, stock
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -71,6 +71,7 @@ app.include_router(payments.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
 app.include_router(audit.router, prefix="/api")
 app.include_router(spendings.router, prefix="/api")
+app.include_router(stock.router, prefix="/api")
 
 @app.get("/")
 def read_root():

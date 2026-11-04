@@ -1,11 +1,18 @@
 import { useState, useEffect } from 'react';
 import { FileText, BarChart3, ChevronDown, ChevronUp, Trash2, TrendingUp, AlertCircle, Users, CreditCard as CreditCardIcon, Banknote, Smartphone, Landmark, ArrowUpDown } from 'lucide-react';
 import Layout from '../components/Layout';
+import CoreAndProfit from '../components/CoreAndProfit';
+import Pager from '../components/Pager';
+import { paginate } from '../utils/paginate';
+import { useAuth } from '../hooks/useAuth';
+import { useLanguage } from '../context/LanguageContext';
 import DropdownDatePicker from '../components/DropdownDatePicker';
 import { voucherService, analyticsService } from '../services/api';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 const Reports = () => {
+  const { isAdmin } = useAuth();
+  const { t } = useLanguage();
   const [vouchers, setVouchers] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -19,17 +26,29 @@ const Reports = () => {
   const [selectedMonth, setSelectedMonth] = useState(currentMonthStr);
   const [selectedDate, setSelectedDate] = useState('');
   const [sortOrder, setSortOrder] = useState('desc'); // 'desc' = newest first
+  const [page, setPage] = useState(1);
+  const [debtPage, setDebtPage] = useState(1);
+  const [pageInfo, setPageInfo] = useState({ pages: 1, total: 0, items_total_sum: 0, months: [] });
 
   useEffect(() => {
     fetchVouchers();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMonth, selectedDate, sortOrder, page]);
+
+  useEffect(() => {
     fetchAnalytics();
   }, []);
 
   const fetchVouchers = async () => {
     setLoading(true);
     try {
-      const response = await voucherService.listAll();
-      setVouchers(response.data || []);
+      const response = await voucherService.listPage({
+        ...(selectedDate ? { date: selectedDate } : { month: selectedMonth }),
+        sort: sortOrder, page, page_size: 20,
+      });
+      setVouchers(response.data.items || []);
+      setPageInfo(response.data);
+      if (response.data.page !== page) setPage(response.data.page);
     } catch (error) {
       console.error('Error fetching vouchers:', error);
     } finally {
@@ -68,21 +87,9 @@ const Reports = () => {
     return parts.length === 3 ? `${parts[1]}-${parts[2]}` : "";
   };
 
-  const filteredVouchers = vouchers
-    .filter(v => {
-      if (selectedDate) return v.voucher_date === selectedDate;
-      return getMonthFromDate(v.voucher_date) === selectedMonth;
-    })
-    .sort((a, b) => {
-      const aTime = new Date(a.created_at).getTime();
-      const bTime = new Date(b.created_at).getTime();
-      return sortOrder === 'desc' ? bTime - aTime : aTime - bTime;
-    });
-
-  const months = Array.from(new Set(vouchers.map(v => getMonthFromDate(v.voucher_date)).filter(m => m !== "")))
-    .sort().reverse();
-
-  const totalSales = filteredVouchers.reduce((sum, v) => sum + v.items_total, 0);
+  const filteredVouchers = vouchers;
+  const months = pageInfo.months || [];
+  const totalSales = pageInfo.items_total_sum || 0;
 
   // Format daily sales chart data — dates come as YYYY-MM-DD from analytics
   const chartData = (analytics?.daily_sales || []).map(d => ({
@@ -103,12 +110,12 @@ const Reports = () => {
         {/* Stats Row */}
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-            <span className="text-xs font-black text-gray-400 uppercase block tracking-widest mb-1 flex items-center gap-1"><TrendingUp size={9} /> Total Revenue</span>
+            <span className="text-sm font-black text-gray-600 uppercase block tracking-widest mb-1 flex items-center gap-1"><TrendingUp size={9} /> {t('x_total_revenue')}</span>
             <span className="text-lg font-black text-blue-600">{formatMMK(analytics?.total_revenue || 0)}</span>
             <span className="text-xs text-gray-400 font-bold ml-1">MMK</span>
           </div>
           <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-            <span className="text-xs font-black text-gray-400 uppercase block tracking-widest mb-1 flex items-center gap-1"><AlertCircle size={9} /> Total Debt</span>
+            <span className="text-sm font-black text-gray-600 uppercase block tracking-widest mb-1 flex items-center gap-1"><AlertCircle size={9} /> {t('x_total_debt')}</span>
             <span className="text-lg font-black text-red-500">{formatMMK(analytics?.total_debt || 0)}</span>
             <span className="text-xs text-gray-400 font-bold ml-1">MMK</span>
           </div>
@@ -116,20 +123,20 @@ const Reports = () => {
 
         {/* Income by Payment Method */}
         <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-          <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1">
-            <CreditCardIcon size={10} className="text-green-500" /> Income by Payment Method
+          <h3 className="text-base font-black text-gray-600 uppercase tracking-widest mb-3 flex items-center gap-1">
+            <CreditCardIcon size={10} className="text-green-500" /> {t('x_income_by_method')}
           </h3>
           <div className="grid grid-cols-3 gap-2">
             {[
-              { id: 'CASH', label: 'Cash', icon: Banknote, color: 'text-green-600', bg: 'bg-green-50' },
-              { id: 'KBZPAY', label: 'KBZPay', icon: Smartphone, color: 'text-blue-600', bg: 'bg-blue-50' },
-              { id: 'BANK_TRANSFER', label: 'Bank', icon: Landmark, color: 'text-purple-600', bg: 'bg-purple-50' },
+              { id: 'CASH', label: t('cash'), icon: Banknote, color: 'text-green-600', bg: 'bg-green-50' },
+              { id: 'KBZPAY', label: t('kbzpay'), icon: Smartphone, color: 'text-blue-600', bg: 'bg-blue-50' },
+              { id: 'BANK_TRANSFER', label: t('x_bank'), icon: Landmark, color: 'text-purple-600', bg: 'bg-purple-50' },
             ].map((method) => {
               const income = analytics?.income_by_method?.find(m => m.method === method.id)?.amount || 0;
               return (
                 <div key={method.id} className={`${method.bg} p-3 rounded-xl border border-white shadow-sm flex flex-col items-center justify-center text-center`}>
                   <method.icon size={16} className={`${method.color} mb-1`} />
-                  <span className="text-xs font-black text-gray-400 uppercase block leading-tight">{method.label}</span>
+                  <span className="text-sm font-black text-gray-600 uppercase block leading-tight">{method.label}</span>
                   <span className={`text-sm font-black ${method.color}`}>{formatMMK(income)}</span>
                 </div>
               );
@@ -137,13 +144,15 @@ const Reports = () => {
           </div>
         </div>
 
+        <CoreAndProfit admin={isAdmin()} />
+
         {/* Daily Sales Chart */}
         <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-          <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1">
-            <BarChart3 size={10} /> Daily Sales — Last 30 Days
+          <h3 className="text-base font-black text-gray-600 uppercase tracking-widest mb-3 flex items-center gap-1">
+            <BarChart3 size={10} /> {t('x_daily_sales')}
           </h3>
           {analyticsLoading ? (
-            <div className="h-40 flex items-center justify-center text-gray-300 text-base font-bold animate-pulse">Loading chart...</div>
+            <div className="h-40 flex items-center justify-center text-gray-300 text-base font-bold animate-pulse">{t('x_loading')}</div>
           ) : chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={160}>
               <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
@@ -158,7 +167,7 @@ const Reports = () => {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-40 flex items-center justify-center text-gray-300 text-base font-bold">No sales data</div>
+            <div className="h-40 flex items-center justify-center text-gray-300 text-base font-bold">{t('x_no_sales')}</div>
           )}
         </div>
 
@@ -166,15 +175,15 @@ const Reports = () => {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50 flex items-center gap-2">
             <Users size={12} className="text-blue-500" />
-            <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest">Customer Debts</h3>
+            <h3 className="text-base font-black text-gray-600 uppercase tracking-widest">{t('x_customer_debts')}</h3>
           </div>
           {analyticsLoading ? (
-            <div className="p-6 text-center text-gray-300 text-base font-bold animate-pulse">Loading...</div>
+            <div className="p-6 text-center text-gray-300 text-base font-bold animate-pulse">{t('x_loading')}</div>
           ) : analytics?.debt_list?.length > 0 ? (
             <div className="divide-y divide-gray-50">
-              {analytics.debt_list.map((c) => (
+              {paginate(analytics.debt_list, debtPage, 15).rows.map((c) => (
                 <div key={c.name} className="flex items-center justify-between px-4 py-3">
-                  <span className="font-black text-gray-700 text-base">{c.name}</span>
+                  <span className="font-black text-gray-700 text-base min-w-0 break-words mr-2">{c.name}</span>
                   <span className={`font-black text-base ${c.debt > 0 ? 'text-red-500' : 'text-green-500'}`}>
                     {c.debt.toLocaleString()} <span className="text-xs text-gray-400 font-bold">MMK</span>
                   </span>
@@ -182,22 +191,23 @@ const Reports = () => {
               ))}
             </div>
           ) : (
-            <div className="p-6 text-center text-gray-400 text-base font-bold">No customers</div>
+            <div className="p-6 text-center text-gray-400 text-base font-bold">{t('x_no_customers')}</div>
           )}
+          <Pager page={paginate(analytics?.debt_list || [], debtPage, 15).page} pages={paginate(analytics?.debt_list || [], debtPage, 15).pages} onChange={setDebtPage} className="p-3" />
         </div>
 
         {/* Voucher List */}
         <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest flex items-center gap-1"><FileText size={10} /> Vouchers</h3>
+            <h3 className="text-base font-black text-gray-600 uppercase tracking-widest flex items-center gap-1"><FileText size={10} /> {t('x_vouchers_title')}</h3>
             <div className="flex items-center gap-2">
               <span className="text-xs font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{totalSales.toLocaleString()} MMK</span>
               <button
-                onClick={() => setSortOrder(s => s === 'desc' ? 'asc' : 'desc')}
+                onClick={() => { setSortOrder(s => s === 'desc' ? 'asc' : 'desc'); setPage(1); }}
                 className="flex items-center gap-1 text-xs font-black text-gray-500 bg-gray-50 px-2 py-1 rounded-lg border border-gray-200 hover:border-blue-300 hover:text-blue-600 transition-all"
               >
                 <ArrowUpDown size={9} />
-                {sortOrder === 'desc' ? 'Newest' : 'Oldest'}
+                {sortOrder === 'desc' ? t('x_newest') : t('x_oldest')}
               </button>
             </div>
           </div>
@@ -206,29 +216,29 @@ const Reports = () => {
               <select
                 className="w-full p-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none focus:border-blue-500"
                 value={selectedMonth}
-                onChange={(e) => { setSelectedMonth(e.target.value); setSelectedDate(''); }}
+                onChange={(e) => { setSelectedMonth(e.target.value); setSelectedDate(''); setPage(1); }}
               >
-                <option value={currentMonthStr}>Month: {currentMonthStr}</option>
+                <option value={currentMonthStr}>{t('x_month')}: {currentMonthStr}</option>
                 {months.filter(m => m !== currentMonthStr).map(m => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>
             <div className="flex-[1.5]">
               <DropdownDatePicker
                 value={selectedDate}
-                onChange={(val) => { setSelectedDate(val); if (val) setExpandedVoucher(null); }}
+                onChange={(val) => { setSelectedDate(val); setPage(1); if (val) setExpandedVoucher(null); }}
               />
             </div>
           </div>
           <button
-            onClick={() => { setSelectedDate(today); setSelectedMonth(getMonthFromDate(today)); }}
+            onClick={() => { setSelectedDate(today); setSelectedMonth(getMonthFromDate(today)); setPage(1); }}
             className="w-full py-1.5 bg-blue-50 text-blue-600 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-blue-100 mb-3"
           >
-            Show Today's Records
+            {t('x_show_today')}
           </button>
 
           <div className="space-y-2">
             {loading ? (
-              <div className="text-center py-12 text-gray-400 font-bold animate-pulse text-base">Loading...</div>
+              <div className="text-center py-12 text-gray-400 font-bold animate-pulse text-base">{t('x_loading')}</div>
             ) : filteredVouchers.length > 0 ? (
               filteredVouchers.map((v) => (
                 <div key={v.id} className="rounded-2xl border border-gray-100 overflow-hidden transition-all animate-in fade-in">
@@ -239,13 +249,13 @@ const Reports = () => {
                     <div className="min-w-0">
                       <p className="text-base font-black text-blue-700 truncate pr-2 uppercase leading-tight">{v.customer_name}</p>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-xs font-black text-gray-400 bg-gray-50 px-1 rounded">{v.voucher_number}</span>
-                        <span className="text-xs font-black text-gray-400">{v.voucher_date}</span>
+                        <span className="text-sm font-black text-gray-600 bg-gray-50 px-1 rounded">{v.voucher_number}</span>
+                        <span className="text-sm font-black text-gray-600">{v.voucher_date}</span>
                       </div>
                     </div>
                     <div className="text-right flex items-center gap-2">
                       <div>
-                        <span className="text-xs text-gray-400 font-black uppercase block tracking-tighter leading-none mb-0.5">Balance</span>
+                        <span className="text-xs text-gray-400 font-black uppercase block tracking-tighter leading-none mb-0.5">{t('balance')}</span>
                         <span className={`font-black text-base leading-none ${v.customer_balance > 0 ? 'text-red-500' : 'text-green-500'}`}>
                           {(v.customer_balance || 0).toLocaleString()}
                         </span>
@@ -264,29 +274,35 @@ const Reports = () => {
 
                   {expandedVoucher === v.id && (
                     <div className="bg-gray-50 p-3 border-t border-gray-100 space-y-3 animate-in slide-in-from-top-2">
+                      {v.core_weight_lb > 0 && (
+                        <div className="bg-amber-50 p-2 rounded-xl border border-amber-100 flex justify-between items-center">
+                          <span className="text-base font-black text-amber-600">{t('core_weight')}</span>
+                          <span className="text-lg font-black text-amber-700">{v.core_weight_lb} <span className="text-base text-gray-500">lb</span></span>
+                        </div>
+                      )}
                       {v.note && (
                         <div className="bg-blue-50/50 p-2 rounded-xl border border-blue-100/50">
-                          <span className="text-xs font-black text-blue-400 uppercase block leading-none mb-1">Note</span>
+                          <span className="text-xs font-black text-blue-400 uppercase block leading-none mb-1">{t('note')}</span>
                           <p className="text-base font-bold text-blue-700 leading-tight italic">"{v.note}"</p>
                         </div>
                       )}
                       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
                         <table className="w-full text-left text-sm">
                           <thead className="bg-gray-100 font-black uppercase text-gray-500">
-                            <tr><th className="p-2">Details</th><th className="p-2 text-right">Total</th></tr>
+                            <tr><th className="p-2">{t('x_details')}</th><th className="p-2 text-right">{t('total')}</th></tr>
                           </thead>
                           <tbody className="font-bold text-gray-700">
                             {v.items?.map((item, idx) => (
                               <tr key={idx} className="border-t border-gray-100">
                                 <td className="p-2 align-top">
-                                  <div className="text-blue-600">{item.lb} LB - {item.plastic_size} ({item.color})</div>
+                                  <div className="text-blue-600">{item.lb} LB - {item.plastic_size}{item.gate ? ` / ${item.gate}` : ''} ({item.color}{item.print_color ? ` + ${item.print_color}` : ''})</div>
                                   <div className="mt-1 space-y-0.5">
                                     <div className="text-xs text-gray-500 uppercase flex justify-between">
-                                      <span>Plastic: {item.lb} LB × {item.plastic_price}</span>
+                                      <span>{t('plastic')}: {item.lb} LB × {item.plastic_price}</span>
                                       <span className="font-black">{(item.lb * item.plastic_price).toLocaleString()}</span>
                                     </div>
                                     <div className="text-xs text-gray-500 uppercase flex justify-between">
-                                      <span>Color: {item.lb} LB × {item.color_price}</span>
+                                      <span>{t('color')}: {item.lb} LB × {item.color_price}</span>
                                       <span className="font-black">{(item.lb * item.color_price).toLocaleString()}</span>
                                     </div>
                                   </div>
@@ -301,11 +317,11 @@ const Reports = () => {
                       </div>
                       <div className="flex gap-2 text-xs font-black uppercase">
                         <div className="flex-1 bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
-                          <span className="text-gray-400 block mb-0.5">Voucher Total</span>
+                          <span className="text-gray-400 block mb-0.5">{t('x_voucher_total')}</span>
                           <span className="text-gray-800 text-base">{v.items_total.toLocaleString()}</span>
                         </div>
                         <div className="flex-1 bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
-                          <span className="text-gray-400 block mb-0.5">Paid Amount</span>
+                          <span className="text-gray-400 block mb-0.5">{t('paid_amount')}</span>
                           <span className="text-green-600 text-base">{v.paid_amount.toLocaleString()}</span>
                         </div>
                       </div>
@@ -315,10 +331,12 @@ const Reports = () => {
               ))
             ) : (
               <div className="text-center py-10 text-gray-400 rounded-2xl border-2 border-dashed border-gray-100">
-                <p className="font-bold text-base">No records found</p>
+                <p className="font-bold text-base">{t('x_no_records')}</p>
               </div>
             )}
           </div>
+          <p className="text-center text-sm font-bold text-gray-400 mt-3">{pageInfo.total} {t('x_vouchers')}</p>
+          <Pager page={page} pages={pageInfo.pages} onChange={setPage} disabled={loading} className="mt-2" />
         </div>
 
       </div>

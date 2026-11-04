@@ -3,20 +3,34 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ShieldAlert, Clock, User, Activity, Info } from 'lucide-react';
 import Layout from '../components/Layout';
 import { auditService } from '../services/api';
+import Pager from '../components/Pager';
+import { useLanguage } from '../context/LanguageContext';
 
-const AuditLogs = () => {
+
+// Renders just the content when shown inside the Settings tab (no second page frame).
+const Bare = ({ children }) => <>{children}</>;
+
+const AuditLogs = ({ embedded = false }) => {
+  const Wrap = embedded ? Bare : Layout;
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
-    fetchLogs();
-  }, []);
+    fetchLogs(page);
+  }, [page]);
 
-  const fetchLogs = async () => {
+  const fetchLogs = async (p) => {
+    setLoading(true);
     try {
-      const response = await auditService.list();
-      setLogs(response.data);
+      const response = await auditService.list(p);
+      setLogs(response.data.items);
+      setPages(response.data.pages);
+      setTotal(response.data.total);
     } catch (error) {
       console.error('Error fetching audit logs:', error);
     } finally {
@@ -39,15 +53,17 @@ const AuditLogs = () => {
   };
 
   return (
-    <Layout>
+    <Wrap>
       <div className="space-y-6 animate-in slide-in-from-right-4 duration-500 pb-12">
         <header className="flex items-center gap-4">
-          <button onClick={() => navigate('/')} className="p-2 bg-white rounded-full shadow-sm hover:bg-gray-100 transition-all">
-            <ArrowLeft size={24} className="text-gray-600" />
-          </button>
+          {!embedded && (
+            <button onClick={() => navigate('/')} className="p-2 bg-white rounded-full shadow-sm hover:bg-gray-100 transition-all">
+              <ArrowLeft size={24} className="text-gray-600" />
+            </button>
+          )}
           <div className="flex items-center gap-2">
             <ShieldAlert size={28} className="text-red-600" />
-            <h2 className="text-2xl font-black text-gray-800">Security Audit Trail</h2>
+            <h2 className="text-2xl sm:text-3xl font-black text-gray-900">{t('x2_audit_title')}</h2>
           </div>
         </header>
 
@@ -56,17 +72,17 @@ const AuditLogs = () => {
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="px-6 py-4 text-sm font-black text-gray-400 uppercase tracking-widest">Time</th>
-                  <th className="px-6 py-4 text-sm font-black text-gray-400 uppercase tracking-widest">User</th>
-                  <th className="px-6 py-4 text-sm font-black text-gray-400 uppercase tracking-widest">Action</th>
-                  <th className="px-6 py-4 text-sm font-black text-gray-400 uppercase tracking-widest">Entity</th>
-                  <th className="px-6 py-4 text-sm font-black text-gray-400 uppercase tracking-widest">Details</th>
+                  <th className="px-6 py-4 text-base font-black text-gray-600 uppercase tracking-widest">{t('x2_time')}</th>
+                  <th className="px-6 py-4 text-base font-black text-gray-600 uppercase tracking-widest">{t('x2_user')}</th>
+                  <th className="px-6 py-4 text-base font-black text-gray-600 uppercase tracking-widest">{t('x2_action')}</th>
+                  <th className="px-6 py-4 text-base font-black text-gray-600 uppercase tracking-widest">{t('x2_entity')}</th>
+                  <th className="px-6 py-4 text-base font-black text-gray-600 uppercase tracking-widest">{t('x2_details')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {loading ? (
                    <tr>
-                     <td colSpan="5" className="px-6 py-12 text-center text-gray-400 font-bold">Loading logs...</td>
+                     <td colSpan="5" className="px-6 py-12 text-center text-gray-400 font-bold">{t('x2_loading_logs')}</td>
                    </tr>
                 ) : logs.length > 0 ? logs.map((log) => (
                   <tr key={log.id} className="hover:bg-gray-50/50 transition-colors">
@@ -99,15 +115,19 @@ const AuditLogs = () => {
                   </tr>
                 )) : (
                   <tr>
-                    <td colSpan="5" className="px-6 py-12 text-center text-gray-400 font-bold">No logs found</td>
+                    <td colSpan="5" className="px-6 py-12 text-center text-gray-400 font-bold">{t('x2_no_logs')}</td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
+          <div className="p-3 border-t border-gray-100 space-y-2">
+            <p className="text-center text-sm font-bold text-gray-400">{total.toLocaleString()} {t('x_records')}</p>
+            <Pager page={page} pages={pages} onChange={setPage} disabled={loading} />
+          </div>
         </div>
       </div>
-    </Layout>
+    </Wrap>
   );
 };
 

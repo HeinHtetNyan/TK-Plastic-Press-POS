@@ -10,6 +10,8 @@ class ItemBase(BaseModel):
     plastic_price: float = Field(ge=0)
     color: str
     color_price: float = Field(ge=0)
+    gate: Optional[str] = None
+    print_color: Optional[str] = None
 
 class ItemCreate(ItemBase):
     pass
@@ -33,6 +35,7 @@ class VoucherBase(BaseModel):
     extra_charge_note: Optional[str] = None
     extra_charge_amount: float = Field(default=0.0, ge=0)
     discount_amount: float = Field(default=0.0, ge=0)
+    core_weight_lb: Optional[float] = Field(default=None, ge=0)
 
     @field_validator("voucher_date", mode="before")
     @classmethod
@@ -64,6 +67,7 @@ class VoucherUpdate(BaseModel):
     extra_charge_note: Optional[str] = None
     extra_charge_amount: float = Field(default=0.0, ge=0)
     discount_amount: float = Field(default=0.0, ge=0)
+    core_weight_lb: Optional[float] = Field(default=None, ge=0)
     items: List[ItemCreate]
 
     @field_validator("voucher_date", mode="before")
@@ -88,6 +92,7 @@ class VoucherRead(VoucherBase):
     created_at: datetime
     updated_at: datetime
     items: List[ItemRead]
+    stock_warnings: List[str] = []
 
     class Config:
         from_attributes = True

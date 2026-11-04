@@ -1,8 +1,9 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { FilePlus, CreditCard, History, UserPlus, Users, Search as SearchIcon, Pencil, Trash2 } from 'lucide-react';
 import Layout from '../components/Layout';
+import Pager from '../components/Pager';
+import { paginate } from '../utils/paginate';
 import CustomerSearch from '../components/CustomerSearch';
 import BalanceDisplay from '../components/BalanceDisplay';
 import Dashboard from '../components/Dashboard';
@@ -33,6 +34,7 @@ const Home = () => {
   const [allCustomers, setAllCustomers] = useState([]);
   const [customersLoadError, setCustomersLoadError] = useState(null);
   const [showAll, setShowAll] = useState(false);
+  const [browsePage, setBrowsePage] = useState(1);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [customerForm, setCustomerForm] = useState({
@@ -72,7 +74,7 @@ const Home = () => {
           setAllCustomers([]);
           setCustomersLoadError(errorMsg);
         }
-      } catch (__) {
+      } catch {
         setAllCustomers([]);
         setCustomersLoadError(errorMsg);
       }
@@ -89,16 +91,16 @@ const Home = () => {
       const response = await customerService.getBalance(serverId);
       const bal = response.data.balance;
       // Cache in background
-      try { cacheBalance(serverId, bal); } catch (_) {}
+      try { cacheBalance(serverId, bal); } catch { /* cache is best effort */ }
       setBalance(bal);
       setBalanceIsEstimate(false);
-    } catch (_) {
+    } catch {
       // Offline fallback
       try {
         const estimated = await getOfflineBalance(customer.client_id, serverId);
         setBalance(estimated);
         setBalanceIsEstimate(true);
-      } catch (__) {
+      } catch {
         setBalance(0);
         setBalanceIsEstimate(true);
       }
@@ -109,7 +111,9 @@ const Home = () => {
     try {
       const response = await analyticsService.getDashboard(period);
       setDashboardData(response.data);
-    } catch (_) {}
+    } catch {
+      // Dashboard data is optional while offline.
+    }
   }, []);
 
   useEffect(() => {
@@ -200,7 +204,9 @@ const Home = () => {
                 setIsCreatingCustomer(false);
                 return;
               }
-            } catch (_) {}
+            } catch {
+              // Cache cleanup is best effort.
+            }
           }
 
           setIsCreatingCustomer(false);
@@ -379,9 +385,9 @@ const Home = () => {
     <Layout>
       <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
         <section className="space-y-4">
-          <div className="flex justify-between items-end">
+          <div className="flex flex-wrap justify-between items-end gap-2">
             <div className="flex items-center gap-2">
-              <h2 className="text-2xl font-black text-gray-800">{t('select_customer')}</h2>
+              <h2 className="text-2xl sm:text-3xl font-black text-gray-900">{t('select_customer')}</h2>
               {allCustomers.length > 0 && (
                 <span className="text-base font-black text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
                   {allCustomers.length}
@@ -407,13 +413,13 @@ const Home = () => {
           ) : (
             <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-2 space-y-2 animate-in fade-in zoom-in duration-200">
               <div className="flex items-center justify-between px-2 pt-1 pb-0.5">
-                <span className="text-sm font-black text-gray-400 uppercase tracking-widest">{t('browse_all')}</span>
+                <span className="text-base font-black text-gray-600 uppercase tracking-widest">{t('browse_all')}</span>
                 <span className="text-sm font-black text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full">
                   {allCustomers.length} {allCustomers.length === 1 ? 'customer' : 'customers'}
                 </span>
               </div>
               <div className="max-h-64 overflow-y-auto px-2 space-y-1">
-                {allCustomers.length > 0 ? allCustomers.map(c => (
+                {allCustomers.length > 0 ? paginate(allCustomers, browsePage, 20).rows.map(c => (
                   <div
                     key={c.client_id || c.id}
                     onClick={() => { setSelectedCustomer(c); setShowAll(false); }}
@@ -465,19 +471,20 @@ const Home = () => {
                   </div>
                 )) : customersLoadError ? (
                   <div className="text-center py-8 space-y-3">
-                    <p className="text-red-400 font-bold text-base">Could not load customers</p>
+                    <p className="text-red-400 font-bold text-base">{t('x2_load_fail')}</p>
                     <p className="text-gray-400 text-base">{customersLoadError} — no offline cache available.</p>
                     <button
                       onClick={fetchAllCustomers}
                       className="text-blue-600 font-black text-base bg-blue-50 px-4 py-2 rounded-full hover:bg-blue-100 transition-colors"
                     >
-                      Retry
+                      {t('x2_retry')}
                     </button>
                   </div>
                 ) : (
-                  <p className="text-center py-8 text-gray-400 font-bold">No customers found</p>
+                  <p className="text-center py-8 text-gray-400 font-bold">{t('x_no_customers')}</p>
                 )}
               </div>
+              <Pager page={paginate(allCustomers, browsePage, 20).page} pages={paginate(allCustomers, browsePage, 20).pages} onChange={setBrowsePage} className="px-2" />
               <button
                 onClick={() => setShowAddModal(true)}
                 className="w-full py-4 bg-gray-50 text-blue-600 rounded-2xl font-black uppercase text-base hover:bg-blue-50 transition-colors border-2 border-dashed border-blue-100"
@@ -514,17 +521,17 @@ const Home = () => {
 
         {!selectedCustomer && !showAll && (
           <div className="space-y-8 animate-in fade-in duration-700">
-            <div className="flex flex-wrap items-center gap-2 justify-end">
+            <div className="grid grid-cols-4 gap-2 lg:flex lg:flex-wrap lg:items-center lg:justify-end">
               {[
-                { value: 'month', label: 'This Month' },
-                { value: '3months', label: '3 Months' },
-                { value: '6months', label: '6 Months' },
-                { value: '1year', label: '1 Year' },
+                { value: 'month', label: t('x_p_month') },
+                { value: '3months', label: t('x_p_3m') },
+                { value: '6months', label: t('x_p_6m') },
+                { value: '1year', label: t('x_p_1y') },
               ].map((p) => (
                 <button
                   key={p.value}
                   onClick={() => setDashboardPeriod(p.value)}
-                  className={`px-3 py-1.5 rounded-full text-base font-black uppercase whitespace-nowrap transition-all ${
+                  className={`px-1 lg:px-3 py-2 lg:py-1.5 rounded-full text-sm lg:text-base leading-tight font-black uppercase transition-all ${
                     dashboardPeriod === p.value
                       ? 'bg-blue-600 text-white shadow-sm'
                       : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
@@ -538,7 +545,7 @@ const Home = () => {
 
             <div className="py-12 text-center text-gray-400 bg-white rounded-3xl border-2 border-dashed border-gray-200">
               <UserPlus size={48} className="mx-auto mb-2 opacity-20" />
-              <p className="text-lg font-bold">Search or click 'Browse All Customers' to begin</p>
+              <p className="text-lg font-bold">{t('x2_begin')}</p>
             </div>
           </div>
         )}
@@ -546,41 +553,41 @@ const Home = () => {
         {showAddModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-in fade-in">
             <div className="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl animate-in zoom-in duration-200">
-              <h3 className="text-2xl font-black mb-6 text-gray-800">New Customer</h3>
+              <h3 className="text-2xl font-black mb-6 text-gray-800">{t('x2_new_customer')}</h3>
               {!navigator.onLine && (
                 <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-2 text-sm font-bold text-yellow-700">
-                  You are offline. Customer will sync when internet is available.
+                  {t('x2_offline_cust')}
                 </div>
               )}
               <form onSubmit={handleAddCustomer} className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-sm font-black text-gray-400 uppercase tracking-widest px-1">Customer Name *</label>
+                  <label className="text-base font-black text-gray-600 uppercase tracking-widest px-1">{t('x2_cust_name')}</label>
                   <input
                     autoFocus
                     type="text"
                     required
                     className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-500 font-bold text-lg transition-all"
-                    placeholder="e.g. Mg Mg"
+                    placeholder={t('x2_ph_name')}
                     value={customerForm.name}
                     onChange={(e) => setCustomerForm({ ...customerForm, name: e.target.value })}
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm font-black text-gray-400 uppercase tracking-widest px-1">Phone Number</label>
+                  <label className="text-base font-black text-gray-600 uppercase tracking-widest px-1">{t('x2_phone')}</label>
                   <input
                     type="text"
                     className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-500 font-bold text-lg transition-all"
-                    placeholder="e.g. 09..."
+                    placeholder={t('x2_ph_phone')}
                     value={customerForm.phone_numbers}
                     onChange={(e) => setCustomerForm({ ...customerForm, phone_numbers: e.target.value })}
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm font-black text-gray-400 uppercase tracking-widest px-1">Address</label>
+                  <label className="text-base font-black text-gray-600 uppercase tracking-widest px-1">{t('x2_address')}</label>
                   <textarea
                     className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-500 font-bold text-lg transition-all resize-none"
                     rows="2"
-                    placeholder="Customer address..."
+                    placeholder={t('x2_ph_addr')}
                     value={customerForm.address}
                     onChange={(e) => setCustomerForm({ ...customerForm, address: e.target.value })}
                   />
@@ -613,36 +620,36 @@ const Home = () => {
         {showEditModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-in fade-in">
             <div className="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl animate-in zoom-in duration-200">
-              <h3 className="text-2xl font-black mb-6 text-gray-800">Edit Customer</h3>
+              <h3 className="text-2xl font-black mb-6 text-gray-800">{t('x2_edit_customer')}</h3>
               <form onSubmit={handleUpdateCustomer} className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-sm font-black text-gray-400 uppercase tracking-widest px-1">Customer Name *</label>
+                  <label className="text-base font-black text-gray-600 uppercase tracking-widest px-1">{t('x2_cust_name')}</label>
                   <input
                     autoFocus
                     type="text"
                     required
                     className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-500 font-bold text-lg transition-all"
-                    placeholder="e.g. Mg Mg"
+                    placeholder={t('x2_ph_name')}
                     value={customerForm.name}
                     onChange={(e) => setCustomerForm({ ...customerForm, name: e.target.value })}
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm font-black text-gray-400 uppercase tracking-widest px-1">Phone Number</label>
+                  <label className="text-base font-black text-gray-600 uppercase tracking-widest px-1">{t('x2_phone')}</label>
                   <input
                     type="text"
                     className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-500 font-bold text-lg transition-all"
-                    placeholder="e.g. 09..."
+                    placeholder={t('x2_ph_phone')}
                     value={customerForm.phone_numbers}
                     onChange={(e) => setCustomerForm({ ...customerForm, phone_numbers: e.target.value })}
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm font-black text-gray-400 uppercase tracking-widest px-1">Address</label>
+                  <label className="text-base font-black text-gray-600 uppercase tracking-widest px-1">{t('x2_address')}</label>
                   <textarea
                     className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-500 font-bold text-lg transition-all resize-none"
                     rows="2"
-                    placeholder="Customer address..."
+                    placeholder={t('x2_ph_addr')}
                     value={customerForm.address}
                     onChange={(e) => setCustomerForm({ ...customerForm, address: e.target.value })}
                   />
@@ -659,7 +666,7 @@ const Home = () => {
                     type="submit"
                     className="flex-1 px-4 py-4 bg-blue-600 text-white rounded-2xl font-black shadow-lg shadow-blue-200 uppercase text-base"
                   >
-                    Save Changes
+                    {t('x2_save_changes')}
                   </button>
                 </div>
               </form>

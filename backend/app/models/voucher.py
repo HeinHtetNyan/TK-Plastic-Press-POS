@@ -1,6 +1,6 @@
 from datetime import datetime, date
 from typing import Optional, List, TYPE_CHECKING
-from sqlalchemy import Column, JSON
+from sqlalchemy import Column, JSON, Boolean, text
 from sqlmodel import SQLModel, Field, Relationship
 from .customer import get_yangon_date, get_yangon_now
 from .enums import PaymentMethod
@@ -29,6 +29,10 @@ class Voucher(SQLModel, table=True):
     extra_charge_note: Optional[str] = None
     extra_charge_amount: float = Field(default=0.0)
     discount_amount: float = Field(default=0.0)
+    # Cardboard core weight in lb - a private note, never part of the customer's price or printout.
+    core_weight_lb: Optional[float] = None
+    # True when this voucher took stock (vouchers made before the stock feature stay False).
+    stock_tracked: bool = Field(default=False, sa_column=Column(Boolean, nullable=False, server_default=text('false')))
     created_at: datetime = Field(default_factory=get_yangon_now)
     updated_at: datetime = Field(default_factory=get_yangon_now)
 

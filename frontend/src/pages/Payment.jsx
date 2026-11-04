@@ -44,11 +44,11 @@ const Payment = () => {
       try {
         const response = await customerService.getBalance(serverId);
         const bal = response.data.balance;
-        try { cacheBalance(serverId, bal); } catch (_) {}
+        try { cacheBalance(serverId, bal); } catch { /* cache is best effort */ }
         setBalance(bal);
         setBalanceIsEstimate(false);
         return;
-      } catch (_) {}
+      } catch { /* server may be unavailable */ }
     }
 
     // Offline fallback — best effort
@@ -56,7 +56,7 @@ const Payment = () => {
       const estimated = await getOfflineBalance(customer.client_id, serverId);
       setBalance(estimated);
       setBalanceIsEstimate(true);
-    } catch (_) {
+    } catch {
       setBalance(0);
       setBalanceIsEstimate(true);
     }
@@ -183,7 +183,7 @@ const Payment = () => {
           <button onClick={() => navigate('/', { state: { customer } })} className="p-2 bg-white rounded-full shadow-sm hover:bg-gray-100 transition-all">
             <ArrowLeftIcon size={24} className="text-gray-600" />
           </button>
-          <h2 className="text-2xl font-black text-gray-800">{t('add_payment')}</h2>
+          <h2 className="text-2xl sm:text-3xl font-black text-gray-900">{t('add_payment')}</h2>
         </header>
 
         {!navigator.onLine && (
@@ -196,7 +196,7 @@ const Payment = () => {
         {customer && (
           <div className="space-y-6">
             <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-              <span className="text-base font-bold text-gray-400 uppercase px-1">{t('customer')}</span>
+              <span className="text-base font-bold text-gray-600 uppercase px-1">{t('customer')}</span>
               <p className="text-xl font-black text-blue-600 truncate">{customer.name}</p>
             </div>
 

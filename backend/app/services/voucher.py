@@ -7,8 +7,10 @@ from app.services.balance import calculate_customer_balance
 from app.models.customer import get_yangon_date
 from app.services.audit import log_action
 from app.services.splits import normalize_splits
+from app.services.stock import take_stock_for_items
 
-def create_voucher_service(session: Session, voucher_in: VoucherCreate, user_id: int, client_id: str = None) -> Voucher:
+def create_voucher_service(session: Session, voucher_in: VoucherCreate, user_id: int, client_id: str = None):
+    """Returns (voucher, stock_warnings)."""
     # 1. Lock the customer record to prevent concurrent balance changes
     try:
         session.exec(select(Customer).where(Customer.id == voucher_in.customer_id).with_for_update()).one()
@@ -55,11 +57,15 @@ def create_voucher_service(session: Session, voucher_in: VoucherCreate, user_id:
         payment_splits=splits,
         remaining_balance=remaining_balance,
         note=voucher_in.note,
+        core_weight_lb=voucher_in.core_weight_lb or None,
+        stock_tracked=True,
         items=items_to_create
     )
     
     session.add(voucher)
+    session.flush()
+    warnings = take_stock_for_items(session, items_to_create, f"voucher:{voucher.voucher_number}")
     log_action(session, user_id, "CREATE", "Voucher", str(voucher.voucher_number), f"Voucher #{voucher.voucher_number} created")
     session.commit()
     session.refresh(voucher)
-    return voucher
+    return voucher, warnings

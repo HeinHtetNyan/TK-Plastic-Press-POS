@@ -1,3 +1,4 @@
+/* global process */
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
@@ -10,7 +11,7 @@ export default defineConfig({
     host: true,
     port: 5173,
     strictPort: true,
-    allowedHosts: ['.trycloudflare.com'], // Allow all trycloudflare.com tunnel URLs
+    allowedHosts: ['.trycloudflare.com', 'test.heinh.dev'], // tunnel hosts allowed to reach this dev server (test.heinh.dev = phone testing)
     proxy: {
       '/api': {
         // Use BACKEND_URL env var if set (e.g. when running Vite outside Docker).
@@ -20,6 +21,14 @@ export default defineConfig({
         secure: false,
       }
     }
+  },
+
+  // `vite preview` (production build served locally, used for phone testing through the tunnel)
+  preview: {
+    host: true,
+    port: 5173,
+    strictPort: true,
+    allowedHosts: ['.trycloudflare.com', 'test.heinh.dev'],
   },
 
   // Production build

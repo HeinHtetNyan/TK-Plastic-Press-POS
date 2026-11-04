@@ -14,27 +14,32 @@ const num = 'text-right tabular-nums whitespace-nowrap';
 // One bordered block per voucher: every product is its own line, voucher-level
 // figures (totals, balances, actions) are merged cells spanning those lines.
 const HistorySheet = ({
-  rows, isAdmin, canEdit, paidLater = new Set(),
+  rows, allRows, isAdmin, canEdit, paidLater = new Set(),
   onEditVoucher, onDeleteVoucher, onEditPayment, onDeletePayment,
 }) => {
   const { t } = useLanguage();
 
-  const billed = rows.reduce((s, r) => s + (r.type === 'voucher' ? r.items_total || 0 : 0), 0);
-  const paid = rows.reduce((s, r) => s + (r.type === 'voucher' ? r.paid_amount || 0 : r.amount_paid || 0), 0);
+  // footer totals cover ALL records of the filter, not only the page being shown
+  const totalRows = allRows || rows;
+  const billed = totalRows.reduce((s, r) => s + (r.type === 'voucher' ? r.items_total || 0 : 0), 0);
+  const paid = totalRows.reduce((s, r) => s + (r.type === 'voucher' ? r.paid_amount || 0 : r.amount_paid || 0), 0);
 
   return (
     <>
     <p className="sm:hidden text-sm font-black text-gray-400 text-center mb-1">&larr; swipe sideways &rarr;</p>
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-x-auto overscroll-x-contain sm:overflow-auto sm:max-h-[75vh]">
-      <table className="w-full border-collapse min-w-[820px] sm:min-w-[920px]">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 relative isolate z-0 overflow-auto overscroll-x-contain max-h-[calc(100dvh-9rem)] sm:max-h-[78vh]">
+      <table className="w-full border-collapse min-w-[1060px] sm:min-w-[1150px]">
         <thead>
           <tr>
-            <th className={`${th} left-0 z-20`}>{t('voucher') || 'Voucher'}</th>
-            <th className={th}>{t('date') || 'Date'}</th>
-            <th className={th}>{t('products') || 'Item'}</th>
-            <th className={`${th} text-right`}>LB</th>
-            <th className={`${th} text-right`}>{t('plastic')}</th>
-            <th className={`${th} text-right`}>{t('color')}</th>
+            <th className={`${th} left-0 z-20`}>{t('voucher')}</th>
+            <th className={th}>{t('date')}</th>
+            <th className={th}>{t('size')}</th>
+            <th className={th}>{t('gate')}</th>
+            <th className={th}>{t('plastic_color')}</th>
+            <th className={th}>{t('print_color')}</th>
+            <th className={`${th} text-right`}>{t('x_lb')}</th>
+            <th className={`${th} text-right`}>{t('plastic_price')}</th>
+            <th className={`${th} text-right`}>{t('color_price')}</th>
             <th className={`${th} text-right`}>{t('price')}</th>
             <th className={`${th} text-right`}>{t('total')}</th>
             <th className={`${th} text-right`}>{t('voucher_total')}</th>
@@ -54,7 +59,7 @@ const HistorySheet = ({
                 <tr className="bg-green-50/60">
                   <td className={`${td} text-green-700 font-black sticky left-0 z-[1] bg-green-50`}>{t('direct_payment')}</td>
                   <td className={`${td} whitespace-nowrap`}>{r.payment_date}</td>
-                  <td className={td} colSpan={5}>
+                  <td className={td} colSpan={8}>
                     {r.payment_method && <span className="inline-flex flex-wrap gap-1 mr-2 align-middle"><MethodTags row={r} /></span>}
                     {r.note && <span className="italic text-gray-500">"{r.note}"</span>}
                     {r.discount_amount > 0 && <span className="text-red-500 ml-2">{t('discount')} -{fmt(r.discount_amount)}</span>}
@@ -96,7 +101,8 @@ const HistorySheet = ({
                     <>
                       <td rowSpan={span} className={`${td} ${zebra} font-black text-gray-800 sticky left-0 z-[1]`}>
                         {r.voucher_number}
-                        {r.sync_status === 'pending' && <span className="block text-xs text-yellow-700">Pending</span>}
+                        {r.core_weight_lb > 0 && <span className="block text-xs font-black text-amber-700 whitespace-nowrap">{t('core_weight').replace(' (lb)', '').replace(' (ပေါင်)', '').replace(' Core', '').replace('ကတ်ထူလိပ်', 'ကတ်ထူ')}<span className="block">{r.core_weight_lb} lb</span></span>}
+                        {r.sync_status === 'pending' && <span className="block text-xs text-yellow-700">{t('x2_pending')}</span>}
                       </td>
                       <td rowSpan={span} className={`${td} ${zebra} whitespace-nowrap`}>
                         {r.voucher_date}
@@ -106,7 +112,10 @@ const HistorySheet = ({
                   )}
                   {it ? (
                     <>
-                      <td className={td}>{it.plastic_size} <span className="text-gray-400">({it.color})</span></td>
+                      <td className={`${td} whitespace-nowrap`}>{it.plastic_size}</td>
+                      <td className={`${td} whitespace-nowrap`}>{it.gate || <span className="text-gray-300">-</span>}</td>
+                      <td className={td}>{it.color}</td>
+                      <td className={td}>{it.print_color || <span className="text-gray-300">-</span>}</td>
                       <td className={`${td} ${num}`}>{fmt(it.lb)}</td>
                       <td className={`${td} ${num}`}>{fmt(it.plastic_price)}</td>
                       <td className={`${td} ${num}`}>{fmt(it.color_price)}</td>
@@ -114,7 +123,7 @@ const HistorySheet = ({
                       <td className={`${td} ${num} text-blue-700 font-black`}>{fmt(it.total_price)}</td>
                     </>
                   ) : (
-                    <td className={`${td} text-gray-300`} colSpan={6}>-</td>
+                    <td className={`${td} text-gray-300`} colSpan={9}>-</td>
                   )}
                   {i === 0 && (
                     <>
@@ -139,13 +148,13 @@ const HistorySheet = ({
               ))}
               {extras.map((x, i) => (
                 <tr key={`x${i}`} className={zebra}>
-                  <td className={`${td} ${x.cls}`} colSpan={5}>{x.label}</td>
+                  <td className={`${td} ${x.cls}`} colSpan={8}>{x.label}</td>
                   <td className={`${td} ${num} ${x.cls} font-black`}>{x.value}</td>
                 </tr>
               ))}
               {r.note && (
                 <tr className={zebra}>
-                  <td className={`${td} italic text-blue-700 text-sm`} colSpan={isAdmin ? 13 : 12}>"{r.note}"</td>
+                  <td className={`${td} italic text-blue-700 text-sm`} colSpan={isAdmin ? 16 : 15}>"{r.note}"</td>
                 </tr>
               )}
             </tbody>
@@ -154,7 +163,7 @@ const HistorySheet = ({
 
         <tfoot>
           <tr className="bg-gray-100 font-black">
-            <td className={`${td} bg-gray-100 uppercase text-xs text-gray-500`} colSpan={8}>{rows.length}</td>
+            <td className={`${td} bg-gray-100 uppercase text-xs text-gray-500`} colSpan={11}>{totalRows.length}</td>
             <td className={`${td} ${num} bg-gray-100`}>{fmt(billed)}</td>
             <td className={`${td} bg-gray-100`}></td>
             <td className={`${td} ${num} bg-gray-100 text-green-600`}>{fmt(paid)}</td>

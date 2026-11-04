@@ -3,6 +3,8 @@ import { Plus, Pencil, Trash2, TrendingDown, Save, X, WifiOff } from 'lucide-rea
 import Layout from '../components/Layout';
 import DropdownDatePicker from '../components/DropdownDatePicker';
 import { spendingService } from '../services/api';
+import Pager from '../components/Pager';
+import { paginate } from '../utils/paginate';
 import { syncAll } from '../services/syncService';
 import db, { generateUUID } from '../lib/db';
 import { useLanguage } from '../context/LanguageContext';
@@ -12,6 +14,7 @@ const today = () => new Date().toLocaleDateString('en-GB').split('/').join('-');
 const Spending = () => {
   const { t } = useLanguage();
   const [spendings, setSpendings] = useState([]);
+  const [spPage, setSpPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -37,7 +40,7 @@ const Spending = () => {
     try {
       const res = await spendingService.list();
       setSpendings(res.data);
-    } catch (_) {
+    } catch {
       // Offline: load from IndexedDB
       try {
         const rows = await db.spendings.orderBy('spending_date').reverse().toArray();
@@ -49,7 +52,7 @@ const Spending = () => {
           spending_date: r.spending_date,
           sync_status: r.sync_status,
         })));
-      } catch (__) {
+      } catch {
         setSpendings([]);
       }
     } finally {
@@ -114,7 +117,7 @@ const Spending = () => {
           syncAll();
           await fetchSpendings();
           resetForm();
-        } catch (err) {
+        } catch {
           alert(t('spending_save_error'));
         }
         setSaving(false);
@@ -176,7 +179,7 @@ const Spending = () => {
         syncAll();
         await fetchSpendings();
         resetForm();
-      } catch (err) {
+      } catch {
         alert(t('spending_save_error'));
       }
     }
@@ -226,7 +229,7 @@ const Spending = () => {
         });
         syncAll();
         await fetchSpendings();
-      } catch (err) {
+      } catch {
         alert(t('spending_delete_error'));
       }
     }
@@ -245,14 +248,14 @@ const Spending = () => {
   return (
     <Layout>
       <div className="space-y-6 pb-12 animate-in fade-in duration-500">
-        <header className="flex items-center justify-between">
+        <header className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-orange-50 text-orange-600 rounded-2xl">
               <TrendingDown size={24} />
             </div>
             <div>
-              <h2 className="text-2xl font-black text-gray-800">{t('spending')}</h2>
-              <p className="text-base font-bold text-gray-400 uppercase tracking-wider">{t('spending_subtitle')}</p>
+              <h2 className="text-2xl sm:text-3xl font-black text-gray-900">{t('spending')}</h2>
+              <p className="text-base font-bold text-gray-600 uppercase tracking-wider">{t('spending_subtitle')}</p>
             </div>
           </div>
           <button
@@ -299,7 +302,7 @@ const Spending = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-sm font-black text-gray-400 uppercase px-1 tracking-widest">{t('spending_description')}</label>
+                  <label className="text-base font-black text-gray-600 uppercase px-1 tracking-widest">{t('spending_description')}</label>
                   <textarea
                     required
                     rows={3}
@@ -310,7 +313,7 @@ const Spending = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm font-black text-gray-400 uppercase px-1 tracking-widest">{t('spending_amount')}</label>
+                  <label className="text-base font-black text-gray-600 uppercase px-1 tracking-widest">{t('spending_amount')}</label>
                   <input
                     type="number"
                     required
@@ -350,7 +353,7 @@ const Spending = () => {
           </div>
         ) : (
           <div className="space-y-3">
-            {spendings.map((s, i) => {
+            {paginate(spendings, spPage, 20).rows.map((s, i) => {
               const key = s.client_id || s.id || i;
               const isExpanded = expandedIds.has(key);
               return (
@@ -359,12 +362,12 @@ const Spending = () => {
                   className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer"
                   onClick={() => toggleExpand(key)}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+                    <div className="flex-1 min-w-[10rem]">
                       <span className={`font-black text-gray-800 text-lg leading-tight break-words whitespace-pre-wrap ${isExpanded ? 'block' : 'line-clamp-2'}`}>
                         {s.description}
                       </span>
-                      <span className="text-sm font-black text-gray-400 uppercase tracking-wider mt-1 block">
+                      <span className="text-base font-black text-gray-600 uppercase tracking-wider mt-1 block">
                         {s.spending_date}
                         {s.sync_status === 'pending' && (
                           <span className="ml-2 text-yellow-500">(pending sync)</span>
@@ -393,6 +396,7 @@ const Spending = () => {
                 </div>
               );
             })}
+            <Pager page={paginate(spendings, spPage, 20).page} pages={paginate(spendings, spPage, 20).pages} onChange={setSpPage} className="pt-2" />
           </div>
         )}
       </div>

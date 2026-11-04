@@ -35,7 +35,7 @@ export function getCachedBalance(customerServerId) {
     const raw = localStorage.getItem(`balance_${customerServerId}`);
     if (!raw) return null;
     return JSON.parse(raw).balance;
-  } catch (_) {
+  } catch {
     return null;
   }
 }
@@ -127,6 +127,7 @@ async function syncVoucher(item) {
     previous_balance: res.data.previous_balance,
     final_total: res.data.final_total,
     remaining_balance: res.data.remaining_balance,
+    core_weight_lb: res.data.core_weight_lb ?? null,
   });
 }
 
@@ -400,6 +401,7 @@ export async function cacheVouchers(customerClientId, serverVouchers) {
     payment_method: v.payment_method,
     payment_splits: v.payment_splits ?? null,
     note: v.note,
+    core_weight_lb: v.core_weight_lb ?? null,
     items: v.items,
     remaining_balance: v.remaining_balance,
     previous_balance: v.previous_balance,
@@ -447,6 +449,7 @@ export async function loadCachedVouchers(customerClientId) {
     payment_method: v.payment_method,
     payment_splits: v.payment_splits ?? null,
     note: v.note,
+    core_weight_lb: v.core_weight_lb ?? null,
     items: v.items ?? [],
     remaining_balance: v.remaining_balance ?? 0,
     previous_balance: v.previous_balance ?? 0,

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, FileText, CreditCard, History, BarChart3, Users, LogOut, User as UserIcon, ShieldAlert, TrendingDown } from 'lucide-react';
+import { Home, FileText, CreditCard, History, BarChart3, LogOut, User as UserIcon, TrendingDown, Boxes, Settings as SettingsIcon } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useLanguage } from '../context/LanguageContext';
 import SyncStatus from './SyncStatus';
@@ -11,45 +11,41 @@ const Layout = ({ children, wide = false }) => {
   const { user, logout, isAdmin } = useAuth();
   const { lang, setLang, t } = useLanguage();
 
-  const toggleLang = () => {
-    setLang(lang === 'EN' ? 'MM' : 'EN');
-  };
-
   const navItems = [
-    { path: '/', icon: Home, label: t('home') },
-    { path: '/reports', icon: BarChart3, label: t('reports') },
+    { path: '/', icon: Home, label: t('home'), short: t('nav_home') },
+    { path: '/stock', icon: Boxes, label: t('stock'), short: t('nav_stock') },
+    { path: '/reports', icon: BarChart3, label: t('reports'), short: t('nav_reports') },
   ];
 
   if (isAdmin()) {
-    navItems.push({ path: '/spending', icon: TrendingDown, label: t('spending') });
-    navItems.push({ path: '/users', icon: Users, label: t('users') });
-    navItems.push({ path: '/audit-logs', icon: ShieldAlert, label: t('audit') });
+    navItems.push({ path: '/spending', icon: TrendingDown, label: t('spending'), short: t('nav_spending') });
+    navItems.push({ path: '/settings', icon: SettingsIcon, label: t('settings'), short: t('nav_settings') });
   }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col lg:flex-row">
       {/* Desktop Sidebar / Mobile Header */}
-      <header className="bg-blue-600 text-white p-3 shadow-md lg:sticky lg:top-0 z-20 lg:h-screen lg:w-64 lg:fixed lg:left-0 lg:flex flex-col">
+      <header className="bg-blue-600 text-white px-3 py-2 lg:p-3 shadow-md sticky top-0 z-20 flex flex-row items-center gap-2 lg:flex-col lg:items-stretch lg:gap-0 lg:h-screen lg:w-64 lg:fixed lg:left-0">
         <div className="flex items-center gap-3 lg:mb-8">
-          <div className="w-16 h-10 bg-white rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center shadow-inner">
+          <div className="max-[359px]:hidden w-12 h-8 lg:w-16 lg:h-10 bg-white rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center shadow-inner">
             <img src="/TK.jpeg" alt="TK Logo" className="w-full h-full object-cover" onError={(e) => e.target.style.display='none'} />
           </div>
           <h1 className="text-lg lg:text-xl font-black tracking-tight leading-tight uppercase">{import.meta.env.VITE_APP_NAME}</h1>
         </div>
 
         {/* Language Toggle */}
-        <div className="flex gap-1 mb-6 p-1 bg-blue-700/30 rounded-xl self-start">
+        <div className="flex gap-1 mb-0 lg:mb-6 p-0.5 lg:p-1 bg-blue-700/30 rounded-xl lg:self-start">
           <button
             onClick={() => setLang('EN')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-black transition-all ${lang === 'EN' ? 'bg-white text-blue-600 shadow-sm' : 'text-blue-200 hover:text-white'}`}
+            className={`px-2.5 sm:px-3 py-2 lg:py-1.5 rounded-lg text-sm font-black transition-all ${lang === 'EN' ? 'bg-white text-blue-600 shadow-sm' : 'text-blue-200 hover:text-white'}`}
           >
-            ENGLISH
+            <span className="lg:hidden">EN</span><span className="hidden lg:inline">ENGLISH</span>
           </button>
           <button
             onClick={() => setLang('MM')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-black transition-all ${lang === 'MM' ? 'bg-white text-blue-600 shadow-sm' : 'text-blue-200 hover:text-white'}`}
+            className={`px-2.5 sm:px-3 py-2 lg:py-1.5 rounded-lg text-sm font-black transition-all ${lang === 'MM' ? 'bg-white text-blue-600 shadow-sm' : 'text-blue-200 hover:text-white'}`}
           >
-            MYANMAR
+            <span className="lg:hidden">MM</span><span className="hidden lg:inline">MYANMAR</span>
           </button>
         </div>
 
@@ -101,16 +97,10 @@ const Layout = ({ children, wide = false }) => {
         </button>
 
         {/* Mobile Header Right — username + sync pill + logout */}
-        <div className="lg:hidden flex flex-wrap items-center justify-end ml-auto gap-2">
-          <button
-            onClick={toggleLang}
-            className="px-2 py-1 bg-blue-700 rounded-lg text-sm font-black border border-blue-500/30"
-          >
-            {lang}
-          </button>
-          {user && <span className="text-base font-bold uppercase">{user.username}</span>}
+        <div className="lg:hidden flex items-center justify-end ml-auto gap-2">
+          {user && <span className="hidden sm:inline text-base font-bold uppercase">{user.username}</span>}
           <SyncStatus />
-          <button onClick={logout} className="p-2 bg-blue-700 rounded-lg">
+          <button onClick={logout} aria-label={t('logout')} className="p-2.5 bg-blue-700 rounded-lg">
             <LogOut size={18} />
           </button>
         </div>
@@ -137,7 +127,7 @@ const Layout = ({ children, wide = false }) => {
               }`}
             >
               <Icon size={24} />
-              <span className="text-xs max-[359px]:text-[10px] mt-1 font-black uppercase tracking-tighter">{item.label}</span>
+              <span className="text-xs max-[359px]:text-[10px] mt-1 font-black uppercase tracking-tighter whitespace-nowrap">{item.short || item.label}</span>
             </button>
           );
         })}

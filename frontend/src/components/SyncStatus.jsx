@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, Wifi, WifiOff, CheckCircle2, AlertCircle } from 'lucide-react';
 import { getPendingCount, syncAll } from '../services/syncService';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
+import { useLanguage } from '../context/LanguageContext';
 
 /**
  * Compact pill shown in the Layout header.
@@ -11,6 +12,7 @@ import { useNetworkStatus } from '../hooks/useNetworkStatus';
  * - Red    + "Offline" — no connection
  */
 const SyncStatus = () => {
+  const { t } = useLanguage();
   const [pendingCount, setPendingCount] = useState(0);
   const [syncing, setSyncing] = useState(false);
 
@@ -33,9 +35,12 @@ const SyncStatus = () => {
 
   // Poll pending count every 5 s so the badge stays accurate
   useEffect(() => {
-    refreshCount();
+    const initialRefresh = setTimeout(refreshCount, 0);
     const id = setInterval(refreshCount, 5_000);
-    return () => clearInterval(id);
+    return () => {
+      clearTimeout(initialRefresh);
+      clearInterval(id);
+    };
   }, [refreshCount]);
 
   // Offline
@@ -43,7 +48,7 @@ const SyncStatus = () => {
     return (
       <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-100 text-red-700 text-sm font-black uppercase tracking-wider select-none">
         <WifiOff size={13} />
-        <span>Offline</span>
+        <span>{t('x2_offline')}</span>
         {pendingCount > 0 && (
           <span className="bg-red-600 text-white rounded-full px-1.5 py-0.5 text-sm leading-none">
             {pendingCount}
@@ -58,7 +63,7 @@ const SyncStatus = () => {
     return (
       <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-100 text-blue-700 text-sm font-black uppercase tracking-wider select-none">
         <RefreshCw size={13} className="animate-spin" />
-        <span>Syncing…</span>
+        <span>{t('x2_syncing')}</span>
       </div>
     );
   }
@@ -68,11 +73,11 @@ const SyncStatus = () => {
     return (
       <button
         onClick={handleSync}
-        title="Tap to sync now"
+        title={t('x2_tap_sync')}
         className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-yellow-100 text-yellow-800 text-sm font-black uppercase tracking-wider hover:bg-yellow-200 active:scale-95 transition-all"
       >
         <AlertCircle size={13} />
-        <span>Pending</span>
+        <span>{t('x2_pending')}</span>
         <span className="bg-yellow-600 text-white rounded-full px-1.5 py-0.5 text-sm leading-none">
           {pendingCount}
         </span>
@@ -84,7 +89,7 @@ const SyncStatus = () => {
   return (
     <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-100 text-green-700 text-sm font-black uppercase tracking-wider select-none">
       <CheckCircle2 size={13} />
-      <span>Online</span>
+      <span>{t('x2_online')}</span>
     </div>
   );
 };

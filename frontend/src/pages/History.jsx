@@ -8,6 +8,10 @@ import RowActions from '../components/RowActions';
 import MethodPicker from '../components/MethodPicker';
 import SplitPicker from '../components/SplitPicker';
 import MethodTags from '../components/MethodTags';
+import Combo from '../components/Combo';
+import Pager from '../components/Pager';
+import { paginate } from '../utils/paginate';
+import { usePlasticOptions } from '../hooks/usePlasticOptions';
 import { paidLaterIds } from '../utils/paidLater';
 import { emptyParts, splitsToParts, partsToSplits, splitError, primaryMethod } from '../utils/paymentSplits';
 import { voucherService, paymentService } from '../services/api';
@@ -27,23 +31,28 @@ const parseDateStr = (str) => {
   return new Date(str).getTime();
 };
 
-const emptyItem = () => ({ lb: '', plastic_size: '', plastic_price: '', color: '', color_price: '' });
+const emptyItem = () => ({ lb: '', plastic_size: '', gate: '', plastic_price: '', color: '', print_color: '', color_price: '' });
 
 const History = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
   const { t } = useLanguage();
+  const { options, addOption } = usePlasticOptions();
   const customer = location.state?.customer || null;
+  const openVoucherId = location.state?.openVoucherId ?? null;
 
   const [vouchers, setVouchers] = useState([]);
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [expandedVoucher, setExpandedVoucher] = useState(null);
+  const [expandedVoucher, setExpandedVoucher] = useState(openVoucherId);
+  const [pageState, setPageState] = useState({ page: 1, key: '' });
   const [expandedPayment, setExpandedPayment] = useState(null);
   const [sortOrder, setSortOrder] = useState('desc');
   const [selectedDate, setSelectedDate] = useState('');
+  // Coming from a link to one voucher: show the list view (not remembered) with that voucher open.
   const [viewMode, setViewMode] = useState(() => {
+    if (location.state?.openVoucherId != null) return 'list';
     try { return localStorage.getItem('history_view') || 'sheet'; } catch { return 'sheet'; }
   });
   const changeView = (mode) => {
@@ -77,6 +86,7 @@ const History = () => {
   const [editSplit, setEditSplit] = useState(false);
   const [editParts, setEditParts] = useState(emptyParts());
   const [editNote, setEditNote] = useState('');
+  const [editCore, setEditCore] = useState('');
 
   const loadFromCache = useCallback(async () => {
     if (!customer) return;
@@ -117,6 +127,13 @@ const History = () => {
     }
   }, [customer, loadFromCache]);
 
+  // Scroll the linked voucher into view once the list has loaded.
+  useEffect(() => {
+    if (openVoucherId == null || loading) return;
+    const el = document.getElementById(`voucher-row-${openVoucherId}`);
+    if (el) el.scrollIntoView({ block: 'center' });
+  }, [openVoucherId, loading, vouchers]);
+
   useEffect(() => {
     if (!customer) {
       navigate('/');
@@ -154,7 +171,9 @@ const History = () => {
           });
         });
         syncAll();
-      } catch {}
+      } catch {
+        // Keep the local deletion visible when sync queue cleanup fails.
+      }
       setVouchers(prev => prev.filter(v => v.client_id !== clientId));
       return;
     }
@@ -196,7 +215,9 @@ const History = () => {
           });
         });
         syncAll();
-      } catch {}
+      } catch {
+        // Keep the local deletion visible when sync queue cleanup fails.
+      }
       setPayments(prev => prev.filter(p => p.client_id !== clientId));
       return;
     }
@@ -282,6 +303,8 @@ const History = () => {
         ? item.items.map(it => ({
             lb: String(it.lb),
             plastic_size: it.plastic_size,
+            gate: it.gate || '',
+            print_color: it.print_color || '',
             plastic_price: String(it.plastic_price),
             color: it.color,
             color_price: String(it.color_price),
@@ -296,6 +319,7 @@ const History = () => {
     setEditSplit(!!item.payment_splits?.length);
     setEditParts(splitsToParts(item.payment_splits));
     setEditNote(item.note || '');
+    setEditCore(item.core_weight_lb > 0 ? String(item.core_weight_lb) : '');
   };
 
   const closeEditModal = () => {
@@ -328,6 +352,8 @@ const History = () => {
     const parsedItems = editItems.map(it => ({
       lb: parseFloat(it.lb) || 0,
       plastic_size: it.plastic_size,
+      gate: it.gate || null,
+      print_color: it.print_color || null,
       plastic_price: parseFloat(it.plastic_price) || 0,
       color: it.color,
       color_price: parseFloat(it.color_price) || 0,
@@ -361,12 +387,15 @@ const History = () => {
       payment_method: voucherMethod,
       payment_splits: voucherSplits,
       note: editNote || null,
+      core_weight_lb: parseFloat(editCore) > 0 ? parseFloat(editCore) : null,
     };
 
     setEditSaving(true);
     try {
-      await voucherService.update(serverId, payload);
+      const saved = await voucherService.update(serverId, payload);
       closeEditModal();
+      const warnings = saved?.data?.stock_warnings || [];
+      if (warnings.length) alert(`${t('stock_warning_title')}\n\n${warnings.join('\n')}`);
       fetchHistory();
     } catch (err) {
       const detail = err?.response?.data?.detail;
@@ -409,6 +438,14 @@ const History = () => {
     return sortOrder === 'asc' ? aDate - bDate : bDate - aDate;
   });
 
+  // Page resets to 1 whenever the date filter or sort order changes; a link to one voucher opens the page that holds it.
+  const HIST_PAGE = 25;
+  const pageKey = `${selectedDate}|${sortOrder}`;
+  const linkedIndex = openVoucherId != null ? filteredData.findIndex(r => r.type === 'voucher' && r.id === openVoucherId) : -1;
+  const wantedPage = pageState.key === pageKey ? pageState.page : (linkedIndex >= 0 && !pageState.key ? Math.floor(linkedIndex / HIST_PAGE) + 1 : 1);
+  const paged = paginate(filteredData, wantedPage, HIST_PAGE);
+  const goPage = (p) => setPageState({ page: p, key: pageKey });
+
   return (
     <Layout wide={viewMode === 'sheet'}>
       <div className="space-y-4 pb-12 animate-in slide-in-from-right-4 duration-500">
@@ -448,10 +485,10 @@ const History = () => {
         <div className="flex justify-end gap-2">
           <div className="flex rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-white">
             <button onClick={() => changeView('sheet')} className={`flex items-center gap-1.5 text-base font-black px-3 py-1.5 transition-all ${viewMode === 'sheet' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-blue-600'}`}>
-              <Table2 size={12} /> Sheet
+              <Table2 size={12} /> {t('x2_sheet')}
             </button>
             <button onClick={() => changeView('list')} className={`flex items-center gap-1.5 text-base font-black px-3 py-1.5 transition-all ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-blue-600'}`}>
-              <List size={12} /> List
+              <List size={12} /> {t('x2_list')}
             </button>
           </div>
           <button
@@ -472,7 +509,8 @@ const History = () => {
 
         {viewMode === 'sheet' && !loading && filteredData.length > 0 ? (
           <HistorySheet
-            rows={filteredData}
+            rows={paged.rows}
+            allRows={filteredData}
             paidLater={paidLater}
             isAdmin={isAdmin()}
             canEdit={canEditItem}
@@ -486,8 +524,8 @@ const History = () => {
           {loading ? (
             <div className="text-center py-12 text-gray-400 font-bold text-base uppercase tracking-widest animate-pulse">{t('refreshing_records')}</div>
           ) : filteredData.length > 0 ? (
-            filteredData.map((item) => (
-              <div key={`${item.type}-${item.id}`} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-in fade-in transition-all">
+            paged.rows.map((item) => (
+              <div key={`${item.type}-${item.id}`} id={`${item.type}-row-${item.id}`} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-in fade-in transition-all">
                 {item.type === 'voucher' ? (
                   <>
                     <div
@@ -503,7 +541,7 @@ const History = () => {
                             <span className="font-black text-gray-800 text-base">{item.voucher_number}</span>
                             <span className="text-base bg-gray-100 px-1.5 py-0.5 rounded font-black text-gray-500 whitespace-nowrap">{item.voucher_date}</span>
                             {item.sync_status === 'pending' && (
-                              <span className="text-base bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded font-black uppercase">Pending</span>
+                              <span className="text-base bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded font-black uppercase">{t('x2_pending')}</span>
                             )}
                             {item.paid_amount > 0 && item.payment_method && <MethodTags row={item} className="!text-base" />}
                           </div>
@@ -539,6 +577,12 @@ const History = () => {
                     )}
                     {expandedVoucher === item.id && (
                       <div className="bg-gray-50 p-3 border-t border-gray-100 space-y-3 animate-in slide-in-from-top-2">
+                        {item.core_weight_lb > 0 && (
+                          <div className="bg-amber-50 p-2 rounded-xl border border-amber-100 flex justify-between items-center">
+                            <span className="text-base font-black text-amber-600 uppercase">{t('core_weight')}</span>
+                            <span className="text-lg font-black text-amber-700">{item.core_weight_lb} <span className="text-base text-gray-500">lb</span></span>
+                          </div>
+                        )}
                         {item.note && (
                           <div className="bg-blue-50/50 p-2 rounded-xl border border-blue-100/50">
                             <span className="text-base font-black text-blue-400 uppercase block leading-none mb-1">{t('note')}</span>
@@ -548,7 +592,7 @@ const History = () => {
                         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden divide-y divide-gray-100">
                           {item.items?.map((it, idx) => (
                             <div key={idx} className="p-3 space-y-1.5 font-bold text-gray-700">
-                              <div className="text-base text-blue-600 break-words">{it.lb} {t('weight_lb').split(' ')[1] || 'LB'} - {it.plastic_size} ({it.color})</div>
+                              <div className="text-base text-blue-600 break-words">{it.lb} {t('weight_lb').split(' ')[1] || 'LB'} - {it.plastic_size}{it.gate ? ` / ${it.gate}` : ''} ({it.color}{it.print_color ? ` + ${it.print_color}` : ''})</div>
                               <div className="text-sm sm:text-base text-gray-500 uppercase flex justify-between items-start gap-3">
                                 <span className="min-w-0 break-words">{t('plastic')}: {it.lb} {t('weight_lb').split(' ')[1] || 'LB'} × {it.plastic_price} {t('price')}</span>
                                 <span className="font-black text-gray-700 whitespace-nowrap shrink-0">{(it.lb * it.plastic_price).toLocaleString()}</span>
@@ -622,7 +666,7 @@ const History = () => {
                             <span className="font-black text-green-700 text-base">{t('direct_payment')}</span>
                             <span className="text-base bg-gray-100 px-1.5 py-0.5 rounded font-black text-gray-500 whitespace-nowrap">{item.payment_date}</span>
                             {item.sync_status === 'pending' && (
-                              <span className="text-base bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded font-black uppercase">Pending</span>
+                              <span className="text-base bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded font-black uppercase">{t('x2_pending')}</span>
                             )}
                             {item.payment_method && <MethodTags row={item} className="!text-base" />}
                           </div>
@@ -697,6 +741,13 @@ const History = () => {
           )}
         </div>
         )}
+
+        {!loading && (
+          <div className="space-y-1">
+            {filteredData.length > HIST_PAGE && <p className="text-center text-sm font-bold text-gray-400">{filteredData.length} records</p>}
+            <Pager page={paged.page} pages={paged.pages} onChange={goPage} />
+          </div>
+        )}
       </div>
 
       {/* Edit Payment Modal */}
@@ -705,7 +756,7 @@ const History = () => {
           <div className="bg-white w-full h-[100dvh] sm:h-auto sm:max-w-sm sm:rounded-3xl shadow-2xl flex flex-col sm:max-h-[92vh]">
             <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100 shrink-0">
               <div>
-                <h3 className="text-base font-black text-gray-800">Edit Payment</h3>
+                <h3 className="text-base font-black text-gray-800">{t('x2_edit_payment')}</h3>
                 <p className="text-sm text-gray-400 font-bold uppercase tracking-widest">{editingPayment.payment_date}</p>
               </div>
               <button onClick={closeEditPaymentModal} className="p-3 rounded-xl bg-gray-100 text-gray-500 transition-all">
@@ -716,7 +767,7 @@ const History = () => {
             <div className="overflow-y-auto overflow-x-hidden flex-1 px-4 sm:px-5 py-4 space-y-5">
               {/* Amount */}
               <div>
-                <label className="text-sm font-black text-gray-400 uppercase tracking-widest block mb-1">{t('amount_paid')}</label>
+                <label className="text-base font-black text-gray-600 uppercase tracking-widest block mb-1">{t('amount_paid')}</label>
                 <input
                   type="number"
                   step="any"
@@ -741,7 +792,7 @@ const History = () => {
               {/* Method & Date */}
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-black text-gray-400 uppercase tracking-widest block mb-2">{t('payment_method') || 'Method'}</label>
+                  <label className="text-base font-black text-gray-600 uppercase tracking-widest block mb-2">{t('payment_method') || 'Method'}</label>
                   <SplitPicker total={editPaymentAmount} split={editPmtSplit} onSplitChange={setEditPmtSplit} parts={editPmtParts} onParts={setEditPmtParts} method={editPmtMethod}
                     single={<MethodPicker value={editPmtMethod} onChange={setEditPmtMethod} />} />
                 </div>
@@ -754,7 +805,7 @@ const History = () => {
 
               {/* Note */}
               <div>
-                <label className="text-sm font-black text-gray-400 uppercase tracking-widest block mb-1">{t('note') || 'Note'}</label>
+                <label className="text-base font-black text-gray-600 uppercase tracking-widest block mb-1">{t('note') || 'Note'}</label>
                 <textarea
                   value={editPaymentNote}
                   onChange={e => setEditPaymentNote(e.target.value)}
@@ -802,7 +853,7 @@ const History = () => {
             {/* Modal header */}
             <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100 shrink-0">
               <div>
-                <h3 className="text-base font-black text-gray-800">Edit Voucher</h3>
+                <h3 className="text-base font-black text-gray-800">{t('x2_edit_voucher')}</h3>
                 <p className="text-sm text-gray-400 font-bold uppercase tracking-widest">{editingVoucher.voucher_number}</p>
               </div>
               <button onClick={closeEditModal} className="p-3 rounded-xl bg-gray-100 text-gray-500 transition-all">
@@ -814,7 +865,7 @@ const History = () => {
               {/* Voucher Number & Date */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-black text-gray-400 uppercase tracking-widest block mb-1">Voucher No.</label>
+                  <label className="text-base font-black text-gray-600 uppercase tracking-widest block mb-1">{t('x2_voucher_no')}</label>
                   <input
                     type="text"
                     value={editVoucherNumber}
@@ -834,7 +885,7 @@ const History = () => {
               {/* Items */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-black text-gray-400 uppercase tracking-widest">{t('products') || 'Items'}</label>
+                  <label className="text-base font-black text-gray-600 uppercase tracking-widest">{t('products') || 'Items'}</label>
                   <button onClick={addEditItem} className="flex items-center gap-1 text-sm font-black text-blue-500 bg-blue-50 px-2 py-1 rounded-lg border border-blue-100 hover:bg-blue-100 transition-all">
                     <Plus size={10} /> Add
                   </button>
@@ -848,28 +899,38 @@ const History = () => {
                         </button>
                       )}
                       <div>
-                        <label className="text-xs font-black text-gray-400 uppercase block mb-0.5">Size</label>
-                        <input type="text" value={it.plastic_size} onChange={e => handleEditItemChange(idx, 'plastic_size', e.target.value)}
-                          className="w-full p-3 bg-white border-2 border-gray-200 rounded-xl text-lg leading-normal font-bold outline-none focus:border-blue-400" />
+                        <label className="text-sm font-black text-gray-600 uppercase block mb-0.5">{t('size')}</label>
+                        <Combo placeholder={t('pick_or_type')} addLabel={t('add_new')} options={options.sizes} value={it.plastic_size}
+                          onChange={v => handleEditItemChange(idx, 'plastic_size', v)} onAdd={n => addOption('SIZE', n)} className="!p-3 !bg-white !border-gray-200 text-lg" />
                       </div>
                       <div>
-                        <label className="text-xs font-black text-gray-400 uppercase block mb-0.5">Color</label>
-                        <input type="text" value={it.color} onChange={e => handleEditItemChange(idx, 'color', e.target.value)}
-                          className="w-full p-3 bg-white border-2 border-gray-200 rounded-xl text-lg leading-normal font-bold outline-none focus:border-blue-400" />
+                        <label className="text-sm font-black text-gray-600 uppercase block mb-0.5">{t('gate')}</label>
+                        <Combo placeholder={t('pick_or_type')} addLabel={t('add_new')} options={options.gates} value={it.gate}
+                          onChange={v => handleEditItemChange(idx, 'gate', v)} onAdd={n => addOption('GATE', n)} className="!p-3 !bg-white !border-gray-200 text-lg" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-black text-gray-600 uppercase block mb-0.5">{t('plastic_color')}</label>
+                        <Combo placeholder={t('pick_or_type')} addLabel={t('add_new')} options={options.colors} value={it.color}
+                          onChange={v => handleEditItemChange(idx, 'color', v)} onAdd={n => addOption('COLOR', n)} className="!p-3 !bg-white !border-gray-200 text-lg" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-black text-gray-400 uppercase block mb-0.5">{t('print_color')}</label>
+                        <Combo placeholder={t('pick_or_type')} addLabel={t('add_new')} options={options.prints || []} value={it.print_color}
+                          onChange={v => handleEditItemChange(idx, 'print_color', v)} onAdd={n => addOption('PRINT', n)} className="!p-3 !bg-white !border-gray-200 text-lg" />
                       </div>
                       <div className="grid grid-cols-3 gap-2">
                         <div className="min-w-0">
-                          <label className="text-xs font-black text-gray-400 uppercase block mb-0.5">LB</label>
+                          <label className="text-sm font-black text-gray-600 uppercase block mb-0.5">{t('x_lb')}</label>
                           <input type="number" step="any" inputMode="decimal" value={it.lb} onChange={e => handleEditItemChange(idx, 'lb', e.target.value)}
                             className="w-full p-3 bg-white border-2 border-gray-200 rounded-xl text-lg font-bold outline-none focus:border-blue-400" />
                         </div>
                         <div className="min-w-0">
-                          <label className="text-xs font-black text-gray-400 uppercase block mb-0.5">Plastic</label>
+                          <label className="text-sm font-black text-gray-600 uppercase block mb-0.5">{t('plastic_price')}</label>
                           <input type="number" step="any" inputMode="decimal" value={it.plastic_price} onChange={e => handleEditItemChange(idx, 'plastic_price', e.target.value)}
                             className="w-full p-3 bg-white border-2 border-gray-200 rounded-xl text-lg font-bold outline-none focus:border-blue-400" />
                         </div>
                         <div className="min-w-0">
-                          <label className="text-xs font-black text-gray-400 uppercase block mb-0.5">Color</label>
+                          <label className="text-sm font-black text-gray-600 uppercase block mb-0.5">{t('color_price')}</label>
                           <input type="number" step="any" inputMode="decimal" value={it.color_price} onChange={e => handleEditItemChange(idx, 'color_price', e.target.value)}
                             className="w-full p-3 bg-white border-2 border-gray-200 rounded-xl text-lg font-bold outline-none focus:border-blue-400" />
                         </div>
@@ -886,16 +947,16 @@ const History = () => {
 
               {/* Extra Charge */}
               <div className="border-2 border-dashed border-orange-200 rounded-xl p-3 space-y-2">
-                <label className="text-sm font-black text-orange-400 uppercase tracking-widest block">Extra Charge (Optional)</label>
+                <label className="text-sm font-black text-orange-400 uppercase tracking-widest block">{t('x2_extra_charge')} ({t('optional')})</label>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-xs font-black text-gray-400 uppercase block mb-0.5">Label</label>
+                    <label className="text-sm font-black text-gray-600 uppercase block mb-0.5">{t('x2_label')}</label>
                     <input type="text" value={editExtraChargeNote} onChange={e => setEditExtraChargeNote(e.target.value)}
-                      placeholder="e.g. Delivery fee"
+                      placeholder={t('x2_ph_delivery')}
                       className="w-full p-3 bg-white border-2 border-orange-100 rounded-xl text-lg leading-normal font-bold outline-none focus:border-orange-400" />
                   </div>
                   <div>
-                    <label className="text-xs font-black text-gray-400 uppercase block mb-0.5">Amount</label>
+                    <label className="text-sm font-black text-gray-600 uppercase block mb-0.5">{t('amount')}</label>
                     <input type="number" step="any" value={editExtraChargeAmount} onChange={e => setEditExtraChargeAmount(e.target.value)}
                       placeholder="0"
                       className="w-full p-3 bg-white border-2 border-orange-100 rounded-xl text-lg leading-normal font-bold outline-none focus:border-orange-400" />
@@ -903,11 +964,19 @@ const History = () => {
                 </div>
               </div>
 
+              {/* Cardboard core */}
+              <div className="border-2 border-dashed border-amber-200 rounded-xl p-3 space-y-2">
+                <label className="text-sm font-black text-amber-500 uppercase tracking-widest block">{t('core_weight')} ({t('optional_note')})</label>
+                <input type="number" step="any" min="0" inputMode="decimal" value={editCore} onChange={e => setEditCore(e.target.value)}
+                  placeholder="0"
+                  className="w-full p-3 bg-white border-2 border-amber-100 rounded-xl text-lg leading-normal font-bold outline-none focus:border-amber-400" />
+              </div>
+
               {/* Discount */}
               <div className="border-2 border-dashed border-red-200 rounded-xl p-3 space-y-2">
                 <label className="text-sm font-black text-red-400 uppercase tracking-widest block">{t('discount')} ({t('optional')})</label>
                 <div>
-                  <label className="text-xs font-black text-gray-400 uppercase block mb-0.5">{t('amount')}</label>
+                  <label className="text-sm font-black text-gray-600 uppercase block mb-0.5">{t('amount')}</label>
                   <input type="number" step="any" value={editDiscountAmount} onChange={e => setEditDiscountAmount(e.target.value)}
                     placeholder="0"
                     className="w-full p-3 bg-white border-2 border-red-100 rounded-xl text-lg leading-normal font-bold outline-none focus:border-red-400" />
@@ -917,13 +986,13 @@ const History = () => {
               {/* Payment */}
               <div className="grid grid-cols-1 gap-4">
                 <div>
-                  <label className="text-sm font-black text-gray-400 uppercase tracking-widest block mb-1">{t('paid_amount') || 'Paid Amount'}</label>
+                  <label className="text-base font-black text-gray-600 uppercase tracking-widest block mb-1">{t('paid_amount') || 'Paid Amount'}</label>
                   <input type="number" step="any" value={editPaidAmount} onChange={e => setEditPaidAmount(e.target.value)}
                     placeholder="0"
                     className="w-full p-3 bg-gray-50 border-2 border-gray-200 rounded-xl font-bold text-lg leading-normal outline-none focus:border-blue-400" />
                 </div>
                 <div>
-                  <label className="text-sm font-black text-gray-400 uppercase tracking-widest block mb-2">{t('payment_method') || 'Method'}</label>
+                  <label className="text-base font-black text-gray-600 uppercase tracking-widest block mb-2">{t('payment_method') || 'Method'}</label>
                   <SplitPicker total={editPaidAmount} split={editSplit} onSplitChange={setEditSplit} parts={editParts} onParts={setEditParts} method={editPaymentMethod}
                     single={<MethodPicker value={editPaymentMethod} onChange={setEditPaymentMethod} />} />
                 </div>
@@ -931,7 +1000,7 @@ const History = () => {
 
               {/* Note */}
               <div>
-                <label className="text-sm font-black text-gray-400 uppercase tracking-widest block mb-1">{t('note') || 'Note'}</label>
+                <label className="text-base font-black text-gray-600 uppercase tracking-widest block mb-1">{t('note') || 'Note'}</label>
                 <textarea value={editNote} onChange={e => setEditNote(e.target.value)}
                   rows={2}
                   className="w-full p-3 bg-gray-50 border-2 border-gray-200 rounded-xl font-bold text-lg leading-normal outline-none focus:border-blue-400 resize-none" />
@@ -940,7 +1009,7 @@ const History = () => {
               {/* Live summary */}
               <div className="bg-gray-50 rounded-xl p-3 border border-gray-100 text-sm font-black uppercase space-y-1.5">
                 <div className="flex justify-between text-gray-500">
-                  <span>Items Total</span><span className="text-gray-700">{editItemsTotal.toLocaleString()}</span>
+                  <span>{t('items_total')}</span><span className="text-gray-700">{editItemsTotal.toLocaleString()}</span>
                 </div>
                 {editExtraCharge > 0 && (
                   <div className="flex justify-between text-orange-500">
@@ -953,16 +1022,16 @@ const History = () => {
                   </div>
                 )}
                 <div className="flex justify-between text-gray-500">
-                  <span>Prev. Balance</span><span className={editPrevBalance > 0 ? 'text-orange-500' : 'text-gray-500'}>{editPrevBalance.toLocaleString()}</span>
+                  <span>{t('previous_balance')}</span><span className={editPrevBalance > 0 ? 'text-orange-500' : 'text-gray-500'}>{editPrevBalance.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-gray-700 border-t border-gray-200 pt-1.5">
-                  <span>Final Total</span><span>{editFinalTotal.toLocaleString()}</span>
+                  <span>{t('final_total')}</span><span>{editFinalTotal.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-green-600">
-                  <span>Paid</span><span>−{editPaid.toLocaleString()}</span>
+                  <span>{t('x2_paid')}</span><span>−{editPaid.toLocaleString()}</span>
                 </div>
                 <div className={`flex justify-between text-base border-t border-gray-200 pt-1.5 ${editRemaining > 0 ? 'text-red-500' : 'text-green-600'}`}>
-                  <span>Remaining</span><span>{editRemaining.toLocaleString()}</span>
+                  <span>{t('remaining')}</span><span>{editRemaining.toLocaleString()}</span>
                 </div>
               </div>
             </div>
