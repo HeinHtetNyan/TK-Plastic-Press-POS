@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useLanguage } from '../context/LanguageContext';
 
 const DropdownDatePicker = ({ value, onChange, label }) => {
+  const { t } = useLanguage();
   const splitValue = (v) => {
     const parts = v ? v.split('-') : [];
     return {
@@ -54,30 +56,30 @@ const DropdownDatePicker = ({ value, onChange, label }) => {
 
   return (
     <div className="space-y-1">
-      {label && <label className="text-[10px] font-black text-gray-400 uppercase px-1">{label}</label>}
+      {label && <label className="text-base font-black text-gray-600 uppercase px-1">{label}</label>}
       <div className="flex gap-1">
         <select
-          className="flex-1 p-2 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-blue-500"
+          className="flex-1 min-w-0 p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-base outline-none focus:border-blue-500"
           value={localDay}
           onChange={(e) => handleDay(e.target.value)}
         >
-          <option value="">Day</option>
+          <option value="">{t('x2_day')}</option>
           {days.map(d => <option key={d} value={d}>{d}</option>)}
         </select>
         <select
-          className="flex-1 p-2 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-blue-500"
+          className="flex-1 min-w-0 p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-base outline-none focus:border-blue-500"
           value={localMonth}
           onChange={(e) => handleMonth(e.target.value)}
         >
-          <option value="">Month</option>
+          <option value="">{t('x2_month')}</option>
           {months.map(m => <option key={m} value={m}>{m}</option>)}
         </select>
         <select
-          className="flex-1 p-2 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-blue-500"
+          className="flex-1 min-w-0 p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-base outline-none focus:border-blue-500"
           value={localYear}
           onChange={(e) => handleYear(e.target.value)}
         >
-          <option value="">Year</option>
+          <option value="">{t('x2_year')}</option>
           {years.map(y => <option key={y} value={y}>{y}</option>)}
         </select>
       </div>

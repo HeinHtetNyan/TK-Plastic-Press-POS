@@ -9,3 +9,22 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* ---- Myanmar mode (html.lang-mm is set from the language switch) ----
+   Myanmar script stacks marks above and below the letters, so it needs more line height,
+   no extra letter spacing, and a real Myanmar font first in the list. */
+html.lang-mm body {
+  font-family: 'Noto Sans Myanmar', 'Myanmar Text', 'Padauk', 'Pyidaungsu', 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.7;
+}
+html.lang-mm * { letter-spacing: normal !important; }
+html.lang-mm .leading-none,
+html.lang-mm .leading-tight,
+html.lang-mm .leading-snug { line-height: 1.65 !important; }
+html.lang-mm .font-black { font-weight: 700; }
+html.lang-mm .uppercase { text-transform: none; }
+html.lang-mm .text-3xl { font-size: 1.6rem; line-height: 1.5; }
+html.lang-mm .text-2xl { font-size: 1.4rem; line-height: 1.5; }
+html.lang-mm button { line-height: 1.55; }
+/* bottom bar: keep each label on one line */
+html.lang-mm nav .text-xs { font-size: 0.7rem; line-height: 1.5; }

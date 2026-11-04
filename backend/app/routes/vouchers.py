@@ -1,6 +1,7 @@
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session, select
+from typing import List, Optional
+from datetime import datetime
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlmodel import Session, select, func
 from sqlalchemy.exc import IntegrityError
 from app.db import get_session
 from app.models import Voucher, Customer, User
@@ -10,6 +11,8 @@ from app.services.voucher import create_voucher_service
 from app.dependencies.auth import require_staff_or_admin, require_admin
 from app.services.balance import calculate_customer_balance
 from app.services.audit import log_action
+from app.services.splits import normalize_splits
+from app.services.stock import take_stock_for_items, give_back_stock_for_items
 
 router = APIRouter(tags=["vouchers"])
 
@@ -36,10 +39,62 @@ def create_voucher(
         raise HTTPException(status_code=404, detail="Customer not found")
 
     try:
-        return create_voucher_service(session, voucher_in, current_user.id, client_id=voucher_in.client_id)
+        voucher, warnings = create_voucher_service(session, voucher_in, current_user.id, client_id=voucher_in.client_id)
+        v_data = voucher.model_dump()
+        v_data["customer_name"] = customer.name
+        v_data["customer_balance"] = calculate_customer_balance(session, voucher.customer_id)
+        v_data["items"] = voucher.items
+        v_data["stock_warnings"] = warnings
+        return v_data
     except IntegrityError:
         session.rollback()
         raise HTTPException(status_code=400, detail="Voucher number already exists. Please use a unique number.")
+
+@router.get("/vouchers/page")
+def list_vouchers_page(
+    month: Optional[str] = Query(default=None, description="MM-YYYY"),
+    date: Optional[str] = Query(default=None, description="DD-MM-YYYY"),
+    sort: str = Query(default="desc", pattern="^(asc|desc)$"),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_staff_or_admin),
+):
+    """Reports list: one page of vouchers for a month or a day, plus totals for the whole filter and the months that have data."""
+    cond = []
+    try:
+        if date:
+            cond.append(Voucher.voucher_date == datetime.strptime(date, "%d-%m-%Y").date())
+        elif month:
+            m, y = month.split("-")
+            m, y = int(m), int(y)
+            first = datetime(y, m, 1).date()
+            nxt = datetime(y + (m == 12), (m % 12) + 1, 1).date()
+            cond += [Voucher.voucher_date >= first, Voucher.voucher_date < nxt]
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Bad date")
+
+    count, items_sum = session.exec(select(func.count(Voucher.id), func.coalesce(func.sum(Voucher.items_total), 0.0)).where(*cond)).one()
+    pages = max(1, -(-count // page_size))
+    page = min(page, pages)
+    order = (Voucher.created_at.desc(), Voucher.id.desc()) if sort == "desc" else (Voucher.created_at.asc(), Voucher.id.asc())
+    rows = session.exec(select(Voucher).where(*cond).order_by(*order).offset((page - 1) * page_size).limit(page_size)).all()
+
+    balance_cache = {}
+    out = []
+    for v in rows:
+        d = v.model_dump()
+        d["customer_name"] = v.customer.name
+        if v.customer_id not in balance_cache:
+            balance_cache[v.customer_id] = calculate_customer_balance(session, v.customer_id)
+        d["customer_balance"] = balance_cache[v.customer_id]
+        d["items"] = v.items
+        out.append(VoucherRead.model_validate(d).model_dump(mode="json"))
+
+    month_rows = session.exec(
+        select(func.to_char(Voucher.voucher_date, "MM-YYYY"), func.max(Voucher.voucher_date)).group_by(func.to_char(Voucher.voucher_date, "MM-YYYY")).order_by(func.max(Voucher.voucher_date).desc())
+    ).all()
+    return {"items": out, "total": count, "items_total_sum": float(items_sum), "page": page, "pages": pages, "months": [m for m, _ in month_rows]}
 
 @router.get("/vouchers", response_model=List[VoucherRead])
 def list_all_vouchers(
@@ -117,6 +172,10 @@ def update_voucher(
     final_total = items_total + extra_charge - discount + voucher.previous_balance
     remaining_balance = final_total - (voucher_in.paid_amount or 0.0)
 
+    # Vouchers made before the stock feature never took stock, so editing them must not touch it.
+    ref = f"voucher:{voucher.voucher_number}"
+    if voucher.stock_tracked:
+        give_back_stock_for_items(session, list(voucher.items), ref)
     for old_item in list(voucher.items):
         session.delete(old_item)
     session.flush()
@@ -130,6 +189,8 @@ def update_voucher(
             plastic_price=i.plastic_price,
             color=i.color,
             color_price=i.color_price,
+            gate=i.gate or None,
+            print_color=i.print_color or None,
             total_price=i.lb * (i.plastic_price + i.color_price),
         )
         for i in voucher_in.items
@@ -143,12 +204,19 @@ def update_voucher(
     voucher.discount_amount = discount
     voucher.final_total = final_total
     voucher.paid_amount = voucher_in.paid_amount or 0.0
-    voucher.payment_method = voucher_in.payment_method
+    splits, primary = normalize_splits(voucher_in.payment_splits, voucher.paid_amount)
+    voucher.payment_method = primary or voucher_in.payment_method
+    voucher.payment_splits = splits
     voucher.remaining_balance = remaining_balance
     voucher.note = voucher_in.note
+    voucher.core_weight_lb = voucher_in.core_weight_lb or None
 
     for item in new_items:
         session.add(item)
+    session.flush()
+    warnings = []
+    if voucher.stock_tracked:
+        warnings = take_stock_for_items(session, new_items, f"voucher:{voucher.voucher_number}")
 
     try:
         session.add(voucher)
@@ -163,6 +231,7 @@ def update_voucher(
     v_data["customer_name"] = voucher.customer.name
     v_data["customer_balance"] = calculate_customer_balance(session, voucher.customer_id)
     v_data["items"] = voucher.items
+    v_data["stock_warnings"] = warnings
     return v_data
 
 @router.delete("/vouchers/{voucher_id}")
@@ -175,6 +244,8 @@ def delete_voucher(
     if not voucher:
         raise HTTPException(status_code=404, detail="Voucher not found")
     
+    if voucher.stock_tracked:
+        give_back_stock_for_items(session, list(voucher.items), f"voucher:{voucher.voucher_number} deleted")
     log_action(session, current_user.id, "DELETE", "Voucher", str(voucher_id), f"Voucher #{voucher.voucher_number} deleted")
     session.delete(voucher)
     session.commit()

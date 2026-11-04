@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Home from './pages/Home';
 import Voucher from './pages/Voucher';
 import Payment from './pages/Payment';
@@ -9,6 +9,8 @@ import Login from './pages/Login';
 import Users from './pages/Users';
 import AuditLogs from './pages/AuditLogs';
 import Spending from './pages/Spending';
+import Stock from './pages/Stock';
+import Settings from './pages/Settings';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import { startSyncEngine, stopSyncEngine, syncAll } from './services/syncService';
@@ -82,21 +84,24 @@ function App() {
             }
           />
           <Route
-            path="/users"
+            path="/stock"
             element={
-              <ProtectedRoute adminOnly={true}>
-                <Users />
+              <ProtectedRoute>
+                <Stock />
               </ProtectedRoute>
             }
           />
           <Route
-            path="/audit-logs"
+            path="/settings"
             element={
               <ProtectedRoute adminOnly={true}>
-                <AuditLogs />
+                <Settings />
               </ProtectedRoute>
             }
           />
+          {/* old addresses keep working */}
+          <Route path="/users" element={<Navigate to="/settings?tab=users" replace />} />
+          <Route path="/audit-logs" element={<Navigate to="/settings?tab=audit" replace />} />
           <Route
             path="/spending"
             element={

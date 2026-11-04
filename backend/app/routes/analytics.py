@@ -1,9 +1,12 @@
 from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session, select, func
 from app.db import get_session
-from app.models import Voucher, Customer, Payment, User, Spending
+from app.models import Voucher, Customer, Payment, User, Spending, Item, UserRole
+from app.models.stock import StockItem
 from app.dependencies.auth import require_staff_or_admin
 from app.services.balance import calculate_customer_balance
+from app.services.splits import split_amounts
+from app.models.customer import get_yangon_date
 from datetime import datetime, timedelta, date
 
 router = APIRouter(tags=["analytics"])
@@ -14,7 +17,7 @@ def get_dashboard_data(
     session: Session = Depends(get_session),
     current_user: User = Depends(require_staff_or_admin)
 ):
-    today = datetime.now().date()
+    today = get_yangon_date()  # the shop's own date (Asia/Yangon), not the server's clock
 
     if period == "3months":
         start_date = today - timedelta(days=90)
@@ -54,26 +57,27 @@ def get_dashboard_data(
 
     # 4. Income by Payment Method for selected period
     voucher_payments = session.exec(
-        select(Voucher.payment_method, func.sum(Voucher.paid_amount)).where(
+        select(Voucher.payment_method, Voucher.payment_splits, Voucher.paid_amount).where(
             Voucher.paid_amount > 0,
             Voucher.payment_method.isnot(None),
             Voucher.voucher_date >= start_date,
-        ).group_by(Voucher.payment_method)
+        )
     ).all()
 
     standalone_payments = session.exec(
-        select(Payment.payment_method, func.sum(Payment.amount_paid)).where(
+        select(Payment.payment_method, Payment.payment_splits, Payment.amount_paid).where(
             Payment.payment_method.isnot(None),
             Payment.payment_date >= start_date,
-        ).group_by(Payment.payment_method)
+        )
     ).all()
 
     income_by_method: dict = {}
 
     def process_results(results):
-        for method, amount in results:
-            m_str = method.value if hasattr(method, "value") else (str(method) if method else "CASH")
-            income_by_method[m_str] = income_by_method.get(m_str, 0) + (amount or 0)
+        # A split row counts each method for its own part; older rows count their single method.
+        for method, splits, amount in results:
+            for m_str, part in split_amounts(method, splits, amount):
+                income_by_method[m_str] = income_by_method.get(m_str, 0) + part
 
     process_results(voucher_payments)
     process_results(standalone_payments)
@@ -103,7 +107,33 @@ def get_dashboard_data(
         reverse=True,
     )
 
+    # 8. Admin only: profit on the plastic sold in this period and the value of stock on hand.
+    # Profit counts only items that took stock (they carry the average cost at the time of sale);
+    # sales without a cost are reported separately instead of being treated as pure profit.
+    profit = None
+    stock_value = None
+    if current_user.role == UserRole.ADMIN:
+        base = (Voucher.stock_tracked == True, Voucher.voucher_date >= start_date)  # noqa: E712
+        sales, cost = session.exec(
+            select(func.coalesce(func.sum(Item.total_price), 0.0), func.coalesce(func.sum(Item.lb * Item.cost_per_lb), 0.0))
+            .join(Voucher, Voucher.id == Item.voucher_id).where(*base, Item.cost_per_lb > 0)
+        ).one()
+        nc_sales, nc_count = session.exec(
+            select(func.coalesce(func.sum(Item.total_price), 0.0), func.count(Item.id))
+            .join(Voucher, Voucher.id == Item.voucher_id).where(*base, (Item.cost_per_lb.is_(None)) | (Item.cost_per_lb <= 0))
+        ).one()
+        gross = float(sales) - float(cost)
+        profit = {
+            "sales": round(float(sales), 2), "cost": round(float(cost), 2), "gross_profit": round(gross, 2),
+            "spending": round(total_spending, 2), "net_profit": round(gross - total_spending, 2),
+            "sales_without_cost": round(float(nc_sales), 2), "items_without_cost": int(nc_count),
+        }
+        qty_avg = session.exec(select(StockItem.qty_lb, StockItem.avg_cost_per_lb)).all()
+        stock_value = round(sum(max(q, 0.0) * a for q, a in qty_avg), 2)
+
     return {
+        "profit": profit,
+        "stock_value": stock_value,
         "daily_sales": daily_sales,
         "total_debt": total_debt,
         "top_customers": top_customers,

@@ -127,6 +127,7 @@ async function syncVoucher(item) {
     previous_balance: res.data.previous_balance,
     final_total: res.data.final_total,
     remaining_balance: res.data.remaining_balance,
+    core_weight_lb: res.data.core_weight_lb ?? null,
   });
 }
 
@@ -399,6 +400,7 @@ export async function cacheVouchers(customerClientId, serverVouchers) {
     paid_amount: v.paid_amount,
     payment_method: v.payment_method,
     note: v.note,
+    core_weight_lb: v.core_weight_lb ?? null,
     items: v.items,
     remaining_balance: v.remaining_balance,
     previous_balance: v.previous_balance,
@@ -444,6 +446,7 @@ export async function loadCachedVouchers(customerClientId) {
     paid_amount: v.paid_amount ?? 0,
     payment_method: v.payment_method,
     note: v.note,
+    core_weight_lb: v.core_weight_lb ?? null,
     items: v.items ?? [],
     remaining_balance: v.remaining_balance ?? 0,
     previous_balance: v.previous_balance ?? 0,

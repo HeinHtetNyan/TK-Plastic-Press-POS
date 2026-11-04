@@ -3,8 +3,10 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Lock, User, ShieldCheck } from 'lucide-react';
 import { authService } from '../services/api';
+import { useLanguage } from '../context/LanguageContext';
 
 const Login = () => {
+  const { t } = useLanguage();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -77,7 +79,7 @@ const Login = () => {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center space-y-3">
           <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto" />
-          <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">Connecting...</p>
+          <p className="text-base font-bold text-gray-600 uppercase tracking-widest">{t('x2_connecting')}</p>
         </div>
       </div>
     );
@@ -92,7 +94,7 @@ const Login = () => {
             <Lock className="h-6 w-6 text-red-500" />
           </div>
           <h2 className="text-xl font-black text-gray-800">Cannot Reach Server</h2>
-          <p className="text-sm text-gray-500">The backend is not reachable. Make sure the server is running and the API URL is configured correctly.</p>
+          <p className="text-base text-gray-500">The backend is not reachable. Make sure the server is running and the API URL is configured correctly.</p>
           <button
             onClick={checkStatus}
             className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all"
@@ -115,19 +117,19 @@ const Login = () => {
             <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
               Initial Setup
             </h2>
-            <p className="mt-2 text-center text-sm text-gray-600">
+            <p className="mt-2 text-center text-base text-gray-600">
               Create the first **Super Admin** account
             </p>
           </div>
           <form className="mt-8 space-y-4" onSubmit={handleSetup}>
             {error && (
               <div className="bg-red-50 border-l-4 border-red-400 p-4">
-                <p className="text-sm text-red-700">{error}</p>
+                <p className="text-base text-red-700">{error}</p>
               </div>
             )}
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-bold text-gray-400 uppercase">Username</label>
+                <label className="text-base font-bold text-gray-600 uppercase">{t('x2_username')}</label>
                 <input
                   type="text"
                   required
@@ -138,7 +140,7 @@ const Login = () => {
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-gray-400 uppercase">Password</label>
+                <label className="text-base font-bold text-gray-600 uppercase">{t('x2_password')}</label>
                 <input
                   type="password"
                   required
@@ -149,7 +151,7 @@ const Login = () => {
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-gray-400 uppercase">Confirm Password</label>
+                <label className="text-base font-bold text-gray-600 uppercase">{t('x2_confirm_pw')}</label>
                 <input
                   type="password"
                   required
@@ -164,7 +166,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-base font-bold rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               {loading ? 'Processing...' : 'Complete Setup'}
             </button>
@@ -181,14 +183,14 @@ const Login = () => {
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             {import.meta.env.VITE_APP_NAME} POS
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Please sign in to your account
+          <p className="mt-2 text-center text-base text-gray-600">
+            {t('x2_please_signin')}
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
             <div className="bg-red-50 border-l-4 border-red-400 p-4">
-              <p className="text-sm text-red-700">{error}</p>
+              <p className="text-base text-red-700">{error}</p>
             </div>
           )}
           <div className="rounded-md shadow-sm -space-y-px">
@@ -224,9 +226,9 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? t('x2_signing_in') : t('x2_signin')}
             </button>
           </div>
         </form>

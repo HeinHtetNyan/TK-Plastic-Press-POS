@@ -1,8 +1,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, FileText, CreditCard, ChevronDown, ChevronUp, Trash2, ArrowUpDown, Pencil, Plus, Save, X } from 'lucide-react';
+import { ArrowLeft, FileText, Table2, List, CreditCard, ChevronDown, ChevronUp, Trash2, ArrowUpDown, Pencil, Plus, Save, X } from 'lucide-react';
 import Layout from '../components/Layout';
 import DropdownDatePicker from '../components/DropdownDatePicker';
+import HistorySheet from '../components/HistorySheet';
+import RowActions from '../components/RowActions';
+import MethodPicker from '../components/MethodPicker';
+import SplitPicker from '../components/SplitPicker';
+import MethodTags from '../components/MethodTags';
+import Combo from '../components/Combo';
+import Pager from '../components/Pager';
+import { paginate } from '../utils/paginate';
+import { usePlasticOptions } from '../hooks/usePlasticOptions';
+import { paidLaterIds } from '../utils/paidLater';
+import { emptyParts, splitsToParts, partsToSplits, splitError, primaryMethod } from '../utils/paymentSplits';
 import { voucherService, paymentService } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import { useLanguage } from '../context/LanguageContext';
@@ -20,22 +31,35 @@ const parseDateStr = (str) => {
   return new Date(str).getTime();
 };
 
-const emptyItem = () => ({ lb: '', plastic_size: '', plastic_price: '', color: '', color_price: '' });
+const emptyItem = () => ({ lb: '', plastic_size: '', gate: '', plastic_price: '', color: '', print_color: '', color_price: '' });
 
 const History = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
   const { t } = useLanguage();
+  const { options, addOption } = usePlasticOptions();
   const customer = location.state?.customer || null;
+  const openVoucherId = location.state?.openVoucherId ?? null;
 
   const [vouchers, setVouchers] = useState([]);
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [expandedVoucher, setExpandedVoucher] = useState(null);
+  const [expandedVoucher, setExpandedVoucher] = useState(openVoucherId);
+  const [pageState, setPageState] = useState({ page: 1, key: '' });
   const [expandedPayment, setExpandedPayment] = useState(null);
   const [sortOrder, setSortOrder] = useState('desc');
   const [selectedDate, setSelectedDate] = useState('');
+  // Coming from a link to one voucher: show the list view (not remembered) with that voucher open.
+  const [viewMode, setViewMode] = useState(() => {
+    if (location.state?.openVoucherId != null) return 'list';
+    try { return localStorage.getItem('history_view') || 'sheet'; } catch { return 'sheet'; }
+  });
+  const changeView = (mode) => {
+    setViewMode(mode);
+    try { localStorage.setItem('history_view', mode); } catch { /* storage unavailable */ }
+  };
+  const canEditItem = (item) => !!(item.server_id ?? (typeof item.id === 'number' ? item.id : null));
 
   // Edit payment modal state
   const [editingPayment, setEditingPayment] = useState(null);
@@ -43,6 +67,8 @@ const History = () => {
   const [editPaymentAmount, setEditPaymentAmount] = useState('');
   const [editPaymentDiscountAmount, setEditPaymentDiscountAmount] = useState('');
   const [editPmtMethod, setEditPmtMethod] = useState('');
+  const [editPmtSplit, setEditPmtSplit] = useState(false);
+  const [editPmtParts, setEditPmtParts] = useState(emptyParts());
   const [editPaymentDate, setEditPaymentDate] = useState('');
   const [editPaymentNote, setEditPaymentNote] = useState('');
 
@@ -57,7 +83,10 @@ const History = () => {
   const [editDiscountAmount, setEditDiscountAmount] = useState('');
   const [editPaidAmount, setEditPaidAmount] = useState('');
   const [editPaymentMethod, setEditPaymentMethod] = useState('');
+  const [editSplit, setEditSplit] = useState(false);
+  const [editParts, setEditParts] = useState(emptyParts());
   const [editNote, setEditNote] = useState('');
+  const [editCore, setEditCore] = useState('');
 
   const loadFromCache = useCallback(async () => {
     if (!customer) return;
@@ -97,6 +126,13 @@ const History = () => {
       setLoading(false);
     }
   }, [customer, loadFromCache]);
+
+  // Scroll the linked voucher into view once the list has loaded.
+  useEffect(() => {
+    if (openVoucherId == null || loading) return;
+    const el = document.getElementById(`voucher-row-${openVoucherId}`);
+    if (el) el.scrollIntoView({ block: 'center' });
+  }, [openVoucherId, loading, vouchers]);
 
   useEffect(() => {
     if (!customer) {
@@ -197,6 +233,8 @@ const History = () => {
     setEditPaymentAmount(String(item.amount_paid));
     setEditPaymentDiscountAmount(item.discount_amount > 0 ? String(item.discount_amount) : '');
     setEditPmtMethod(item.payment_method || '');
+    setEditPmtSplit(!!item.payment_splits?.length);
+    setEditPmtParts(splitsToParts(item.payment_splits));
     setEditPaymentDate(item.payment_date || '');
     setEditPaymentNote(item.note || '');
   };
@@ -219,10 +257,22 @@ const History = () => {
       alert('Amount must be greater than 0.');
       return;
     }
+    let pmtSplits = [];
+    let pmtMethod = editPmtMethod || null;
+    if (editPmtSplit) {
+      const err = splitError(editPmtParts, amount);
+      if (err) {
+        alert(t(err));
+        return;
+      }
+      pmtSplits = partsToSplits(editPmtParts);
+      pmtMethod = primaryMethod(pmtSplits);
+    }
     const payload = {
       amount_paid: amount,
       discount_amount: parseFloat(editPaymentDiscountAmount) || 0,
-      payment_method: editPmtMethod || null,
+      payment_method: pmtMethod,
+      payment_splits: pmtSplits,
       payment_date: editPaymentDate || null,
       note: editPaymentNote || null,
     };
@@ -249,6 +299,8 @@ const History = () => {
         ? item.items.map(it => ({
             lb: String(it.lb),
             plastic_size: it.plastic_size,
+            gate: it.gate || '',
+            print_color: it.print_color || '',
             plastic_price: String(it.plastic_price),
             color: it.color,
             color_price: String(it.color_price),
@@ -260,7 +312,10 @@ const History = () => {
     setEditDiscountAmount(item.discount_amount > 0 ? String(item.discount_amount) : '');
     setEditPaidAmount(item.paid_amount > 0 ? String(item.paid_amount) : '');
     setEditPaymentMethod(item.payment_method || '');
+    setEditSplit(!!item.payment_splits?.length);
+    setEditParts(splitsToParts(item.payment_splits));
     setEditNote(item.note || '');
+    setEditCore(item.core_weight_lb > 0 ? String(item.core_weight_lb) : '');
   };
 
   const closeEditModal = () => {
@@ -293,6 +348,8 @@ const History = () => {
     const parsedItems = editItems.map(it => ({
       lb: parseFloat(it.lb) || 0,
       plastic_size: it.plastic_size,
+      gate: it.gate || null,
+      print_color: it.print_color || null,
       plastic_price: parseFloat(it.plastic_price) || 0,
       color: it.color,
       color_price: parseFloat(it.color_price) || 0,
@@ -303,6 +360,18 @@ const History = () => {
       return;
     }
 
+    const paidNow = parseFloat(editPaidAmount) || 0;
+    let voucherSplits = [];
+    let voucherMethod = editPaymentMethod || null;
+    if (editSplit && paidNow > 0) {
+      const err = splitError(editParts, paidNow);
+      if (err) {
+        alert(t(err));
+        return;
+      }
+      voucherSplits = partsToSplits(editParts);
+      voucherMethod = primaryMethod(voucherSplits);
+    }
     const payload = {
       voucher_number: editVoucherNumber,
       voucher_date: editVoucherDate || null,
@@ -311,14 +380,18 @@ const History = () => {
       extra_charge_amount: parseFloat(editExtraChargeAmount) || 0,
       discount_amount: parseFloat(editDiscountAmount) || 0,
       paid_amount: parseFloat(editPaidAmount) || 0,
-      payment_method: editPaymentMethod || null,
+      payment_method: voucherMethod,
+      payment_splits: voucherSplits,
       note: editNote || null,
+      core_weight_lb: parseFloat(editCore) > 0 ? parseFloat(editCore) : null,
     };
 
     setEditSaving(true);
     try {
-      await voucherService.update(serverId, payload);
+      const saved = await voucherService.update(serverId, payload);
       closeEditModal();
+      const warnings = saved?.data?.stock_warnings || [];
+      if (warnings.length) alert(`${t('stock_warning_title')}\n\n${warnings.join('\n')}`);
       fetchHistory();
     } catch (err) {
       const detail = err?.response?.data?.detail;
@@ -341,6 +414,13 @@ const History = () => {
   const editFinalTotal = editItemsTotal + editExtraCharge - editDiscount + editPrevBalance;
   const editRemaining = editFinalTotal - editPaid;
 
+  // Same rule as the backend customer balance: all vouchers minus all payments (date filter does not apply).
+  const owesNow =
+    vouchers.reduce((a, v) => a + (v.items_total || 0) + (v.extra_charge_amount || 0) - (v.discount_amount || 0) - (v.paid_amount || 0), 0) -
+    payments.reduce((a, p) => a + (p.amount_paid || 0) + (p.discount_amount || 0), 0);
+  const owesRounded = Math.round(owesNow * 100) / 100;
+  const paidLater = paidLaterIds(vouchers, payments);
+
   const filteredData = [
     ...vouchers.map(v => ({ ...v, type: 'voucher' })),
     ...payments.map(p => ({ ...p, type: 'payment' }))
@@ -354,10 +434,18 @@ const History = () => {
     return sortOrder === 'asc' ? aDate - bDate : bDate - aDate;
   });
 
+  // Page resets to 1 whenever the date filter or sort order changes; a link to one voucher opens the page that holds it.
+  const HIST_PAGE = 25;
+  const pageKey = `${selectedDate}|${sortOrder}`;
+  const linkedIndex = openVoucherId != null ? filteredData.findIndex(r => r.type === 'voucher' && r.id === openVoucherId) : -1;
+  const wantedPage = pageState.key === pageKey ? pageState.page : (linkedIndex >= 0 && !pageState.key ? Math.floor(linkedIndex / HIST_PAGE) + 1 : 1);
+  const paged = paginate(filteredData, wantedPage, HIST_PAGE);
+  const goPage = (p) => setPageState({ page: p, key: pageKey });
+
   return (
-    <Layout>
+    <Layout wide={viewMode === 'sheet'}>
       <div className="space-y-4 pb-12 animate-in slide-in-from-right-4 duration-500">
-        <header className="flex items-center justify-between gap-2">
+        <header className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <button onClick={() => navigate('/', { state: { customer: customer } })} className="p-2 bg-white rounded-full shadow-sm hover:bg-gray-100 transition-all">
               <ArrowLeft size={20} className="text-gray-600" />
@@ -365,9 +453,9 @@ const History = () => {
             <h2 className="text-xl font-black text-gray-800">{t('history')}</h2>
           </div>
           {customer && (
-            <div className="bg-blue-50 px-3 py-1 rounded-xl border border-blue-100 text-right">
-              <span className="text-[9px] font-black text-blue-400 uppercase block tracking-tighter leading-none mb-1">{t('customer')}</span>
-              <p className="text-sm font-black text-blue-700 truncate max-w-[120px] leading-none">{customer.name}</p>
+            <div className="bg-blue-50 px-3 py-1 rounded-xl border border-blue-100 text-right min-w-0 max-w-full">
+              <span className="text-base font-black text-blue-400 uppercase block tracking-tighter leading-none mb-1">{t('customer')}</span>
+              <p className="text-base font-black text-blue-700 truncate max-w-[220px] leading-none">{customer.name}</p>
             </div>
           )}
         </header>
@@ -383,29 +471,57 @@ const History = () => {
           {selectedDate && (
             <button
               onClick={() => setSelectedDate('')}
-              className="flex items-center gap-1 text-[10px] font-black text-red-400 bg-red-50 px-3 py-2 rounded-xl border border-red-100 hover:bg-red-100 transition-all mb-0.5"
+              className="flex items-center gap-1 text-base font-black text-red-400 bg-red-50 px-3 py-2 rounded-xl border border-red-100 hover:bg-red-100 transition-all mb-0.5"
             >
               <X size={10} /> {t('clear') || 'Clear'}
             </button>
           )}
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          <div className="flex rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-white">
+            <button onClick={() => changeView('sheet')} className={`flex items-center gap-1.5 text-base font-black px-3 py-1.5 transition-all ${viewMode === 'sheet' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-blue-600'}`}>
+              <Table2 size={12} /> {t('x2_sheet')}
+            </button>
+            <button onClick={() => changeView('list')} className={`flex items-center gap-1.5 text-base font-black px-3 py-1.5 transition-all ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-blue-600'}`}>
+              <List size={12} /> {t('x2_list')}
+            </button>
+          </div>
           <button
             onClick={() => setSortOrder(s => s === 'asc' ? 'desc' : 'asc')}
-            className="flex items-center gap-1.5 text-[10px] font-black text-gray-500 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-gray-100 hover:border-blue-200 hover:text-blue-600 transition-all"
+            className="flex items-center gap-1.5 text-base font-black text-gray-500 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-gray-100 hover:border-blue-200 hover:text-blue-600 transition-all"
           >
             <ArrowUpDown size={10} />
             {sortOrder === 'asc' ? t('oldest_first') : t('newest_first')}
           </button>
         </div>
 
+        {viewMode === 'sheet' && !loading && (vouchers.length > 0 || payments.length > 0) && (
+          <div className={`flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border-2 ${owesRounded > 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+            <span className="text-sm font-black uppercase tracking-widest text-gray-500">{owesRounded < 0 ? t('credit') : t('owes_now')}</span>
+            <span className={`text-2xl font-black tabular-nums ${owesRounded > 0 ? 'text-red-500' : 'text-green-600'}`}>{Math.abs(owesRounded).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+          </div>
+        )}
+
+        {viewMode === 'sheet' && !loading && filteredData.length > 0 ? (
+          <HistorySheet
+            rows={paged.rows}
+            allRows={filteredData}
+            paidLater={paidLater}
+            isAdmin={isAdmin()}
+            canEdit={canEditItem}
+            onEditVoucher={openEditModal}
+            onDeleteVoucher={handleDeleteVoucher}
+            onEditPayment={openEditPaymentModal}
+            onDeletePayment={handleDeletePayment}
+          />
+        ) : (
         <div className="space-y-3">
           {loading ? (
-            <div className="text-center py-12 text-gray-400 font-bold text-sm uppercase tracking-widest animate-pulse">{t('refreshing_records')}</div>
+            <div className="text-center py-12 text-gray-400 font-bold text-base uppercase tracking-widest animate-pulse">{t('refreshing_records')}</div>
           ) : filteredData.length > 0 ? (
-            filteredData.map((item) => (
-              <div key={`${item.type}-${item.id}`} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-in fade-in transition-all">
+            paged.rows.map((item) => (
+              <div key={`${item.type}-${item.id}`} id={`${item.type}-row-${item.id}`} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-in fade-in transition-all">
                 {item.type === 'voucher' ? (
                   <>
                     <div
@@ -417,133 +533,113 @@ const History = () => {
                           <FileText size={18} />
                         </div>
                         <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-black text-gray-800 text-sm truncate">{item.voucher_number}</span>
-                            <span className="text-[9px] bg-gray-100 px-1.5 py-0.5 rounded font-black text-gray-500 whitespace-nowrap">{item.voucher_date}</span>
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span className="font-black text-gray-800 text-base">{item.voucher_number}</span>
+                            <span className="text-base bg-gray-100 px-1.5 py-0.5 rounded font-black text-gray-500 whitespace-nowrap">{item.voucher_date}</span>
                             {item.sync_status === 'pending' && (
-                              <span className="text-[8px] bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded font-black uppercase">Pending</span>
+                              <span className="text-base bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded font-black uppercase">{t('x2_pending')}</span>
                             )}
-                            {item.paid_amount > 0 && item.payment_method && (
-                              <span className={`text-[8px] px-1.5 py-0.5 rounded font-black uppercase ${
-                                item.payment_method === 'KBZPAY' ? 'bg-blue-100 text-blue-600' :
-                                item.payment_method === 'BANK_TRANSFER' ? 'bg-purple-100 text-purple-600' :
-                                'bg-green-100 text-green-600'
-                              }`}>
-                                {item.payment_method === 'BANK_TRANSFER' ? 'BANK' : item.payment_method}
-                              </span>
-                            )}
+                            {item.paid_amount > 0 && item.payment_method && <MethodTags row={item} className="!text-base" />}
                           </div>
-                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{item.items?.length || 0} {t('products')}</p>
+                          <p className="text-base text-gray-400 font-bold uppercase tracking-widest">{item.items?.length || 0} {t('products')}</p>
+                          <p className="sm:hidden text-base font-black mt-0.5">
+                            <span className="text-gray-400 uppercase text-sm">{t('remaining')}: </span>
+                            <span className={item.remaining_balance > 0 ? 'text-red-500' : 'text-green-500'}>{item.remaining_balance.toLocaleString()}</span>
+                          </p>
                         </div>
                       </div>
                       <div className="text-right flex items-center gap-2">
                         <div className="hidden sm:block">
-                          <span className="text-[9px] text-gray-400 font-black uppercase block tracking-tighter">{t('remaining')}</span>
-                          <span className={`text-sm font-black ${item.remaining_balance > 0 ? 'text-red-500' : 'text-green-500'}`}>
+                          <span className="text-base text-gray-400 font-black uppercase block tracking-tighter">{t('remaining')}</span>
+                          <span className={`text-base font-black ${item.remaining_balance > 0 ? 'text-red-500' : 'text-green-500'}`}>
                             {item.remaining_balance.toLocaleString()}
                           </span>
                         </div>
                         <div className="flex flex-col gap-1 items-end sm:flex-row sm:items-center sm:gap-2 ml-2">
-                          {isAdmin() && (item.server_id ?? (typeof item.id === 'number' ? item.id : null)) && (
-                            <button
-                              onClick={(e) => openEditModal(e, item)}
-                              className="p-1.5 text-gray-300 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all order-2 sm:order-1"
-                            >
-                              <Pencil size={15} />
-                            </button>
-                          )}
-                          {isAdmin() && (
-                            <button
-                              onClick={(e) => handleDeleteVoucher(e, item)}
-                              className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all order-2 sm:order-1"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          )}
                           <div className="order-1 sm:order-2">
                             {expandedVoucher === item.id ? <ChevronUp size={16} className="text-gray-300" /> : <ChevronDown size={16} className="text-gray-300" />}
                           </div>
                         </div>
                       </div>
                     </div>
+                    {isAdmin() && (
+                      <div className="px-3 pb-3">
+                        <RowActions
+                          horizontal
+                          onEdit={canEditItem(item) ? (e) => openEditModal(e, item) : null}
+                          onDelete={(e) => handleDeleteVoucher(e, item)}
+                        />
+                      </div>
+                    )}
                     {expandedVoucher === item.id && (
                       <div className="bg-gray-50 p-3 border-t border-gray-100 space-y-3 animate-in slide-in-from-top-2">
-                        {item.note && (
-                          <div className="bg-blue-50/50 p-2 rounded-xl border border-blue-100/50">
-                            <span className="text-[8px] font-black text-blue-400 uppercase block leading-none mb-1">{t('note')}</span>
-                            <p className="text-xs font-bold text-blue-700 leading-tight italic">"{item.note}"</p>
+                        {item.core_weight_lb > 0 && (
+                          <div className="bg-amber-50 p-2 rounded-xl border border-amber-100 flex justify-between items-center">
+                            <span className="text-base font-black text-amber-600 uppercase">{t('core_weight')}</span>
+                            <span className="text-lg font-black text-amber-700">{item.core_weight_lb} <span className="text-base text-gray-500">lb</span></span>
                           </div>
                         )}
-                        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                          <table className="w-full text-[10px] text-left">
-                            <thead className="bg-gray-100 font-black text-gray-500 uppercase">
-                              <tr><th className="p-2">{t('details')}</th><th className="p-2 text-right">{t('price')}</th><th className="p-2 text-right">{t('total')}</th></tr>
-                            </thead>
-                            <tbody className="font-bold text-gray-700">
-                              {item.items?.map((it, idx) => (
-                                <React.Fragment key={idx}>
-                                  <tr className="border-t border-gray-100">
-                                    <td className="p-2 align-top">
-                                      <div className="text-blue-600">{it.lb} {t('weight_lb').split(' ')[1] || 'LB'} - {it.plastic_size} ({it.color})</div>
-                                      <div className="mt-1 space-y-0.5">
-                                        <div className="text-[9px] text-gray-500 uppercase flex justify-between">
-                                          <span>{t('plastic')}: {it.lb} {t('weight_lb').split(' ')[1] || 'LB'} × {it.plastic_price} {t('price')}</span>
-                                          <span className="font-black">{(it.lb * it.plastic_price).toLocaleString()}</span>
-                                        </div>
-                                        <div className="text-[9px] text-gray-500 uppercase flex justify-between border-b border-gray-50 pb-0.5">
-                                          <span>{t('color')}: {it.lb} {t('weight_lb').split(' ')[1] || 'LB'} × {it.color_price} {t('price')}</span>
-                                          <span className="font-black">{(it.lb * it.color_price).toLocaleString()}</span>
-                                        </div>
-                                      </div>
-                                    </td>
-                                    <td className="p-2 text-right align-top text-gray-400 font-medium">
-                                      {it.plastic_price + it.color_price}
-                                    </td>
-                                    <td className="p-2 text-right align-top text-blue-700 font-black">
-                                      {(it.total_price || 0).toLocaleString()}
-                                    </td>
-                                  </tr>
-                                </React.Fragment>
-                              ))}
-                            </tbody>
-                          </table>
+                        {item.note && (
+                          <div className="bg-blue-50/50 p-2 rounded-xl border border-blue-100/50">
+                            <span className="text-base font-black text-blue-400 uppercase block leading-none mb-1">{t('note')}</span>
+                            <p className="text-base font-bold text-blue-700 leading-tight italic">"{item.note}"</p>
+                          </div>
+                        )}
+                        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden divide-y divide-gray-100">
+                          {item.items?.map((it, idx) => (
+                            <div key={idx} className="p-3 space-y-1.5 font-bold text-gray-700">
+                              <div className="text-base text-blue-600 break-words">{it.lb} {t('weight_lb').split(' ')[1] || 'LB'} - {it.plastic_size}{it.gate ? ` / ${it.gate}` : ''} ({it.color}{it.print_color ? ` + ${it.print_color}` : ''})</div>
+                              <div className="text-sm sm:text-base text-gray-500 uppercase flex justify-between items-start gap-3">
+                                <span className="min-w-0 break-words">{t('plastic')}: {it.lb} {t('weight_lb').split(' ')[1] || 'LB'} × {it.plastic_price} {t('price')}</span>
+                                <span className="font-black text-gray-700 whitespace-nowrap shrink-0">{(it.lb * it.plastic_price).toLocaleString()}</span>
+                              </div>
+                              <div className="text-sm sm:text-base text-gray-500 uppercase flex justify-between items-start gap-3">
+                                <span className="min-w-0 break-words">{t('color')}: {it.lb} {t('weight_lb').split(' ')[1] || 'LB'} × {it.color_price} {t('price')}</span>
+                                <span className="font-black text-gray-700 whitespace-nowrap shrink-0">{(it.lb * it.color_price).toLocaleString()}</span>
+                              </div>
+                              <div className="flex justify-between items-baseline gap-3 pt-1.5 border-t border-gray-100 uppercase">
+                                <span className="text-sm text-gray-400 font-medium">{t('price')}: {it.plastic_price + it.color_price}</span>
+                                <span className="text-lg text-blue-700 font-black whitespace-nowrap">{t('total')}: {(it.total_price || 0).toLocaleString()}</span>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                        <div className={`grid gap-2 text-[9px] font-black uppercase text-center ${(item.extra_charge_amount > 0 ? 1 : 0) + (item.discount_amount > 0 ? 1 : 0) === 2 ? 'grid-cols-5' : (item.extra_charge_amount > 0 || item.discount_amount > 0) ? 'grid-cols-4' : 'grid-cols-3'}`}>
+                        <div className={`grid gap-2 text-base font-black uppercase text-center ${(item.extra_charge_amount > 0 ? 1 : 0) + (item.discount_amount > 0 ? 1 : 0) === 2 ? 'grid-cols-2 sm:grid-cols-5' : (item.extra_charge_amount > 0 || item.discount_amount > 0) ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3'}`}>
                           <div className="bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
                             <span className="text-gray-400 block mb-1">{t('voucher_total')}</span>
-                            <span className="text-gray-700 text-xs">{item.items_total.toLocaleString()}</span>
+                            <span className="text-gray-700 text-base">{item.items_total.toLocaleString()}</span>
                           </div>
                           {item.extra_charge_amount > 0 && (
                             <div className="bg-orange-50 p-2 rounded-lg border border-orange-100 shadow-sm">
                               <span className="text-gray-400 block mb-1 tracking-tighter truncate">{item.extra_charge_note || 'Extra'}</span>
-                              <span className="text-orange-500 text-xs">+{item.extra_charge_amount.toLocaleString()}</span>
+                              <span className="text-orange-500 text-base">+{item.extra_charge_amount.toLocaleString()}</span>
                             </div>
                           )}
                           {item.discount_amount > 0 && (
                             <div className="bg-red-50 p-2 rounded-lg border border-red-100 shadow-sm">
                               <span className="text-gray-400 block mb-1 tracking-tighter truncate">{t('discount')}</span>
-                              <span className="text-red-500 text-xs">-{item.discount_amount.toLocaleString()}</span>
+                              <span className="text-red-500 text-base">-{item.discount_amount.toLocaleString()}</span>
                             </div>
                           )}
                           <div className="bg-white p-2 rounded-lg border border-orange-100 shadow-sm">
                             <span className="text-gray-400 block mb-1 tracking-tighter">{t('previous_balance')}</span>
-                            <span className={`text-xs ${item.previous_balance > 0 ? 'text-orange-500' : 'text-gray-500'}`}>
+                            <span className={`text-base ${item.previous_balance > 0 ? 'text-orange-500' : 'text-gray-500'}`}>
                               {item.previous_balance.toLocaleString()}
                             </span>
                           </div>
                           <div className="bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
                             <span className="text-gray-400 block mb-1 tracking-tighter">{t('paid_at_site')}</span>
-                            <span className="text-green-600 text-xs">{item.paid_amount.toLocaleString()}</span>
+                            <span className="text-green-600 text-base">{item.paid_amount.toLocaleString()}</span>
                           </div>
                         </div>
-                        <div className={`flex items-center justify-between px-3 py-2 rounded-lg border text-[9px] font-black uppercase ${item.remaining_balance > 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+                        <div className={`flex items-center justify-between px-3 py-2 rounded-lg border text-base font-black uppercase ${item.remaining_balance > 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
                           <span className="text-gray-500 tracking-widest">{t('overall_total')}</span>
-                          <span className="text-[10px] flex items-center gap-1 text-gray-400 font-bold normal-case tracking-normal">
+                          <span className="text-base flex items-center gap-1 text-gray-400 font-bold normal-case tracking-normal">
                             {item.items_total.toLocaleString()}
                             {item.extra_charge_amount > 0 && <> + {item.extra_charge_amount.toLocaleString()}</>}
                             {item.discount_amount > 0 && <> − {item.discount_amount.toLocaleString()}</>}
                             {' '}+ {item.previous_balance.toLocaleString()} − {item.paid_amount.toLocaleString()} =
-                            <span className={`font-black text-sm ${item.remaining_balance > 0 ? 'text-red-500' : 'text-green-600'}`}>
+                            <span className={`font-black text-base ${item.remaining_balance > 0 ? 'text-red-500' : 'text-green-600'}`}>
                               {item.remaining_balance.toLocaleString()}
                             </span>
                           </span>
@@ -562,86 +658,67 @@ const History = () => {
                           <CreditCard size={18} />
                         </div>
                         <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-black text-green-700 text-sm">{t('direct_payment')}</span>
-                            <span className="text-[9px] bg-gray-100 px-1.5 py-0.5 rounded font-black text-gray-500 whitespace-nowrap">{item.payment_date}</span>
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span className="font-black text-green-700 text-base">{t('direct_payment')}</span>
+                            <span className="text-base bg-gray-100 px-1.5 py-0.5 rounded font-black text-gray-500 whitespace-nowrap">{item.payment_date}</span>
                             {item.sync_status === 'pending' && (
-                              <span className="text-[8px] bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded font-black uppercase">Pending</span>
+                              <span className="text-base bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded font-black uppercase">{t('x2_pending')}</span>
                             )}
-                            {item.payment_method && (
-                              <span className={`text-[8px] px-1.5 py-0.5 rounded font-black uppercase ${
-                                item.payment_method === 'KBZPAY' ? 'bg-blue-100 text-blue-600' :
-                                item.payment_method === 'BANK_TRANSFER' ? 'bg-purple-100 text-purple-600' :
-                                'bg-green-100 text-green-600'
-                              }`}>
-                                {item.payment_method === 'BANK_TRANSFER' ? 'BANK' : item.payment_method}
-                              </span>
-                            )}
+                            {item.payment_method && <MethodTags row={item} className="!text-base" />}
                           </div>
-                          {item.note && <p className="text-[10px] text-gray-500 italic truncate max-w-[150px]">"{item.note}"</p>}
+                          {item.note && <p className="text-base text-gray-500 italic truncate max-w-[200px]">"{item.note}"</p>}
+                          <p className="sm:hidden font-black text-green-600 text-xl mt-0.5">{item.amount_paid.toLocaleString()}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div className="text-right">
-                          <span className="text-[9px] text-gray-400 font-black uppercase block tracking-tighter leading-none mb-1">{t('amount_paid')}</span>
-                          <span className="font-black text-green-600 text-base leading-none whitespace-nowrap">
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="text-right hidden sm:block">
+                          <span className="text-base text-gray-400 font-black uppercase block tracking-tighter leading-none mb-1">{t('amount_paid')}</span>
+                          <span className="font-black text-green-600 text-xl leading-none whitespace-nowrap">
                             {item.amount_paid.toLocaleString()}
                           </span>
                         </div>
-                        {isAdmin() && (item.server_id ?? (typeof item.id === 'number' ? item.id : null)) && (
-                          <button
-                            onClick={(e) => openEditPaymentModal(e, item)}
-                            className="p-1.5 text-gray-300 hover:text-green-500 hover:bg-green-50 rounded-lg transition-all"
-                          >
-                            <Pencil size={15} />
-                          </button>
-                        )}
-                        {isAdmin() && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleDeletePayment(item); }}
-                            className="p-1.5 text-gray-200 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        )}
                         <div>
                           {expandedPayment === item.id ? <ChevronUp size={16} className="text-gray-300" /> : <ChevronDown size={16} className="text-gray-300" />}
                         </div>
                       </div>
                     </div>
+                    {isAdmin() && (
+                      <div className="px-3 pb-3">
+                        <RowActions
+                          horizontal
+                          accent="green"
+                          onEdit={canEditItem(item) ? (e) => openEditPaymentModal(e, item) : null}
+                          onDelete={(e) => { e.stopPropagation(); handleDeletePayment(item); }}
+                        />
+                      </div>
+                    )}
                     {expandedPayment === item.id && (
                       <div className="bg-gray-50 p-3 border-t border-gray-100 space-y-3 animate-in slide-in-from-top-2">
                         {item.note && (
                           <div className="bg-green-50/50 p-2 rounded-xl border border-green-100/50">
-                            <span className="text-[8px] font-black text-green-400 uppercase block leading-none mb-1">{t('note')}</span>
-                            <p className="text-xs font-bold text-green-700 leading-tight italic">"{item.note}"</p>
+                            <span className="text-base font-black text-green-400 uppercase block leading-none mb-1">{t('note')}</span>
+                            <p className="text-base font-bold text-green-700 leading-tight italic">"{item.note}"</p>
                           </div>
                         )}
-                        <div className={`grid gap-2 text-[9px] font-black uppercase text-center ${item.discount_amount > 0 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                        <div className={`grid gap-2 text-base font-black uppercase text-center ${item.discount_amount > 0 ? 'grid-cols-3' : 'grid-cols-2'}`}>
                           <div className="bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
                             <span className="text-gray-400 block mb-1">{t('payment_method') || 'METHOD'}</span>
-                            <span className={`text-xs ${
-                              item.payment_method === 'KBZPAY' ? 'text-blue-600' :
-                              item.payment_method === 'BANK_TRANSFER' ? 'text-purple-600' :
-                              'text-green-600'
-                            }`}>
-                              {item.payment_method === 'BANK_TRANSFER' ? 'BANK' : item.payment_method || '-'}
-                            </span>
+                            <span className="flex flex-wrap justify-center gap-1">{item.payment_method ? <MethodTags row={item} className="!text-base" /> : '-'}</span>
                           </div>
                           <div className="bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
                             <span className="text-gray-400 block mb-1">{t('amount_paid')}</span>
-                            <span className="text-green-600 text-xs">{item.amount_paid.toLocaleString()}</span>
+                            <span className="text-green-600 text-base">{item.amount_paid.toLocaleString()}</span>
                           </div>
                           {item.discount_amount > 0 && (
                             <div className="bg-red-50 p-2 rounded-lg border border-red-100 shadow-sm">
                               <span className="text-gray-400 block mb-1">{t('discount')}</span>
-                              <span className="text-red-500 text-xs">-{item.discount_amount.toLocaleString()}</span>
+                              <span className="text-red-500 text-base">-{item.discount_amount.toLocaleString()}</span>
                             </div>
                           )}
                         </div>
-                        <div className="flex items-center justify-between px-3 py-2 rounded-lg border bg-green-50 border-green-200 text-[9px] font-black uppercase">
+                        <div className="flex items-center justify-between px-3 py-2 rounded-lg border bg-green-50 border-green-200 text-xs font-black uppercase">
                           <span className="text-gray-500 tracking-widest">{t('amount_paid')}</span>
-                          <span className="font-black text-sm text-green-600">
+                          <span className="font-black text-base text-green-600">
                             {item.discount_amount > 0
                               ? `${item.amount_paid.toLocaleString()} + ${item.discount_amount.toLocaleString()} = ${(item.amount_paid + item.discount_amount).toLocaleString()}`
                               : item.amount_paid.toLocaleString()}
@@ -654,110 +731,108 @@ const History = () => {
               </div>
             ))
           ) : (
-            <div className="text-center py-12 text-gray-400 bg-white rounded-3xl border-2 border-dashed border-gray-100 text-sm font-bold animate-in zoom-in duration-300">
+            <div className="text-center py-12 text-gray-400 bg-white rounded-3xl border-2 border-dashed border-gray-100 text-base font-bold animate-in zoom-in duration-300">
               {t('no_activity_found')}
             </div>
           )}
         </div>
+        )}
+
+        {!loading && (
+          <div className="space-y-1">
+            {filteredData.length > HIST_PAGE && <p className="text-center text-sm font-bold text-gray-400">{filteredData.length} records</p>}
+            <Pager page={paged.page} pages={paged.pages} onChange={goPage} />
+          </div>
+        )}
       </div>
 
       {/* Edit Payment Modal */}
       {editingPayment && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4">
-          <div className="bg-white w-full sm:max-w-sm sm:rounded-3xl rounded-t-3xl shadow-2xl flex flex-col max-h-[92vh]">
+          <div className="bg-white w-full h-[100dvh] sm:h-auto sm:max-w-sm sm:rounded-3xl shadow-2xl flex flex-col sm:max-h-[92vh]">
             <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100 shrink-0">
               <div>
-                <h3 className="text-base font-black text-gray-800">Edit Payment</h3>
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{editingPayment.payment_date}</p>
+                <h3 className="text-base font-black text-gray-800">{t('x2_edit_payment')}</h3>
+                <p className="text-sm text-gray-400 font-bold uppercase tracking-widest">{editingPayment.payment_date}</p>
               </div>
-              <button onClick={closeEditPaymentModal} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 transition-all">
-                <X size={18} />
+              <button onClick={closeEditPaymentModal} className="p-3 rounded-xl bg-gray-100 text-gray-500 transition-all">
+                <X size={22} />
               </button>
             </div>
 
-            <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
+            <div className="overflow-y-auto overflow-x-hidden flex-1 px-4 sm:px-5 py-4 space-y-5">
               {/* Amount */}
               <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">{t('amount_paid')}</label>
+                <label className="text-base font-black text-gray-600 uppercase tracking-widest block mb-1">{t('amount_paid')}</label>
                 <input
                   type="number"
                   step="any"
                   value={editPaymentAmount}
                   onChange={e => setEditPaymentAmount(e.target.value)}
-                  className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-green-400"
+                  className="w-full p-3 bg-gray-50 border-2 border-gray-200 rounded-xl font-bold text-lg leading-normal outline-none focus:border-green-400"
                 />
               </div>
 
               {/* Discount */}
               <div>
-                <label className="text-[10px] font-black text-red-400 uppercase tracking-widest block mb-1">{t('discount')} ({t('optional')})</label>
+                <label className="text-sm font-black text-red-400 uppercase tracking-widest block mb-1">{t('discount')} ({t('optional')})</label>
                 <input
                   type="number"
                   step="any"
                   value={editPaymentDiscountAmount}
                   onChange={e => setEditPaymentDiscountAmount(e.target.value)}
-                  className="w-full p-2.5 bg-red-50 border-2 border-red-100 rounded-xl font-bold text-sm outline-none focus:border-red-400"
+                  className="w-full p-2.5 bg-red-50 border-2 border-red-100 rounded-xl font-bold text-base outline-none focus:border-red-400"
                 />
               </div>
 
               {/* Method & Date */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-4">
                 <div>
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">{t('payment_method') || 'Method'}</label>
-                  <select
-                    value={editPmtMethod}
-                    onChange={e => setEditPmtMethod(e.target.value)}
-                    className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-green-400"
-                  >
-                    <option value="">—</option>
-                    {PAYMENT_METHODS.map(m => (
-                      <option key={m} value={m}>{m === 'BANK_TRANSFER' ? 'BANK' : m}</option>
-                    ))}
-                  </select>
+                  <label className="text-base font-black text-gray-600 uppercase tracking-widest block mb-2">{t('payment_method') || 'Method'}</label>
+                  <SplitPicker total={editPaymentAmount} split={editPmtSplit} onSplitChange={setEditPmtSplit} parts={editPmtParts} onParts={setEditPmtParts} method={editPmtMethod}
+                    single={<MethodPicker value={editPmtMethod} onChange={setEditPmtMethod} />} />
                 </div>
-                <div>
-                  <DropdownDatePicker
-                    label={t('date') || 'Date'}
-                    value={editPaymentDate}
-                    onChange={setEditPaymentDate}
-                  />
-                </div>
+                <DropdownDatePicker
+                  label={t('date') || 'Date'}
+                  value={editPaymentDate}
+                  onChange={setEditPaymentDate}
+                />
               </div>
 
               {/* Note */}
               <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">{t('note') || 'Note'}</label>
+                <label className="text-base font-black text-gray-600 uppercase tracking-widest block mb-1">{t('note') || 'Note'}</label>
                 <textarea
                   value={editPaymentNote}
                   onChange={e => setEditPaymentNote(e.target.value)}
                   rows={3}
-                  className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-green-400 resize-none"
+                  className="w-full p-3 bg-gray-50 border-2 border-gray-200 rounded-xl font-bold text-lg leading-normal outline-none focus:border-green-400 resize-none"
                 />
               </div>
 
               {/* Summary */}
-              <div className="bg-green-50 rounded-xl p-3 border border-green-100 text-[10px] font-black uppercase space-y-1">
+              <div className="bg-green-50 rounded-xl p-3 border border-green-100 text-sm font-black uppercase space-y-1">
                 <div className="flex justify-between text-green-700">
                   <span>{t('amount_paid')}</span>
-                  <span className="text-sm">{(parseFloat(editPaymentAmount) || 0).toLocaleString()}</span>
+                  <span className="text-base">{(parseFloat(editPaymentAmount) || 0).toLocaleString()}</span>
                 </div>
                 {parseFloat(editPaymentDiscountAmount) > 0 && (
                   <div className="flex justify-between text-red-500">
                     <span>{t('discount')}</span>
-                    <span className="text-sm">-{(parseFloat(editPaymentDiscountAmount) || 0).toLocaleString()}</span>
+                    <span className="text-base">-{(parseFloat(editPaymentDiscountAmount) || 0).toLocaleString()}</span>
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="px-5 pb-5 pt-3 border-t border-gray-100 flex gap-3 shrink-0">
-              <button onClick={closeEditPaymentModal} className="flex-1 py-3 rounded-2xl border-2 border-gray-100 font-black text-gray-500 text-sm hover:bg-gray-50 transition-all">
+            <div className="px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] border-t border-gray-100 flex gap-4 shrink-0">
+              <button onClick={closeEditPaymentModal} className="flex-1 py-4 rounded-2xl border-2 border-gray-200 font-black text-gray-500 text-base hover:bg-gray-50 transition-all">
                 Cancel
               </button>
               <button
                 onClick={handleSavePaymentEdit}
                 disabled={editPaymentSaving || !editPaymentAmount}
-                className="flex-1 py-3 rounded-2xl bg-green-600 text-white font-black text-sm flex items-center justify-center gap-2 hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-4 rounded-2xl bg-green-600 text-white font-black text-base flex items-center justify-center gap-2 hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save size={15} />
                 {editPaymentSaving ? 'Saving...' : 'Save Changes'}
@@ -770,28 +845,28 @@ const History = () => {
       {/* Edit Voucher Modal */}
       {editingVoucher && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4">
-          <div className="bg-white w-full sm:max-w-lg sm:rounded-3xl rounded-t-3xl shadow-2xl flex flex-col max-h-[92vh]">
+          <div className="bg-white w-full h-[100dvh] sm:h-auto sm:max-w-lg sm:rounded-3xl shadow-2xl flex flex-col sm:max-h-[92vh]">
             {/* Modal header */}
             <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100 shrink-0">
               <div>
-                <h3 className="text-base font-black text-gray-800">Edit Voucher</h3>
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{editingVoucher.voucher_number}</p>
+                <h3 className="text-base font-black text-gray-800">{t('x2_edit_voucher')}</h3>
+                <p className="text-sm text-gray-400 font-bold uppercase tracking-widest">{editingVoucher.voucher_number}</p>
               </div>
-              <button onClick={closeEditModal} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 transition-all">
-                <X size={18} />
+              <button onClick={closeEditModal} className="p-3 rounded-xl bg-gray-100 text-gray-500 transition-all">
+                <X size={22} />
               </button>
             </div>
 
-            <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
+            <div className="overflow-y-auto overflow-x-hidden flex-1 px-4 sm:px-5 py-4 space-y-5">
               {/* Voucher Number & Date */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Voucher No.</label>
+                  <label className="text-base font-black text-gray-600 uppercase tracking-widest block mb-1">{t('x2_voucher_no')}</label>
                   <input
                     type="text"
                     value={editVoucherNumber}
                     onChange={e => setEditVoucherNumber(e.target.value)}
-                    className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-blue-400"
+                    className="w-full p-3 bg-gray-50 border-2 border-gray-200 rounded-xl font-bold text-lg leading-normal outline-none focus:border-blue-400"
                   />
                 </div>
                 <div>
@@ -806,8 +881,8 @@ const History = () => {
               {/* Items */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('products') || 'Items'}</label>
-                  <button onClick={addEditItem} className="flex items-center gap-1 text-[10px] font-black text-blue-500 bg-blue-50 px-2 py-1 rounded-lg border border-blue-100 hover:bg-blue-100 transition-all">
+                  <label className="text-base font-black text-gray-600 uppercase tracking-widest">{t('products') || 'Items'}</label>
+                  <button onClick={addEditItem} className="flex items-center gap-1 text-sm font-black text-blue-500 bg-blue-50 px-2 py-1 rounded-lg border border-blue-100 hover:bg-blue-100 transition-all">
                     <Plus size={10} /> Add
                   </button>
                 </div>
@@ -815,41 +890,49 @@ const History = () => {
                   {editItems.map((it, idx) => (
                     <div key={idx} className="bg-gray-50 rounded-xl p-2.5 border border-gray-100 space-y-2 relative">
                       {editItems.length > 1 && (
-                        <button onClick={() => removeEditItem(idx)} className="absolute top-2 right-2 text-gray-300 hover:text-red-400 transition-all">
-                          <X size={13} />
+                        <button onClick={() => removeEditItem(idx)} className="absolute top-2 right-2 p-2 text-gray-400 hover:text-red-500 transition-all">
+                          <X size={20} />
                         </button>
                       )}
-                      <div className="grid grid-cols-3 gap-2">
-                        <div>
-                          <label className="text-[9px] font-black text-gray-400 uppercase block mb-0.5">LB</label>
-                          <input type="number" step="any" value={it.lb} onChange={e => handleEditItemChange(idx, 'lb', e.target.value)}
-                            className="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs font-bold outline-none focus:border-blue-400" />
-                        </div>
-                        <div>
-                          <label className="text-[9px] font-black text-gray-400 uppercase block mb-0.5">Size</label>
-                          <input type="text" value={it.plastic_size} onChange={e => handleEditItemChange(idx, 'plastic_size', e.target.value)}
-                            className="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs font-bold outline-none focus:border-blue-400" />
-                        </div>
-                        <div>
-                          <label className="text-[9px] font-black text-gray-400 uppercase block mb-0.5">Plastic ฿</label>
-                          <input type="number" step="any" value={it.plastic_price} onChange={e => handleEditItemChange(idx, 'plastic_price', e.target.value)}
-                            className="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs font-bold outline-none focus:border-blue-400" />
-                        </div>
+                      <div>
+                        <label className="text-sm font-black text-gray-600 uppercase block mb-0.5">{t('size')}</label>
+                        <Combo placeholder={t('pick_or_type')} addLabel={t('add_new')} options={options.sizes} value={it.plastic_size}
+                          onChange={v => handleEditItemChange(idx, 'plastic_size', v)} onAdd={n => addOption('SIZE', n)} className="!p-3 !bg-white !border-gray-200 text-lg" />
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-[9px] font-black text-gray-400 uppercase block mb-0.5">Color</label>
-                          <input type="text" value={it.color} onChange={e => handleEditItemChange(idx, 'color', e.target.value)}
-                            className="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs font-bold outline-none focus:border-blue-400" />
+                      <div>
+                        <label className="text-sm font-black text-gray-600 uppercase block mb-0.5">{t('gate')}</label>
+                        <Combo placeholder={t('pick_or_type')} addLabel={t('add_new')} options={options.gates} value={it.gate}
+                          onChange={v => handleEditItemChange(idx, 'gate', v)} onAdd={n => addOption('GATE', n)} className="!p-3 !bg-white !border-gray-200 text-lg" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-black text-gray-600 uppercase block mb-0.5">{t('plastic_color')}</label>
+                        <Combo placeholder={t('pick_or_type')} addLabel={t('add_new')} options={options.colors} value={it.color}
+                          onChange={v => handleEditItemChange(idx, 'color', v)} onAdd={n => addOption('COLOR', n)} className="!p-3 !bg-white !border-gray-200 text-lg" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-black text-gray-400 uppercase block mb-0.5">{t('print_color')}</label>
+                        <Combo placeholder={t('pick_or_type')} addLabel={t('add_new')} options={options.prints || []} value={it.print_color}
+                          onChange={v => handleEditItemChange(idx, 'print_color', v)} onAdd={n => addOption('PRINT', n)} className="!p-3 !bg-white !border-gray-200 text-lg" />
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="min-w-0">
+                          <label className="text-sm font-black text-gray-600 uppercase block mb-0.5">{t('x_lb')}</label>
+                          <input type="number" step="any" inputMode="decimal" value={it.lb} onChange={e => handleEditItemChange(idx, 'lb', e.target.value)}
+                            className="w-full p-3 bg-white border-2 border-gray-200 rounded-xl text-lg font-bold outline-none focus:border-blue-400" />
                         </div>
-                        <div>
-                          <label className="text-[9px] font-black text-gray-400 uppercase block mb-0.5">Color ฿</label>
-                          <input type="number" step="any" value={it.color_price} onChange={e => handleEditItemChange(idx, 'color_price', e.target.value)}
-                            className="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs font-bold outline-none focus:border-blue-400" />
+                        <div className="min-w-0">
+                          <label className="text-sm font-black text-gray-600 uppercase block mb-0.5">{t('plastic_price')}</label>
+                          <input type="number" step="any" inputMode="decimal" value={it.plastic_price} onChange={e => handleEditItemChange(idx, 'plastic_price', e.target.value)}
+                            className="w-full p-3 bg-white border-2 border-gray-200 rounded-xl text-lg font-bold outline-none focus:border-blue-400" />
+                        </div>
+                        <div className="min-w-0">
+                          <label className="text-sm font-black text-gray-600 uppercase block mb-0.5">{t('color_price')}</label>
+                          <input type="number" step="any" inputMode="decimal" value={it.color_price} onChange={e => handleEditItemChange(idx, 'color_price', e.target.value)}
+                            className="w-full p-3 bg-white border-2 border-gray-200 rounded-xl text-lg font-bold outline-none focus:border-blue-400" />
                         </div>
                       </div>
                       {(parseFloat(it.lb) > 0) && (
-                        <div className="text-right text-[9px] font-black text-blue-600">
+                        <div className="text-right text-base font-black text-blue-600">
                           = {((parseFloat(it.lb) || 0) * ((parseFloat(it.plastic_price) || 0) + (parseFloat(it.color_price) || 0))).toLocaleString()}
                         </div>
                       )}
@@ -860,66 +943,69 @@ const History = () => {
 
               {/* Extra Charge */}
               <div className="border-2 border-dashed border-orange-200 rounded-xl p-3 space-y-2">
-                <label className="text-[10px] font-black text-orange-400 uppercase tracking-widest block">Extra Charge (Optional)</label>
+                <label className="text-sm font-black text-orange-400 uppercase tracking-widest block">{t('x2_extra_charge')} ({t('optional')})</label>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-[9px] font-black text-gray-400 uppercase block mb-0.5">Label</label>
+                    <label className="text-sm font-black text-gray-600 uppercase block mb-0.5">{t('x2_label')}</label>
                     <input type="text" value={editExtraChargeNote} onChange={e => setEditExtraChargeNote(e.target.value)}
-                      placeholder="e.g. Delivery fee"
-                      className="w-full p-2 bg-white border border-orange-100 rounded-lg text-xs font-bold outline-none focus:border-orange-400" />
+                      placeholder={t('x2_ph_delivery')}
+                      className="w-full p-3 bg-white border-2 border-orange-100 rounded-xl text-lg leading-normal font-bold outline-none focus:border-orange-400" />
                   </div>
                   <div>
-                    <label className="text-[9px] font-black text-gray-400 uppercase block mb-0.5">Amount</label>
+                    <label className="text-sm font-black text-gray-600 uppercase block mb-0.5">{t('amount')}</label>
                     <input type="number" step="any" value={editExtraChargeAmount} onChange={e => setEditExtraChargeAmount(e.target.value)}
                       placeholder="0"
-                      className="w-full p-2 bg-white border border-orange-100 rounded-lg text-xs font-bold outline-none focus:border-orange-400" />
+                      className="w-full p-3 bg-white border-2 border-orange-100 rounded-xl text-lg leading-normal font-bold outline-none focus:border-orange-400" />
                   </div>
                 </div>
+              </div>
+
+              {/* Cardboard core */}
+              <div className="border-2 border-dashed border-amber-200 rounded-xl p-3 space-y-2">
+                <label className="text-sm font-black text-amber-500 uppercase tracking-widest block">{t('core_weight')} ({t('optional_note')})</label>
+                <input type="number" step="any" min="0" inputMode="decimal" value={editCore} onChange={e => setEditCore(e.target.value)}
+                  placeholder="0"
+                  className="w-full p-3 bg-white border-2 border-amber-100 rounded-xl text-lg leading-normal font-bold outline-none focus:border-amber-400" />
               </div>
 
               {/* Discount */}
               <div className="border-2 border-dashed border-red-200 rounded-xl p-3 space-y-2">
-                <label className="text-[10px] font-black text-red-400 uppercase tracking-widest block">{t('discount')} ({t('optional')})</label>
+                <label className="text-sm font-black text-red-400 uppercase tracking-widest block">{t('discount')} ({t('optional')})</label>
                 <div>
-                  <label className="text-[9px] font-black text-gray-400 uppercase block mb-0.5">{t('amount')}</label>
+                  <label className="text-sm font-black text-gray-600 uppercase block mb-0.5">{t('amount')}</label>
                   <input type="number" step="any" value={editDiscountAmount} onChange={e => setEditDiscountAmount(e.target.value)}
                     placeholder="0"
-                    className="w-full p-2 bg-white border border-red-100 rounded-lg text-xs font-bold outline-none focus:border-red-400" />
+                    className="w-full p-3 bg-white border-2 border-red-100 rounded-xl text-lg leading-normal font-bold outline-none focus:border-red-400" />
                 </div>
               </div>
 
               {/* Payment */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-4">
                 <div>
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">{t('paid_amount') || 'Paid Amount'}</label>
+                  <label className="text-base font-black text-gray-600 uppercase tracking-widest block mb-1">{t('paid_amount') || 'Paid Amount'}</label>
                   <input type="number" step="any" value={editPaidAmount} onChange={e => setEditPaidAmount(e.target.value)}
                     placeholder="0"
-                    className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-blue-400" />
+                    className="w-full p-3 bg-gray-50 border-2 border-gray-200 rounded-xl font-bold text-lg leading-normal outline-none focus:border-blue-400" />
                 </div>
                 <div>
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">{t('payment_method') || 'Method'}</label>
-                  <select value={editPaymentMethod} onChange={e => setEditPaymentMethod(e.target.value)}
-                    className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-blue-400">
-                    <option value="">—</option>
-                    {PAYMENT_METHODS.map(m => (
-                      <option key={m} value={m}>{m === 'BANK_TRANSFER' ? 'BANK' : m}</option>
-                    ))}
-                  </select>
+                  <label className="text-base font-black text-gray-600 uppercase tracking-widest block mb-2">{t('payment_method') || 'Method'}</label>
+                  <SplitPicker total={editPaidAmount} split={editSplit} onSplitChange={setEditSplit} parts={editParts} onParts={setEditParts} method={editPaymentMethod}
+                    single={<MethodPicker value={editPaymentMethod} onChange={setEditPaymentMethod} />} />
                 </div>
               </div>
 
               {/* Note */}
               <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">{t('note') || 'Note'}</label>
+                <label className="text-base font-black text-gray-600 uppercase tracking-widest block mb-1">{t('note') || 'Note'}</label>
                 <textarea value={editNote} onChange={e => setEditNote(e.target.value)}
                   rows={2}
-                  className="w-full p-2.5 bg-gray-50 border-2 border-gray-100 rounded-xl font-bold text-sm outline-none focus:border-blue-400 resize-none" />
+                  className="w-full p-3 bg-gray-50 border-2 border-gray-200 rounded-xl font-bold text-lg leading-normal outline-none focus:border-blue-400 resize-none" />
               </div>
 
               {/* Live summary */}
-              <div className="bg-gray-50 rounded-xl p-3 border border-gray-100 text-[10px] font-black uppercase space-y-1.5">
+              <div className="bg-gray-50 rounded-xl p-3 border border-gray-100 text-sm font-black uppercase space-y-1.5">
                 <div className="flex justify-between text-gray-500">
-                  <span>Items Total</span><span className="text-gray-700">{editItemsTotal.toLocaleString()}</span>
+                  <span>{t('items_total')}</span><span className="text-gray-700">{editItemsTotal.toLocaleString()}</span>
                 </div>
                 {editExtraCharge > 0 && (
                   <div className="flex justify-between text-orange-500">
@@ -932,29 +1018,34 @@ const History = () => {
                   </div>
                 )}
                 <div className="flex justify-between text-gray-500">
-                  <span>Prev. Balance</span><span className={editPrevBalance > 0 ? 'text-orange-500' : 'text-gray-500'}>{editPrevBalance.toLocaleString()}</span>
+                  <span>{t('previous_balance')}</span><span className={editPrevBalance > 0 ? 'text-orange-500' : 'text-gray-500'}>{editPrevBalance.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-gray-700 border-t border-gray-200 pt-1.5">
-                  <span>Final Total</span><span>{editFinalTotal.toLocaleString()}</span>
+                  <span>{t('final_total')}</span><span>{editFinalTotal.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-green-600">
-                  <span>Paid</span><span>−{editPaid.toLocaleString()}</span>
+                  <span>{t('x2_paid')}</span><span>−{editPaid.toLocaleString()}</span>
                 </div>
-                <div className={`flex justify-between text-sm border-t border-gray-200 pt-1.5 ${editRemaining > 0 ? 'text-red-500' : 'text-green-600'}`}>
-                  <span>Remaining</span><span>{editRemaining.toLocaleString()}</span>
+                <div className={`flex justify-between text-base border-t border-gray-200 pt-1.5 ${editRemaining > 0 ? 'text-red-500' : 'text-green-600'}`}>
+                  <span>{t('remaining')}</span><span>{editRemaining.toLocaleString()}</span>
                 </div>
               </div>
             </div>
 
+            <div className={`shrink-0 flex items-center justify-between px-5 py-3 border-t-2 ${editRemaining > 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+              <span className="text-sm font-black uppercase tracking-widest text-gray-500">{t('remaining')}</span>
+              <span className={`text-2xl font-black tabular-nums ${editRemaining > 0 ? 'text-red-500' : 'text-green-600'}`}>{editRemaining.toLocaleString()}</span>
+            </div>
+
             {/* Modal footer */}
-            <div className="px-5 pb-5 pt-3 border-t border-gray-100 flex gap-3 shrink-0">
-              <button onClick={closeEditModal} className="flex-1 py-3 rounded-2xl border-2 border-gray-100 font-black text-gray-500 text-sm hover:bg-gray-50 transition-all">
+            <div className="px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] border-t border-gray-100 flex gap-4 shrink-0">
+              <button onClick={closeEditModal} className="flex-1 py-4 rounded-2xl border-2 border-gray-200 font-black text-gray-500 text-base hover:bg-gray-50 transition-all">
                 Cancel
               </button>
               <button
                 onClick={handleSaveEdit}
                 disabled={editSaving || !editVoucherNumber.trim()}
-                className="flex-1 py-3 rounded-2xl bg-blue-600 text-white font-black text-sm flex items-center justify-center gap-2 hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-4 rounded-2xl bg-blue-600 text-white font-black text-base flex items-center justify-center gap-2 hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save size={15} />
                 {editSaving ? 'Saving...' : 'Save Changes'}

@@ -97,6 +97,7 @@ export const voucherService = {
   update: (id, data) => api.put(`/vouchers/${id}`, data),
   get: (id) => api.get(`/vouchers/${id}`),
   listAll: () => api.get('/vouchers'),
+  listPage: (params) => api.get('/vouchers/page', { params }),
   getCustomerVouchers: (customerId) => api.get(`/customers/${customerId}/vouchers`),
   delete: (id) => api.delete(`/vouchers/${id}`),
 };
@@ -114,7 +115,7 @@ export const analyticsService = {
 };
 
 export const auditService = {
-  list: () => api.get('/audit-logs'),
+  list: (page = 1, page_size = 25) => api.get('/audit-logs', { params: { page, page_size } }),
 };
 
 export const spendingService = {
@@ -122,6 +123,29 @@ export const spendingService = {
   list: () => api.get('/spendings'),
   update: (id, data) => api.put(`/spendings/${id}`, data),
   delete: (id) => api.delete(`/spendings/${id}`),
+};
+
+export const optionService = {
+  list: () => api.get('/options'),
+  add: (kind, name) => api.post('/options', { kind, name }),
+  rename: (id, name) => api.put(`/options/${id}`, { name }),
+  remove: (id) => api.delete(`/options/${id}`),
+};
+
+export const stockService = {
+  list: () => api.get('/stock'),
+  opening: (data) => api.post('/stock/opening', data),
+  adjust: (id, data) => api.post(`/stock/${id}/adjust`, data),
+  movements: (id, page = 1) => api.get(`/stock/${id}/movements`, { params: { page, page_size: 20 } }),
+  listPurchases: (page = 1) => api.get('/purchases', { params: { page, page_size: 10 } }),
+  createPurchase: (data) => api.post('/purchases', data),
+  updatePurchase: (id, data) => api.put(`/purchases/${id}`, data),
+  deletePurchase: (id) => api.delete(`/purchases/${id}`),
+  coreWeight: (start, end, page, page_size) => api.get('/analytics/core-weight', { params: { start, end, page, page_size } }),
+  profit: (start, end) => api.get('/analytics/profit', { params: { start, end } }),
+  alerts: () => api.get('/stock/alerts'),
+  profitBreakdown: (by, start, end, page = 1) => api.get('/analytics/profit-breakdown', { params: { by, start, end, page, page_size: 10 } }),
+  coreByCustomer: (page = 1) => api.get('/analytics/core-weight', { params: { group: 'customer', page, page_size: 15 } }),
 };
 
 export default api;
