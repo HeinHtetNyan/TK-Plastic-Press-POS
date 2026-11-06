@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select, func
 from app.db import get_session
 from app.models import Voucher, Item, Customer, User, UserRole
-from app.models.stock import PlasticOption, StockItem, StockMovement, Purchase, PurchaseLine
+from app.models.stock import PlasticOption, StockItem, StockMovement, Purchase, PurchaseLine, PurchaseExtra
 from app.models.customer import get_yangon_now
 from app.dependencies.auth import require_staff_or_admin, require_admin
 from app.services.audit import log_action
@@ -177,12 +177,18 @@ class LineIn(BaseModel):
     price_per_lb: float = Field(ge=0)
 
 
+class ExtraIn(BaseModel):
+    label: str = ""
+    amount: float = Field(ge=0)
+
+
 class PurchaseIn(BaseModel):
     supplier: Optional[str] = None
     purchase_number: Optional[str] = None
     purchase_date: Optional[date] = None
     note: Optional[str] = None
     lines: List[LineIn] = Field(min_length=1)
+    extras: List[ExtraIn] = Field(default_factory=list)  # transport, loading, ... (kept with the stock, not in Spending)
 
     @field_validator("purchase_date", mode="before")
     @classmethod
@@ -190,16 +196,30 @@ class PurchaseIn(BaseModel):
         return _date(v)
 
 
-def _purchase_out(p: Purchase, lines: List[PurchaseLine]):
+def _purchase_out(p: Purchase, lines: List[PurchaseLine], extras: Optional[List[PurchaseExtra]] = None):
+    extras = extras or []
     return {
         "id": p.id, "supplier": p.supplier, "purchase_number": p.purchase_number,
         "purchase_date": p.purchase_date.strftime("%d-%m-%Y"), "note": p.note, "total_cost": p.total_cost,
+        "extras_total": p.extras_total or 0.0, "grand_total": round((p.total_cost or 0.0) + (p.extras_total or 0.0), 2),
+        "extras": [{"id": x.id, "label": x.label, "amount": x.amount} for x in extras],
         "lines": [{"id": l.id, "size": l.size, "color": l.color, "gate": l.gate, "weight_lb": l.weight_lb,
-                   "price_per_lb": l.price_per_lb, "line_cost": l.line_cost} for l in lines],
+                   "price_per_lb": l.price_per_lb, "line_cost": l.line_cost, "extra_per_lb": l.extra_per_lb or 0.0} for l in lines],
     }
 
 
-def _apply_lines(session: Session, purchase: Purchase, lines_in: List[LineIn]) -> List[PurchaseLine]:
+def _clean_extras(extras_in: List[ExtraIn]) -> List[tuple]:
+    """Keep only rows with an amount; an empty name becomes 'Extra cost'."""
+    return [((x.label or "").strip() or "Extra cost", round(x.amount, 2)) for x in extras_in if x.amount and x.amount > 0]
+
+
+def _apply_lines(session: Session, purchase: Purchase, lines_in: List[LineIn], extras_in: Optional[List[ExtraIn]] = None):
+    """Add every line to stock. The purchase extras (transport...) are spread by weight over all lb of this purchase
+    and added to each line's cost per lb, so the average cost and the profit see the real cost."""
+    extras = _clean_extras(extras_in or [])
+    extras_total = round(sum(a for _, a in extras), 2)
+    total_w = sum(l.weight_lb for l in lines_in)
+    per_lb = round(extras_total / total_w, 6) if total_w > 0 else 0.0
     out, total = [], 0.0
     ref = f"purchase:{purchase.purchase_number or purchase.id}"
     for l in lines_in:
@@ -208,13 +228,27 @@ def _apply_lines(session: Session, purchase: Purchase, lines_in: List[LineIn]) -
         cost = round(l.weight_lb * l.price_per_lb, 2)
         total += cost
         line = PurchaseLine(purchase_id=purchase.id, size=norm(l.size), color=norm(l.color), gate=norm(l.gate),
-                            weight_lb=l.weight_lb, price_per_lb=l.price_per_lb, line_cost=cost)
+                            weight_lb=l.weight_lb, price_per_lb=l.price_per_lb, line_cost=cost, extra_per_lb=per_lb)
         session.add(line)
         out.append(line)
         stock = get_or_create_stock(session, l.size, l.color, l.gate)
-        add_stock(session, stock, l.weight_lb, l.price_per_lb, "PURCHASE", ref)
+        add_stock(session, stock, l.weight_lb, l.price_per_lb + per_lb, "PURCHASE", ref)
     purchase.total_cost = round(total, 2)
-    return out
+    purchase.extras_total = extras_total
+    rows = _replace_extra_rows(session, purchase, extras)
+    return out, rows
+
+
+def _replace_extra_rows(session: Session, purchase: Purchase, extras: List[tuple]) -> List[PurchaseExtra]:
+    for old in session.exec(select(PurchaseExtra).where(PurchaseExtra.purchase_id == purchase.id)).all():
+        session.delete(old)
+    session.flush()
+    rows = []
+    for label, amount in extras:
+        row = PurchaseExtra(purchase_id=purchase.id, label=label, amount=amount)
+        session.add(row)
+        rows.append(row)
+    return rows
 
 
 def _reverse_lines(session: Session, purchase: Purchase):
@@ -222,9 +256,43 @@ def _reverse_lines(session: Session, purchase: Purchase):
     for l in session.exec(select(PurchaseLine).where(PurchaseLine.purchase_id == purchase.id)).all():
         stock = session.exec(select(StockItem).where(StockItem.size == l.size, StockItem.color == l.color, StockItem.gate == l.gate).with_for_update()).first()
         if stock:
-            _move(session, stock, "PURCHASE_REVERSE", -l.weight_lb, l.price_per_lb, ref)
+            _move(session, stock, "PURCHASE_REVERSE", -l.weight_lb, l.price_per_lb + (l.extra_per_lb or 0.0), ref)
         session.delete(l)
+    for x in session.exec(select(PurchaseExtra).where(PurchaseExtra.purchase_id == purchase.id)).all():
+        session.delete(x)
     session.flush()
+
+
+def _same_lines(session: Session, purchase: Purchase, lines_in: List[LineIn]) -> bool:
+    cur = sorted((l.size, l.color, l.gate, round(l.weight_lb, 4), round(l.price_per_lb, 4))
+                 for l in session.exec(select(PurchaseLine).where(PurchaseLine.purchase_id == purchase.id)).all())
+    new = sorted((norm(l.size), norm(l.color), norm(l.gate), round(l.weight_lb, 4), round(l.price_per_lb, 4)) for l in lines_in)
+    return cur == new
+
+
+def _change_extras_only(session: Session, purchase: Purchase, extras_in: List[ExtraIn]) -> List[PurchaseLine]:
+    """Lines did not change, only the extra costs. The change goes ONLY into the plastic of this purchase that is still
+    in stock (the average cost moves); plastic already sold keeps the cost it was sold at, so past profit does not change."""
+    extras = _clean_extras(extras_in)
+    extras_total = round(sum(a for _, a in extras), 2)
+    lines = session.exec(select(PurchaseLine).where(PurchaseLine.purchase_id == purchase.id)).all()
+    total_w = sum(l.weight_lb for l in lines)
+    per_lb = round(extras_total / total_w, 6) if total_w > 0 else 0.0
+    ref = f"purchase:{purchase.purchase_number or purchase.id} extras"
+    for l in lines:
+        delta = round(per_lb - (l.extra_per_lb or 0.0), 6)
+        if delta == 0:
+            continue
+        stock = session.exec(select(StockItem).where(StockItem.size == l.size, StockItem.color == l.color, StockItem.gate == l.gate).with_for_update()).first()
+        if stock and stock.qty_lb > 0:
+            applied = min(l.weight_lb, stock.qty_lb)
+            stock.avg_cost_per_lb = round(max(0.0, stock.avg_cost_per_lb + delta * applied / stock.qty_lb), 4)
+            _move(session, stock, "EXTRA_COST", 0.0, stock.avg_cost_per_lb, ref, f"extra costs {delta:+g} per lb on {applied:g} lb still in stock")
+        l.extra_per_lb = per_lb
+        session.add(l)
+    purchase.extras_total = extras_total
+    _replace_extra_rows(session, purchase, extras)
+    return lines
 
 
 @router.get("/purchases")
@@ -239,10 +307,14 @@ def list_purchases(
         select(Purchase).order_by(Purchase.purchase_date.desc(), Purchase.id.desc()).offset((page - 1) * page_size).limit(page_size)
     ).all()
     by_p: dict = {}
+    ex_by_p: dict = {}
     if ps:
-        for l in session.exec(select(PurchaseLine).where(PurchaseLine.purchase_id.in_([p.id for p in ps]))).all():
+        ids = [p.id for p in ps]
+        for l in session.exec(select(PurchaseLine).where(PurchaseLine.purchase_id.in_(ids))).all():
             by_p.setdefault(l.purchase_id, []).append(l)
-    return {"items": [_purchase_out(p, by_p.get(p.id, [])) for p in ps], "total": total, "page": page, "pages": pages}
+        for x in session.exec(select(PurchaseExtra).where(PurchaseExtra.purchase_id.in_(ids)).order_by(PurchaseExtra.id)).all():
+            ex_by_p.setdefault(x.purchase_id, []).append(x)
+    return {"items": [_purchase_out(p, by_p.get(p.id, []), ex_by_p.get(p.id, [])) for p in ps], "total": total, "page": page, "pages": pages}
 
 
 @router.post("/purchases")
@@ -252,11 +324,11 @@ def create_purchase(body: PurchaseIn, session: Session = Depends(get_session), u
         p.purchase_date = body.purchase_date
     session.add(p)
     session.flush()
-    lines = _apply_lines(session, p, body.lines)
-    log_action(session, user.id, "CREATE", "Purchase", str(p.id), f"Factory purchase {p.purchase_number or p.id}: {p.total_cost:g}")
+    lines, extra_rows = _apply_lines(session, p, body.lines, body.extras)
+    log_action(session, user.id, "CREATE", "Purchase", str(p.id), f"Factory purchase {p.purchase_number or p.id}: {p.total_cost:g} + extras {p.extras_total:g}")
     session.commit()
     session.refresh(p)
-    return _purchase_out(p, lines)
+    return _purchase_out(p, lines, extra_rows)
 
 
 @router.put("/purchases/{purchase_id}")
@@ -264,16 +336,23 @@ def update_purchase(purchase_id: int, body: PurchaseIn, session: Session = Depen
     p = session.get(Purchase, purchase_id)
     if not p:
         raise HTTPException(status_code=404, detail="Not found")
-    _reverse_lines(session, p)
+    lines_same = _same_lines(session, p, body.lines)
+    if not lines_same:
+        _reverse_lines(session, p)
     p.supplier, p.purchase_number, p.note = body.supplier, body.purchase_number, body.note
     if body.purchase_date:
         p.purchase_date = body.purchase_date
     p.updated_at = get_yangon_now()
-    lines = _apply_lines(session, p, body.lines)
-    log_action(session, user.id, "UPDATE", "Purchase", str(p.id), f"Factory purchase {p.purchase_number or p.id} edited: {p.total_cost:g}")
+    if lines_same:
+        # only the header / extra costs changed: stock quantities stay, only the plastic still in stock gets the extra cost
+        lines = _change_extras_only(session, p, body.extras)
+        extra_rows = session.exec(select(PurchaseExtra).where(PurchaseExtra.purchase_id == p.id).order_by(PurchaseExtra.id)).all()
+    else:
+        lines, extra_rows = _apply_lines(session, p, body.lines, body.extras)
+    log_action(session, user.id, "UPDATE", "Purchase", str(p.id), f"Factory purchase {p.purchase_number or p.id} edited: {p.total_cost:g} + extras {p.extras_total:g}")
     session.commit()
     session.refresh(p)
-    return _purchase_out(p, lines)
+    return _purchase_out(p, lines, extra_rows)
 
 
 @router.delete("/purchases/{purchase_id}")

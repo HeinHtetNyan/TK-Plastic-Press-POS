@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session, select, func
 from app.db import get_session
 from app.models import Voucher, Customer, Payment, User, Spending, Item, UserRole
-from app.models.stock import StockItem
+from app.models.stock import StockItem, Purchase
 from app.dependencies.auth import require_staff_or_admin
 from app.services.balance import calculate_customer_balance
 from app.services.splits import split_amounts
@@ -131,8 +131,30 @@ def get_dashboard_data(
         qty_avg = session.exec(select(StockItem.qty_lb, StockItem.avg_cost_per_lb)).all()
         stock_value = round(sum(max(q, 0.0) * a for q, a in qty_avg), 2)
 
+    # 9. Admin only: CASH view for the same period = money really received - money really paid out.
+    # In: paid on vouchers + customer payments (credit sales count only when the customer pays).
+    # Out: factory purchases (voucher amount + transport/loading extras) + Spending. Opening stock is not cash.
+    # Profit above is unchanged: it counts the plastic cost only when the plastic is sold.
+    cash = None
+    if current_user.role == UserRole.ADMIN:
+        in_vouchers = float(session.exec(
+            select(func.coalesce(func.sum(Voucher.paid_amount), 0.0)).where(Voucher.voucher_date >= start_date)
+        ).one() or 0.0)
+        in_payments = float(session.exec(
+            select(func.coalesce(func.sum(Payment.amount_paid), 0.0)).where(Payment.payment_date >= start_date)
+        ).one() or 0.0)
+        factory_out = float(session.exec(
+            select(func.coalesce(func.sum(Purchase.total_cost + Purchase.extras_total), 0.0)).where(Purchase.purchase_date >= start_date)
+        ).one() or 0.0)
+        money_in = in_vouchers + in_payments
+        cash = {
+            "money_in": round(money_in, 2), "factory_out": round(factory_out, 2),
+            "spending": round(total_spending, 2), "cash": round(money_in - factory_out - total_spending, 2),
+        }
+
     return {
         "profit": profit,
+        "cash": cash,
         "stock_value": stock_value,
         "daily_sales": daily_sales,
         "total_debt": total_debt,
