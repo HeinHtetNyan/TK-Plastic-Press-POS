@@ -254,15 +254,18 @@ const BuyTab = ({ options, addOption, t }) => {
   }, [page]);
   useEffect(() => { load(); }, [load]);
 
-  const blank = () => ({ id: null, supplier: '', purchase_number: '', purchase_date: today(), note: '', lines: [emptyLine()] });
+  const blank = () => ({ id: null, supplier: '', purchase_number: '', purchase_date: today(), note: '', lines: [emptyLine()], extras: [] });
   const edit = (p) => setForm({
     id: p.id, supplier: p.supplier || '', purchase_number: p.purchase_number || '', purchase_date: p.purchase_date, note: p.note || '',
     lines: p.lines.map((l) => ({ size: l.size, gate: l.gate, color: l.color, weight_lb: String(l.weight_lb), price_per_lb: String(l.price_per_lb) })),
+    extras: (p.extras || []).map((x) => ({ label: x.label, amount: String(x.amount) })),
   });
 
   const total = form ? form.lines.reduce((sum, l) => sum + num(l.weight_lb) * num(l.price_per_lb), 0) : 0;
   const totalLb = form ? form.lines.reduce((sum, l) => sum + num(l.weight_lb), 0) : 0;
+  const extrasTotal = form ? form.extras.reduce((sum, x) => sum + num(x.amount), 0) : 0;
   const setLine = (i, line) => setForm({ ...form, lines: form.lines.map((l, idx) => (idx === i ? line : l)) });
+  const setExtra = (i, patch) => setForm({ ...form, extras: form.extras.map((x, idx) => (idx === i ? { ...x, ...patch } : x)) });
 
   const save = async (e) => {
     e.preventDefault();
@@ -270,6 +273,7 @@ const BuyTab = ({ options, addOption, t }) => {
     const body = {
       supplier: form.supplier || null, purchase_number: form.purchase_number || null, purchase_date: form.purchase_date, note: form.note || null,
       lines: form.lines.map((l) => ({ size: l.size, color: l.color, gate: l.gate || '', weight_lb: num(l.weight_lb), price_per_lb: num(l.price_per_lb) })),
+      extras: form.extras.filter((x) => num(x.amount) > 0).map((x) => ({ label: x.label || '', amount: num(x.amount) })),
     };
     try {
       if (form.id) await stockService.updatePurchase(form.id, body); else await stockService.createPurchase(body);
@@ -316,12 +320,33 @@ const BuyTab = ({ options, addOption, t }) => {
           ))}
           <button type="button" onClick={() => setForm({ ...form, lines: [...form.lines, emptyLine()] })} className="flex items-center gap-2 bg-gray-100 text-gray-700 px-4 py-3 rounded-2xl font-black"><Plus size={18} /> {t('x_add_roll')}</button>
 
+          <div className="bg-amber-50 border-2 border-amber-100 p-3 rounded-2xl space-y-2">
+            <div className="text-base font-black text-gray-700">{t('x4_extras_title')}</div>
+            <div className="text-sm font-bold text-gray-500">{t('x4_extras_hint')}</div>
+            {form.id && <div className="text-sm font-bold text-amber-700">{t('x4_edit_note')}</div>}
+            {form.extras.map((x, i) => (
+              <div key={i} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
+                <div className="space-y-1"><label className={labelCls}>{t('x4_extra_name')}</label>
+                  <input className={inputCls} placeholder={t('x4_extra_ph')} value={x.label} onChange={(e) => setExtra(i, { label: e.target.value })} /></div>
+                <div className="space-y-1"><label className={labelCls}>{t('x4_extra_amount')}</label>
+                  <input type="number" min="0" step="any" inputMode="decimal" className={inputCls} value={x.amount} onChange={(e) => setExtra(i, { amount: e.target.value })} /></div>
+                <button type="button" onClick={() => setForm({ ...form, extras: form.extras.filter((_, idx) => idx !== i) })} className="p-3 text-red-400"><Trash2 size={18} /></button>
+              </div>
+            ))}
+            <button type="button" onClick={() => setForm({ ...form, extras: [...form.extras, { label: '', amount: '' }] })} className="flex items-center gap-2 bg-white text-gray-700 px-4 py-3 rounded-2xl font-black border-2 border-amber-100"><Plus size={18} /> {t('x4_add_extra')}</button>
+          </div>
+
           <div className="space-y-1"><label className={labelCls}>{t('note')}</label>
             <input className={inputCls} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} /></div>
 
-          <div className="bg-gray-800 text-white p-4 rounded-2xl flex justify-between items-center">
-            <span className="font-bold">{lbFmt(totalLb)} lb</span>
-            <span className="text-2xl font-black text-blue-300">{money(total)} MMK</span>
+          <div className="bg-gray-800 text-white p-4 rounded-2xl space-y-1">
+            {extrasTotal > 0 && (
+              <div className="text-sm font-bold text-gray-300 flex justify-between"><span>{t('x4_goods')} {money(total)}</span><span>{t('x4_extras_word')} {money(extrasTotal)}</span></div>
+            )}
+            <div className="flex justify-between items-center">
+              <span className="font-bold">{lbFmt(totalLb)} lb</span>
+              <span className="text-2xl font-black text-blue-300">{money(total + extrasTotal)} MMK</span>
+            </div>
           </div>
           <div className="flex gap-2">
             <button disabled={saving} type="submit" className="flex items-center gap-2 bg-green-600 text-white px-5 py-3 rounded-2xl font-black"><Save size={18} /> {saving ? '...' : t('x_save')}</button>
@@ -340,7 +365,7 @@ const BuyTab = ({ options, addOption, t }) => {
                 <div className="text-sm text-gray-400 font-bold">{p.purchase_date}</div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xl font-black text-blue-700">{money(p.total_cost)} MMK</span>
+                <span className="text-xl font-black text-blue-700">{money(p.grand_total ?? p.total_cost)} MMK</span>
                 <button onClick={() => edit(p)} className="p-3 bg-gray-100 text-gray-600 rounded-xl"><Pencil size={18} /></button>
                 <button onClick={() => remove(p)} className="p-3 bg-red-50 text-red-500 rounded-xl"><Trash2 size={18} /></button>
               </div>
@@ -348,6 +373,9 @@ const BuyTab = ({ options, addOption, t }) => {
             <div className="text-base text-gray-600 font-bold space-y-0.5">
               {p.lines.map((l) => (
                 <div key={l.id} className="flex justify-between gap-2"><span className="break-words">{l.size} / {l.color}{l.gate ? ` / ${l.gate}` : ''} &middot; {lbFmt(l.weight_lb)} lb &times; {money(l.price_per_lb)}</span><span className="whitespace-nowrap">{money(l.line_cost)}</span></div>
+              ))}
+              {(p.extras || []).map((x) => (
+                <div key={x.id} className="flex justify-between gap-2 text-amber-700"><span className="break-words">+ {x.label}</span><span className="whitespace-nowrap">{money(x.amount)}</span></div>
               ))}
             </div>
           </div>

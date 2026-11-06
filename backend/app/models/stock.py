@@ -46,9 +46,18 @@ class Purchase(SQLModel, table=True):
     purchase_number: Optional[str] = None
     purchase_date: date = Field(default_factory=get_yangon_date)
     note: Optional[str] = None
-    total_cost: float = Field(default=0.0)
+    total_cost: float = Field(default=0.0)  # the factory voucher amount (lb x price), WITHOUT the extra costs
+    extras_total: float = Field(default=0.0)  # transport, loading, ... for this purchase (spread into the cost per lb)
     created_at: datetime = Field(default_factory=get_yangon_now)
     updated_at: datetime = Field(default_factory=get_yangon_now)
+
+
+class PurchaseExtra(SQLModel, table=True):
+    """An extra cost that belongs to one factory purchase (transport, loading, ...). Not a Spending row."""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    purchase_id: int = Field(sa_column=Column(Integer, ForeignKey("purchase.id", ondelete="CASCADE"), nullable=False, index=True))
+    label: str
+    amount: float = Field(ge=0)
 
 
 class PurchaseLine(SQLModel, table=True):
@@ -60,3 +69,4 @@ class PurchaseLine(SQLModel, table=True):
     weight_lb: float = Field(gt=0)
     price_per_lb: float = Field(ge=0)
     line_cost: float = Field(default=0.0)
+    extra_per_lb: float = Field(default=0.0)  # share of the purchase extras per lb (already added to the stock cost)

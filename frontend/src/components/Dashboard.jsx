@@ -82,6 +82,26 @@ const Dashboard = ({ data }) => {
             <span className="text-sm text-gray-400 font-bold block">{t('x3_net_note')}</span>
           </div>
         </div>
+        {data.cash && (
+          <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex items-center gap-4 min-w-0">
+            <div className={`p-3 rounded-2xl ${data.cash.cash >= 0 ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-600'}`}>
+              <Banknote size={24} />
+            </div>
+            <div className="min-w-0">
+              <span className="text-base font-bold text-gray-600 uppercase block tracking-wider">
+                {t('x4_cash_title')} <span className="text-blue-300 normal-case font-bold">({periodLabel})</span>
+              </span>
+              <span className={`text-xl font-black break-words ${data.cash.cash >= 0 ? 'text-green-600' : 'text-orange-600'}`}>
+                {Math.round(data.cash.cash).toLocaleString()}
+                <span className="text-base ml-1 font-bold opacity-40">MMK</span>
+              </span>
+              <span className="text-sm text-gray-500 font-bold block">
+                {t('x4_cash_in')} {Math.round(data.cash.money_in).toLocaleString()} &minus; {t('x4_cash_factory')} {Math.round(data.cash.factory_out).toLocaleString()} &minus; {t('x4_cash_spending')} {Math.round(data.cash.spending).toLocaleString()}
+              </span>
+              <span className="text-sm text-gray-400 font-bold block">{t('x4_cash_note')}</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Profit, stock value (admin) and stock alerts (everyone) */}
