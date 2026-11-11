@@ -70,3 +70,17 @@ class PurchaseLine(SQLModel, table=True):
     price_per_lb: float = Field(ge=0)
     line_cost: float = Field(default=0.0)
     extra_per_lb: float = Field(default=0.0)  # share of the purchase extras per lb (already added to the stock cost)
+
+
+class VoucherWaste(SQLModel, table=True):
+    """Cardboard core or damaged plastic on a voucher (private note, never on the customer voucher or in the price).
+    When the voucher took stock, these lb are taken out of the chosen Size + Color + Thickness stock at its average cost."""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    voucher_id: int = Field(sa_column=Column(Integer, ForeignKey("voucher.id", ondelete="CASCADE"), nullable=False, index=True))
+    kind: str  # CORE | DAMAGE
+    lb: float = Field(gt=0)
+    size: str = Field(default="")
+    color: str = Field(default="")
+    gate: str = Field(default="")
+    stock_item_id: Optional[int] = Field(default=None, sa_column=Column(Integer, ForeignKey("stockitem.id", ondelete="SET NULL"), nullable=True))
+    cost_per_lb: Optional[float] = None

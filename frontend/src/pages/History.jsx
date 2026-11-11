@@ -9,6 +9,9 @@ import MethodPicker from '../components/MethodPicker';
 import SplitPicker from '../components/SplitPicker';
 import MethodTags from '../components/MethodTags';
 import Combo from '../components/Combo';
+import SizeInput from '../components/SizeInput';
+import WasteBox from '../components/WasteBox';
+import { wastesFromServer, wastesToPayload, coreTotal, wasteError } from '../utils/waste';
 import Pager from '../components/Pager';
 import { paginate } from '../utils/paginate';
 import { usePlasticOptions } from '../hooks/usePlasticOptions';
@@ -86,7 +89,7 @@ const History = () => {
   const [editSplit, setEditSplit] = useState(false);
   const [editParts, setEditParts] = useState(emptyParts());
   const [editNote, setEditNote] = useState('');
-  const [editCore, setEditCore] = useState('');
+  const [editWastes, setEditWastes] = useState([]);
 
   const loadFromCache = useCallback(async () => {
     if (!customer) return;
@@ -319,7 +322,9 @@ const History = () => {
     setEditSplit(!!item.payment_splits?.length);
     setEditParts(splitsToParts(item.payment_splits));
     setEditNote(item.note || '');
-    setEditCore(item.core_weight_lb > 0 ? String(item.core_weight_lb) : '');
+    // an old voucher (made before core/damage took stock) only has the core number: show it as a core entry to fill in
+    setEditWastes(item.wastes?.length ? wastesFromServer(item.wastes)
+      : (item.core_weight_lb > 0 ? [{ kind: 'CORE', lb: String(item.core_weight_lb), size: '', color: '', gate: '' }] : []));
   };
 
   const closeEditModal = () => {
@@ -364,6 +369,12 @@ const History = () => {
       return;
     }
 
+    const wErr = (editingVoucher.wastes?.length || editWastes.length) ? wasteError(editWastes) : null;
+    if (wErr) {
+      alert(t(wErr));
+      return;
+    }
+
     const paidNow = parseFloat(editPaidAmount) || 0;
     let voucherSplits = [];
     let voucherMethod = editPaymentMethod || null;
@@ -387,7 +398,8 @@ const History = () => {
       payment_method: voucherMethod,
       payment_splits: voucherSplits,
       note: editNote || null,
-      core_weight_lb: parseFloat(editCore) > 0 ? parseFloat(editCore) : null,
+      core_weight_lb: coreTotal(editWastes),
+      wastes: wastesToPayload(editWastes),
     };
 
     setEditSaving(true);
@@ -577,7 +589,13 @@ const History = () => {
                     )}
                     {expandedVoucher === item.id && (
                       <div className="bg-gray-50 p-3 border-t border-gray-100 space-y-3 animate-in slide-in-from-top-2">
-                        {item.core_weight_lb > 0 && (
+                        {item.wastes?.length > 0 ? item.wastes.map((w) => (
+                          <div key={w.id} className={`${w.kind === 'CORE' ? 'bg-amber-50 border-amber-100' : 'bg-red-50 border-red-100'} p-2 rounded-xl border flex justify-between items-center gap-2`}>
+                            <span className={`text-base font-black uppercase ${w.kind === 'CORE' ? 'text-amber-600' : 'text-red-600'}`}>{w.kind === 'CORE' ? t('core_weight') : t('damage_weight')}
+                              <span className="block text-sm font-bold normal-case text-gray-500">{[w.size, w.color, w.gate].filter(Boolean).join(' / ')}</span></span>
+                            <span className={`text-lg font-black ${w.kind === 'CORE' ? 'text-amber-700' : 'text-red-700'}`}>{w.lb} <span className="text-base text-gray-500">lb</span></span>
+                          </div>
+                        )) : item.core_weight_lb > 0 && (
                           <div className="bg-amber-50 p-2 rounded-xl border border-amber-100 flex justify-between items-center">
                             <span className="text-base font-black text-amber-600 uppercase">{t('core_weight')}</span>
                             <span className="text-lg font-black text-amber-700">{item.core_weight_lb} <span className="text-base text-gray-500">lb</span></span>
@@ -900,8 +918,8 @@ const History = () => {
                       )}
                       <div>
                         <label className="text-sm font-black text-gray-600 uppercase block mb-0.5">{t('size')}</label>
-                        <Combo placeholder={t('pick_or_type')} addLabel={t('add_new')} options={options.sizes} value={it.plastic_size}
-                          onChange={v => handleEditItemChange(idx, 'plastic_size', v)} onAdd={n => addOption('SIZE', n)} className="!p-3 !bg-white !border-gray-200 text-lg" />
+                        <SizeInput placeholder={t('pick_or_type')} addLabel={t('add_new')} secondPlaceholder={t('size_second')} sizes={options.sizes} value={it.plastic_size}
+                          onChange={v => handleEditItemChange(idx, 'plastic_size', v)} addOption={addOption} className="!p-3 !bg-white !border-gray-200 text-lg" />
                       </div>
                       <div>
                         <label className="text-sm font-black text-gray-600 uppercase block mb-0.5">{t('gate')}</label>
@@ -964,14 +982,8 @@ const History = () => {
                 </div>
               </div>
 
-              {/* Cardboard core */}
-              <div className="border-2 border-dashed border-amber-200 rounded-xl p-3 space-y-2">
-                <label className="text-sm font-black text-amber-500 uppercase tracking-widest block">{t('core_weight')} ({t('optional_note')})</label>
-                <input type="number" step="any" min="0" inputMode="decimal" value={editCore} onChange={e => setEditCore(e.target.value)}
-                  placeholder="0"
-                  className="w-full p-3 bg-white border-2 border-amber-100 rounded-xl text-lg leading-normal font-bold outline-none focus:border-amber-400" />
-              </div>
-
+              {/* Cardboard core / damage */}
+              <WasteBox compact wastes={editWastes} onChange={setEditWastes} options={options} addOption={addOption} firstItem={editItems[0]} />
               {/* Discount */}
               <div className="border-2 border-dashed border-red-200 rounded-xl p-3 space-y-2">
                 <label className="text-sm font-black text-red-400 uppercase tracking-widest block">{t('discount')} ({t('optional')})</label>

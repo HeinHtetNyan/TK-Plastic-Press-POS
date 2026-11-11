@@ -9,6 +9,9 @@ import db, { generateUUID } from '../lib/db';
 import { useLanguage } from '../context/LanguageContext';
 import SplitPicker from '../components/SplitPicker';
 import Combo from '../components/Combo';
+import SizeInput from '../components/SizeInput';
+import WasteBox from '../components/WasteBox';
+import { wastesToPayload, coreTotal, wasteError } from '../utils/waste';
 import { usePlasticOptions } from '../hooks/usePlasticOptions';
 import { emptyParts, partsToSplits, splitError, primaryMethod } from '../utils/paymentSplits';
 
@@ -24,7 +27,7 @@ const Voucher = () => {
   const [voucherNumber, setVoucherNumber] = useState('');
   const [voucherDate, setVoucherDate] = useState(new Date().toLocaleDateString('en-GB').split('/').join('-'));
   const [items, setItems] = useState([{ lb: '', plastic_size: '', gate: '', plastic_price: '', color: '', print_color: '', color_price: '', total_price: 0 }]);
-  const [coreWeight, setCoreWeight] = useState('');
+  const [wastes, setWastes] = useState([]);
   const [paidAmount, setPaidAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [splitMode, setSplitMode] = useState(false);
@@ -99,6 +102,9 @@ const Voucher = () => {
     e.preventDefault();
     if (!voucherNumber) return alert(t('enter_voucher_number'));
 
+    const wErr = wasteError(wastes);
+    if (wErr) return alert(t(wErr));
+
     const paidNow = parseFloat(paidAmount) || 0;
     let splits = null;
     let method = paymentMethod;
@@ -138,7 +144,8 @@ const Voucher = () => {
       extra_charge_note: extraChargeNote || null,
       extra_charge_amount: parseFloat(extraChargeAmount) || 0,
       discount_amount: discount,
-      core_weight_lb: parseFloat(coreWeight) > 0 ? parseFloat(coreWeight) : null,
+      core_weight_lb: coreTotal(wastes),
+      wastes: wastesToPayload(wastes),
       items: mappedItems,
       client_id: clientId,
     };
@@ -166,6 +173,7 @@ const Voucher = () => {
       payment_splits: paid > 0 ? splits : null,
           note: note,
           core_weight_lb: apiPayload.core_weight_lb,
+          wastes: apiPayload.wastes,
           items: mappedItems,
           sync_status: 'synced',
           created_at: now,
@@ -206,6 +214,7 @@ const Voucher = () => {
       payment_splits: paid > 0 ? splits : null,
           note: note,
           core_weight_lb: apiPayload.core_weight_lb,
+          wastes: apiPayload.wastes,
           items: mappedItems,
           sync_status: 'pending',
           created_at: now,
@@ -309,15 +318,16 @@ const Voucher = () => {
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
                   <div className="space-y-1 sm:col-span-1">
                     <label className="block truncate text-base font-black text-gray-600 uppercase px-1 tracking-widest">{t('size')}</label>
-                    <Combo
+                    <SizeInput
                       autoFocus={index > 0 && index === items.length - 1}
                       required
                       placeholder={t('pick_or_type')}
                       addLabel={t('add_new')}
-                      options={options.sizes}
+                      secondPlaceholder={t('size_second')}
+                      sizes={options.sizes}
                       value={item.plastic_size}
                       onChange={(v) => handleItemChange(index, 'plastic_size', v)}
-                      onAdd={(name) => addOption('SIZE', name)}
+                      addOption={addOption}
                     />
                   </div>
                   <div className="space-y-1 sm:col-span-1">
@@ -404,18 +414,7 @@ const Voucher = () => {
             ))}
           </div>
 
-          <div className="bg-white p-4 rounded-3xl border-2 border-dashed border-gray-200 space-y-2">
-            <label className="text-base font-black text-gray-500 uppercase tracking-widest">{t('core_weight')} <span className="text-gray-300 font-bold normal-case">({t('optional_note')})</span></label>
-            <input
-              type="number" min="0" step="any" inputMode="decimal"
-              className="w-full p-3 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-amber-400 outline-none transition-all font-bold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-              placeholder="0"
-              value={coreWeight}
-              onKeyDown={(e) => e.key === '-' && e.preventDefault()}
-              onChange={(e) => setCoreWeight(e.target.value)}
-            />
-            <p className="text-sm text-gray-400 font-bold px-1">{t('core_weight_hint')}</p>
-          </div>
+          <WasteBox wastes={wastes} onChange={setWastes} options={options} addOption={addOption} firstItem={items[0]} />
 
           <div className="space-y-1 px-1">
             <label className="text-base font-bold text-gray-600 uppercase">{t('voucher_note')}</label>

@@ -8,7 +8,7 @@ Rules
 """
 from typing import Optional, List
 from sqlmodel import Session, select
-from app.models.stock import StockItem, StockMovement
+from app.models.stock import StockItem, StockMovement, VoucherWaste
 from app.models.customer import get_yangon_now
 
 
@@ -88,3 +88,54 @@ def give_back_stock_for_items(session: Session, items: list, ref: str):
             add_stock(session, stock, it.lb, it.cost_per_lb, "SALE_REVERSE", ref)
         else:
             _move(session, stock, "SALE_REVERSE", it.lb, it.cost_per_lb, ref)
+
+
+WASTE_KINDS = ("CORE", "DAMAGE")
+
+
+def apply_wastes(session: Session, voucher_id: int, wastes: list, ref: str, take_stock: bool) -> List[str]:
+    """Save the cardboard-core / damage rows of a voucher and (when the voucher takes stock) take their lb out of the
+    chosen Size + Color + Thickness stock at its average cost. Stock value falls by lb x average cost; the average cost,
+    the voucher price, revenue, profit and the cash figures are not touched. Returns plain-language warnings."""
+    warnings: List[str] = []
+    for w in wastes:
+        kind = (w.kind or "").upper()
+        label = f"{norm(w.size)} / {norm(w.color)}" + (f" / {norm(w.gate)}" if norm(w.gate) else "")
+        title = "Cardboard core" if kind == "CORE" else "Damage"
+        row = VoucherWaste(voucher_id=voucher_id, kind=kind, lb=w.lb, size=norm(w.size), color=norm(w.color), gate=norm(w.gate))
+        if take_stock and norm(w.size) and norm(w.color):
+            stock = find_stock(session, w.size, w.color, w.gate or "", lock=True)
+            if stock is None:
+                warnings.append(f"{title}: no stock record for {label} - stock not reduced.")
+            else:
+                row.stock_item_id = stock.id
+                row.cost_per_lb = remove_stock(session, stock, w.lb, kind, ref, f"{title.lower()} {w.lb:g} lb")
+                if stock.qty_lb < 0:
+                    warnings.append(f"Stock for {label} is now {stock.qty_lb:g} lb (not enough in stock).")
+        elif take_stock:
+            warnings.append(f"{title}: pick a size and color to take it out of stock.")
+        session.add(row)
+    return warnings
+
+
+def give_back_wastes(session: Session, voucher_id: int, ref: str):
+    """Undo apply_wastes (voucher edited or deleted): put the lb back at the cost they were taken at, delete the rows."""
+    for row in session.exec(select(VoucherWaste).where(VoucherWaste.voucher_id == voucher_id)).all():
+        if row.stock_item_id is not None:
+            stock = session.exec(select(StockItem).where(StockItem.id == row.stock_item_id).with_for_update()).first()
+            if stock is not None:
+                if row.cost_per_lb is not None and stock.qty_lb > 0:
+                    add_stock(session, stock, row.lb, row.cost_per_lb, row.kind + "_REVERSE", ref)
+                else:
+                    _move(session, stock, row.kind + "_REVERSE", row.lb, row.cost_per_lb, ref)
+        session.delete(row)
+    session.flush()
+
+
+def wastes_by_voucher(session: Session, voucher_ids: list) -> dict:
+    out: dict = {}
+    if not voucher_ids:
+        return out
+    for r in session.exec(select(VoucherWaste).where(VoucherWaste.voucher_id.in_(voucher_ids)).order_by(VoucherWaste.id)).all():
+        out.setdefault(r.voucher_id, []).append({"id": r.id, "kind": r.kind, "lb": r.lb, "size": r.size, "color": r.color, "gate": r.gate or None})
+    return out

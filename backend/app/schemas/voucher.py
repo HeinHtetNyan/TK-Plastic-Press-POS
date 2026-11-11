@@ -24,6 +24,19 @@ class ItemRead(ItemBase):
     class Config:
         from_attributes = True
 
+class WasteIn(BaseModel):
+    """Cardboard core or damage: how many lb, taken from which Size / Color / Thickness stock."""
+    kind: str = Field(pattern="^(CORE|DAMAGE)$")
+    lb: float = Field(gt=0)
+    size: str = ""
+    color: str = ""
+    gate: Optional[str] = None
+
+
+class WasteRead(WasteIn):
+    id: Optional[int] = None
+
+
 class VoucherBase(BaseModel):
     customer_id: int
     voucher_number: str
@@ -36,6 +49,7 @@ class VoucherBase(BaseModel):
     extra_charge_amount: float = Field(default=0.0, ge=0)
     discount_amount: float = Field(default=0.0, ge=0)
     core_weight_lb: Optional[float] = Field(default=None, ge=0)
+    wastes: List[WasteIn] = Field(default_factory=list)
 
     @field_validator("voucher_date", mode="before")
     @classmethod
@@ -68,6 +82,7 @@ class VoucherUpdate(BaseModel):
     extra_charge_amount: float = Field(default=0.0, ge=0)
     discount_amount: float = Field(default=0.0, ge=0)
     core_weight_lb: Optional[float] = Field(default=None, ge=0)
+    wastes: Optional[List[WasteIn]] = None  # None = keep what the voucher has (old app); a list (even empty) replaces it
     items: List[ItemCreate]
 
     @field_validator("voucher_date", mode="before")
@@ -92,6 +107,7 @@ class VoucherRead(VoucherBase):
     created_at: datetime
     updated_at: datetime
     items: List[ItemRead]
+    wastes: List[WasteRead] = []
     stock_warnings: List[str] = []
 
     class Config:

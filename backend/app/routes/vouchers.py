@@ -12,7 +12,9 @@ from app.dependencies.auth import require_staff_or_admin, require_admin
 from app.services.balance import calculate_customer_balance
 from app.services.audit import log_action
 from app.services.splits import normalize_splits
-from app.services.stock import take_stock_for_items, give_back_stock_for_items
+from app.services.stock import take_stock_for_items, give_back_stock_for_items, apply_wastes, give_back_wastes, wastes_by_voucher
+from app.services.voucher import core_total
+from app.models.stock import VoucherWaste
 
 router = APIRouter(tags=["vouchers"])
 
@@ -32,6 +34,7 @@ def create_voucher(
             v_data["customer_name"] = existing.customer.name
             v_data["customer_balance"] = calculate_customer_balance(session, existing.customer_id)
             v_data["items"] = existing.items
+            v_data["wastes"] = wastes_by_voucher(session, [existing.id]).get(existing.id, [])
             return v_data
 
     customer = session.get(Customer, voucher_in.customer_id)
@@ -44,6 +47,7 @@ def create_voucher(
         v_data["customer_name"] = customer.name
         v_data["customer_balance"] = calculate_customer_balance(session, voucher.customer_id)
         v_data["items"] = voucher.items
+        v_data["wastes"] = wastes_by_voucher(session, [voucher.id]).get(voucher.id, [])
         v_data["stock_warnings"] = warnings
         return v_data
     except IntegrityError:
@@ -82,8 +86,10 @@ def list_vouchers_page(
 
     balance_cache = {}
     out = []
+    wmap = wastes_by_voucher(session, [v.id for v in rows])
     for v in rows:
         d = v.model_dump()
+        d["wastes"] = wmap.get(v.id, [])
         d["customer_name"] = v.customer.name
         if v.customer_id not in balance_cache:
             balance_cache[v.customer_id] = calculate_customer_balance(session, v.customer_id)
@@ -105,9 +111,11 @@ def list_all_vouchers(
     vouchers = []
     # Pre-calculate balances to avoid redundant queries in loops
     balance_cache = {}
+    wmap = wastes_by_voucher(session, [v.id for v in results])
     
     for v in results:
         v_data = v.model_dump()
+        v_data["wastes"] = wmap.get(v.id, [])
         v_data["customer_name"] = v.customer.name
         
         if v.customer_id not in balance_cache:
@@ -131,6 +139,7 @@ def get_voucher(
     v_data["customer_name"] = voucher.customer.name
     v_data["customer_balance"] = calculate_customer_balance(session, voucher.customer_id)
     v_data["items"] = voucher.items
+    v_data["wastes"] = wastes_by_voucher(session, [voucher.id]).get(voucher.id, [])
     return v_data
 
 @router.get("/customers/{customer_id}/vouchers", response_model=List[VoucherRead])
@@ -146,9 +155,11 @@ def get_customer_vouchers(
     results = session.exec(select(Voucher).where(Voucher.customer_id == customer_id)).all()
     vouchers = []
     current_balance = calculate_customer_balance(session, customer_id)
+    wmap = wastes_by_voucher(session, [v.id for v in results])
     
     for v in results:
         v_data = v.model_dump()
+        v_data["wastes"] = wmap.get(v.id, [])
         v_data["customer_name"] = customer.name
         v_data["customer_balance"] = current_balance
         v_data["items"] = v.items
@@ -176,6 +187,8 @@ def update_voucher(
     ref = f"voucher:{voucher.voucher_number}"
     if voucher.stock_tracked:
         give_back_stock_for_items(session, list(voucher.items), ref)
+    if voucher_in.wastes is not None:
+        give_back_wastes(session, voucher.id, ref)  # old app (wastes not sent) keeps the existing rows as they are
     for old_item in list(voucher.items):
         session.delete(old_item)
     session.flush()
@@ -209,7 +222,10 @@ def update_voucher(
     voucher.payment_splits = splits
     voucher.remaining_balance = remaining_balance
     voucher.note = voucher_in.note
-    voucher.core_weight_lb = voucher_in.core_weight_lb or None
+    if voucher_in.wastes is not None:
+        voucher.core_weight_lb = core_total(voucher_in.wastes, voucher_in.core_weight_lb if not voucher_in.wastes else None)
+    elif not session.exec(select(VoucherWaste.id).where(VoucherWaste.voucher_id == voucher.id, VoucherWaste.kind == "CORE")).first():
+        voucher.core_weight_lb = voucher_in.core_weight_lb or None
 
     for item in new_items:
         session.add(item)
@@ -217,6 +233,8 @@ def update_voucher(
     warnings = []
     if voucher.stock_tracked:
         warnings = take_stock_for_items(session, new_items, f"voucher:{voucher.voucher_number}")
+    if voucher_in.wastes is not None:
+        warnings += apply_wastes(session, voucher.id, voucher_in.wastes, f"voucher:{voucher.voucher_number}", take_stock=bool(voucher.stock_tracked))
 
     try:
         session.add(voucher)
@@ -231,6 +249,7 @@ def update_voucher(
     v_data["customer_name"] = voucher.customer.name
     v_data["customer_balance"] = calculate_customer_balance(session, voucher.customer_id)
     v_data["items"] = voucher.items
+    v_data["wastes"] = wastes_by_voucher(session, [voucher.id]).get(voucher.id, [])
     v_data["stock_warnings"] = warnings
     return v_data
 
@@ -246,6 +265,7 @@ def delete_voucher(
     
     if voucher.stock_tracked:
         give_back_stock_for_items(session, list(voucher.items), f"voucher:{voucher.voucher_number} deleted")
+        give_back_wastes(session, voucher.id, f"voucher:{voucher.voucher_number} deleted")
     log_action(session, current_user.id, "DELETE", "Voucher", str(voucher_id), f"Voucher #{voucher.voucher_number} deleted")
     session.delete(voucher)
     session.commit()

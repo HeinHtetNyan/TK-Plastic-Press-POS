@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Boxes, Plus, Trash2, Pencil, Save, X, History as HistoryIcon } from 'lucide-react';
 import Layout from '../components/Layout';
 import Combo from '../components/Combo';
+import SizeInput from '../components/SizeInput';
 import Pager from '../components/Pager';
 import { paginate } from '../utils/paginate';
 import DropdownDatePicker from '../components/DropdownDatePicker';
@@ -223,7 +224,7 @@ const LineFields = ({ line, onChange, options, addOption, t, priceLabel = t('x_p
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3">
       <div className="space-y-1"><label className={labelCls}>{t('size')}</label>
-        <Combo required placeholder={t('pick_or_type')} addLabel={t('add_new')} options={options.sizes} value={line.size} onChange={(v) => set('size', v)} onAdd={(n) => addOption('SIZE', n)} /></div>
+        <SizeInput required placeholder={t('pick_or_type')} addLabel={t('add_new')} secondPlaceholder={t('size_second')} sizes={options.sizes} value={line.size} onChange={(v) => set('size', v)} addOption={addOption} /></div>
       <div className="space-y-1"><label className={labelCls}>{t('gate')}</label>
         <Combo placeholder={t('pick_or_type')} addLabel={t('add_new')} options={options.gates} value={line.gate} onChange={(v) => set('gate', v)} onAdd={(n) => addOption('GATE', n)} /></div>
       <div className="space-y-1"><label className={labelCls}>{t('plastic_color')}</label>
