@@ -6,6 +6,7 @@ Rules
 - Undoing a sale (voucher edit / delete) puts the lb back at the cost it was taken at.
 - Stock is allowed to go negative: the caller gets a warning instead of a refusal.
 """
+import re
 from typing import Optional, List
 from sqlmodel import Session, select
 from app.models.stock import StockItem, StockMovement, VoucherWaste
@@ -17,13 +18,23 @@ def norm(s: Optional[str]) -> str:
     return " ".join((s or "").split())
 
 
+def front_size(s: Optional[str]) -> str:
+    """'4½ x 6' -> '4½'. Stock is kept per first number only; the second number of a voucher size is ignored."""
+    return re.split(r"\s*[x×*]\s*", norm(s), maxsplit=1)[0].strip()
+
+
 def find_stock(session: Session, size: str, color: str, gate: str, lock: bool = False) -> Optional[StockItem]:
-    q = select(StockItem).where(
-        StockItem.size == norm(size), StockItem.color == norm(color), StockItem.gate == norm(gate)
-    )
-    if lock:
-        q = q.with_for_update()
-    return session.exec(q).first()
+    def _q(sz: str):
+        q = select(StockItem).where(
+            StockItem.size == sz, StockItem.color == norm(color), StockItem.gate == norm(gate)
+        )
+        return q.with_for_update() if lock else q
+
+    # exact size first (older stock saved as '2 x 1'), then by first number only ('2 x 1' -> stock '2')
+    stock = session.exec(_q(norm(size))).first()
+    if stock is None and front_size(size) != norm(size):
+        stock = session.exec(_q(front_size(size))).first()
+    return stock
 
 
 def get_or_create_stock(session: Session, size: str, color: str, gate: str) -> StockItem:
