@@ -267,7 +267,12 @@ def _reverse_lines(session: Session, purchase: Purchase):
     for l in session.exec(select(PurchaseLine).where(PurchaseLine.purchase_id == purchase.id)).all():
         stock = session.exec(select(StockItem).where(StockItem.size == l.size, StockItem.color == l.color, StockItem.gate == l.gate).with_for_update()).first()
         if stock:
-            _move(session, stock, "PURCHASE_REVERSE", -l.weight_lb, l.price_per_lb + (l.extra_per_lb or 0.0), ref)
+            cost = l.price_per_lb + (l.extra_per_lb or 0.0)
+            value_left = stock.qty_lb * stock.avg_cost_per_lb - l.weight_lb * cost
+            _move(session, stock, "PURCHASE_REVERSE", -l.weight_lb, cost, ref)
+            if stock.qty_lb > 0 and value_left > 0:
+                # take the lb out at the cost they came in, so the average cost goes back to what it was before this purchase
+                stock.avg_cost_per_lb = round(value_left / stock.qty_lb, 4)
         session.delete(l)
     for x in session.exec(select(PurchaseExtra).where(PurchaseExtra.purchase_id == purchase.id)).all():
         session.delete(x)
