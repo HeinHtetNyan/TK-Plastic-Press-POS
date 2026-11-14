@@ -350,6 +350,7 @@ const translations = {
     x2_no_core: 'No cardboard core recorded yet.',
     x2_set_counted: 'Set counted stock',
     x2_history: 'History',
+    x2_delete_row: 'Delete this stock row',
     x2_confirm_pw: 'Confirm Password',
 
     // Home / Reports recommendations
@@ -721,6 +722,7 @@ const translations = {
     x2_no_core: 'ကတ်ထူလိပ် မှတ်တမ်း မရှိသေးပါ။',
     x2_set_counted: 'ရေတွက်ထားသော လက်ကျန် သတ်မှတ်ရန်',
     x2_history: 'မှတ်တမ်း',
+    x2_delete_row: 'ဤလက်ကျန်စာကြောင်း ဖျက်ရန်',
     x2_confirm_pw: 'စကားဝှက် ထပ်ရိုက်ပါ',
 
     // Home / Reports recommendations

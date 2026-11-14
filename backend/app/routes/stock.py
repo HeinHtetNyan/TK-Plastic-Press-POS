@@ -155,6 +155,17 @@ def adjust_stock(stock_id: int, body: AdjustIn, session: Session = Depends(get_s
     return _stock_out(stock, True)
 
 
+@router.delete("/stock/{stock_id}")
+def delete_stock(stock_id: int, session: Session = Depends(get_session), user: User = Depends(require_admin)):
+    stock = session.exec(select(StockItem).where(StockItem.id == stock_id).with_for_update()).first()
+    if not stock:
+        raise HTTPException(status_code=404, detail="Not found")
+    log_action(session, user.id, "DELETE", "Stock", str(stock_id), f"Stock row {stock.size}/{stock.color}/{stock.gate} deleted ({stock.qty_lb:g} lb)")
+    session.delete(stock)  # its history is removed with it; old vouchers keep their text
+    session.commit()
+    return {"message": "Stock row deleted"}
+
+
 @router.get("/stock/{stock_id}/movements")
 def stock_movements(
     stock_id: int, page: int = Query(default=1, ge=1), page_size: int = Query(default=20, ge=1, le=100),

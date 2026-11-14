@@ -105,6 +105,16 @@ const StockTab = ({ admin, options, addOption, t }) => {
     }
   };
 
+  const deleteRow = async (s) => {
+    if (!window.confirm(`Delete "${s.size} / ${s.color}${s.gate ? ' / ' + s.gate : ''}" from stock? (${lbFmt(s.qty_lb)} lb and its history will be removed)`)) return;
+    try {
+      await stockService.removeStock(s.id);
+      load();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Could not delete');
+    }
+  };
+
   const openMoves = async (item, page = 1) => {
     setMovesLoading(true);
     try {
@@ -184,6 +194,7 @@ const StockTab = ({ admin, options, addOption, t }) => {
                   <>
                     <button title={t('x2_set_counted')} onClick={() => setEditing({ id: s.id, qty: s.qty_lb })} className="p-3 bg-gray-100 text-gray-600 rounded-xl"><Pencil size={18} /></button>
                     <button title={t('x2_history')} onClick={() => openMoves(s)} className="p-3 bg-gray-100 text-gray-600 rounded-xl"><HistoryIcon size={18} /></button>
+                    <button title={t('x2_delete_row')} onClick={() => deleteRow(s)} className="p-3 bg-red-50 text-red-600 rounded-xl"><Trash2 size={18} /></button>
                   </>
                 )}
               </div>
