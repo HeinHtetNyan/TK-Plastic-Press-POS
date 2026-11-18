@@ -155,6 +155,17 @@ def adjust_stock(stock_id: int, body: AdjustIn, session: Session = Depends(get_s
     return _stock_out(stock, True)
 
 
+@router.delete("/stock/{stock_id}")
+def delete_stock(stock_id: int, session: Session = Depends(get_session), user: User = Depends(require_admin)):
+    stock = session.exec(select(StockItem).where(StockItem.id == stock_id).with_for_update()).first()
+    if not stock:
+        raise HTTPException(status_code=404, detail="Not found")
+    log_action(session, user.id, "DELETE", "Stock", str(stock_id), f"Stock row {stock.size}/{stock.color}/{stock.gate} deleted ({stock.qty_lb:g} lb)")
+    session.delete(stock)  # its history is removed with it; old vouchers keep their text
+    session.commit()
+    return {"message": "Stock row deleted"}
+
+
 @router.get("/stock/{stock_id}/movements")
 def stock_movements(
     stock_id: int, page: int = Query(default=1, ge=1), page_size: int = Query(default=20, ge=1, le=100),
@@ -256,7 +267,12 @@ def _reverse_lines(session: Session, purchase: Purchase):
     for l in session.exec(select(PurchaseLine).where(PurchaseLine.purchase_id == purchase.id)).all():
         stock = session.exec(select(StockItem).where(StockItem.size == l.size, StockItem.color == l.color, StockItem.gate == l.gate).with_for_update()).first()
         if stock:
-            _move(session, stock, "PURCHASE_REVERSE", -l.weight_lb, l.price_per_lb + (l.extra_per_lb or 0.0), ref)
+            cost = l.price_per_lb + (l.extra_per_lb or 0.0)
+            value_left = stock.qty_lb * stock.avg_cost_per_lb - l.weight_lb * cost
+            _move(session, stock, "PURCHASE_REVERSE", -l.weight_lb, cost, ref)
+            if stock.qty_lb > 0 and value_left > 0:
+                # take the lb out at the cost they came in, so the average cost goes back to what it was before this purchase
+                stock.avg_cost_per_lb = round(value_left / stock.qty_lb, 4)
         session.delete(l)
     for x in session.exec(select(PurchaseExtra).where(PurchaseExtra.purchase_id == purchase.id)).all():
         session.delete(x)

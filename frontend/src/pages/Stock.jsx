@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { Boxes, Plus, Trash2, Pencil, Save, X, History as HistoryIcon } from 'lucide-react';
 import Layout from '../components/Layout';
 import Combo from '../components/Combo';
-import SizeInput from '../components/SizeInput';
 import Pager from '../components/Pager';
 import { paginate } from '../utils/paginate';
 import DropdownDatePicker from '../components/DropdownDatePicker';
@@ -106,6 +105,16 @@ const StockTab = ({ admin, options, addOption, t }) => {
     }
   };
 
+  const deleteRow = async (s) => {
+    if (!window.confirm(`Delete "${s.size} / ${s.color}${s.gate ? ' / ' + s.gate : ''}" from stock? (${lbFmt(s.qty_lb)} lb and its history will be removed)`)) return;
+    try {
+      await stockService.removeStock(s.id);
+      load();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Could not delete');
+    }
+  };
+
   const openMoves = async (item, page = 1) => {
     setMovesLoading(true);
     try {
@@ -185,6 +194,7 @@ const StockTab = ({ admin, options, addOption, t }) => {
                   <>
                     <button title={t('x2_set_counted')} onClick={() => setEditing({ id: s.id, qty: s.qty_lb })} className="p-3 bg-gray-100 text-gray-600 rounded-xl"><Pencil size={18} /></button>
                     <button title={t('x2_history')} onClick={() => openMoves(s)} className="p-3 bg-gray-100 text-gray-600 rounded-xl"><HistoryIcon size={18} /></button>
+                    <button title={t('x2_delete_row')} onClick={() => deleteRow(s)} className="p-3 bg-red-50 text-red-600 rounded-xl"><Trash2 size={18} /></button>
                   </>
                 )}
               </div>
@@ -224,7 +234,7 @@ const LineFields = ({ line, onChange, options, addOption, t, priceLabel = t('x_p
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3">
       <div className="space-y-1"><label className={labelCls}>{t('size')}</label>
-        <SizeInput required placeholder={t('pick_or_type')} addLabel={t('add_new')} secondPlaceholder={t('size_second')} sizes={options.sizes} value={line.size} onChange={(v) => set('size', v)} addOption={addOption} /></div>
+        <Combo required placeholder={t('pick_or_type')} addLabel={t('add_new')} options={options.sizes} value={line.size} onChange={(v) => set('size', v)} onAdd={(n) => addOption('SIZE', n)} /></div>
       <div className="space-y-1"><label className={labelCls}>{t('gate')}</label>
         <Combo placeholder={t('pick_or_type')} addLabel={t('add_new')} options={options.gates} value={line.gate} onChange={(v) => set('gate', v)} onAdd={(n) => addOption('GATE', n)} /></div>
       <div className="space-y-1"><label className={labelCls}>{t('plastic_color')}</label>

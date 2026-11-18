@@ -210,7 +210,7 @@ def update_voucher(
     ]
 
     voucher.voucher_number = voucher_in.voucher_number
-    voucher.voucher_date = voucher_in.voucher_date
+    voucher.voucher_date = voucher_in.voucher_date or voucher.voucher_date
     voucher.items_total = items_total
     voucher.extra_charge_note = voucher_in.extra_charge_note or None
     voucher.extra_charge_amount = extra_charge

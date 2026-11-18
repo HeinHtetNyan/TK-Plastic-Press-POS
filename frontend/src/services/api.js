@@ -136,6 +136,7 @@ export const stockService = {
   list: () => api.get('/stock'),
   opening: (data) => api.post('/stock/opening', data),
   adjust: (id, data) => api.post(`/stock/${id}/adjust`, data),
+  removeStock: (id) => api.delete(`/stock/${id}`),
   movements: (id, page = 1) => api.get(`/stock/${id}/movements`, { params: { page, page_size: 20 } }),
   listPurchases: (page = 1) => api.get('/purchases', { params: { page, page_size: 10 } }),
   createPurchase: (data) => api.post('/purchases', data),

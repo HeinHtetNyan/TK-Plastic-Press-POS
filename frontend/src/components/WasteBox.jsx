@@ -1,6 +1,6 @@
 import { Plus, Trash2 } from 'lucide-react';
 import Combo from './Combo';
-import SizeInput from './SizeInput';
+import { parseSize, frontOptions } from '../utils/size';
 import { useLanguage } from '../context/LanguageContext';
 
 // Cardboard core / damaged plastic on a voucher. Each entry says how many lb and which Size / Color / Thickness stock
@@ -44,8 +44,8 @@ const WasteBox = ({ wastes, onChange, options, addOption, firstItem, compact }) 
             </div>
             <div className="space-y-1 col-span-2 sm:col-span-1">
               <label className={lab}>{t('size')}</label>
-              <SizeInput value={w.size} onChange={(v) => set(i, { size: v })} sizes={options.sizes} addOption={addOption}
-                placeholder={t('pick_or_type')} addLabel={t('add_new')} secondPlaceholder={t('size_second')} className={box} />
+              <Combo placeholder={t('pick_or_type')} addLabel={t('add_new')} options={frontOptions(options.sizes, parseSize(w.size).front)} value={parseSize(w.size).front}
+                onChange={(v) => set(i, { size: v })} onAdd={(n) => addOption('SIZE', n)} className={box} />
             </div>
             <div className="space-y-1">
               <label className={lab}>{t('plastic_color')}</label>
