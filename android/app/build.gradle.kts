@@ -23,8 +23,8 @@ android {
         applicationId = "com.tkplasticpress.pos"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
         // Injected from local.properties — change pos.url there, not in source code
         buildConfigField("String", "POS_URL", "\"$posUrl\"")
         buildConfigField("String", "POS_FALLBACK_URLS", "\"$posFallbackUrls\"")
@@ -35,6 +35,9 @@ android {
     }
 
     buildTypes {
+        debug {
+            applicationIdSuffix = ".test"
+        }
         release {
             isMinifyEnabled = true
             proguardFiles(

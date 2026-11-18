@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, FileText, Table2, List, CreditCard, ChevronDown, ChevronUp, Trash2, ArrowUpDown, Pencil, Plus, Save, X } from 'lucide-react';
+import { ArrowLeft, FileText, Table2, List, CreditCard, ChevronDown, ChevronUp, Printer, Trash2, ArrowUpDown, Pencil, Plus, Save, X } from 'lucide-react';
 import Layout from '../components/Layout';
 import DropdownDatePicker from '../components/DropdownDatePicker';
 import HistorySheet from '../components/HistorySheet';
@@ -18,6 +18,7 @@ import { usePlasticOptions } from '../hooks/usePlasticOptions';
 import { paidLaterIds } from '../utils/paidLater';
 import { emptyParts, splitsToParts, partsToSplits, splitError, primaryMethod } from '../utils/paymentSplits';
 import { voucherService, paymentService } from '../services/api';
+import { printVoucher } from '../utils/printReceipt';
 import { useAuth } from '../hooks/useAuth';
 import { useLanguage } from '../context/LanguageContext';
 import db from '../lib/db';
@@ -41,6 +42,14 @@ const History = () => {
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
   const { t } = useLanguage();
+  const [printingId, setPrintingId] = useState(null);
+  const handlePrint = async (e, v) => {
+    e.stopPropagation();
+    setPrintingId(v.id);
+    try { await printVoucher(v, customer?.name || ''); }
+    catch (err) { console.error('[print]', err); alert(t('x3_print_fail')); }
+    finally { setPrintingId(null); }
+  };
   const { options, addOption } = usePlasticOptions();
   const customer = location.state?.customer || null;
   const openVoucherId = location.state?.openVoucherId ?? null;
@@ -530,7 +539,9 @@ const History = () => {
             onDeleteVoucher={handleDeleteVoucher}
             onEditPayment={openEditPaymentModal}
             onDeletePayment={handleDeletePayment}
-          />
+          onPrint={handlePrint}
+            printingId={printingId}
+            />
         ) : (
         <div className="space-y-3">
           {loading ? (
@@ -577,6 +588,16 @@ const History = () => {
                           </div>
                         </div>
                       </div>
+                    </div>
+                    <div className="px-3 pb-3">
+                      <button
+                        type="button"
+                        disabled={printingId === item.id}
+                        onClick={(e) => handlePrint(e, item)}
+                        className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-blue-600 text-white text-lg font-black disabled:opacity-60"
+                      >
+                        <Printer size={22} /> {printingId === item.id ? t('x3_print_wait') : t('x3_print')}
+                      </button>
                     </div>
                     {isAdmin() && (
                       <div className="px-3 pb-3">
