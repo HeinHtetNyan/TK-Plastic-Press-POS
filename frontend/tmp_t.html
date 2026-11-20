@@ -1,0 +1,6 @@
+<meta charset=utf-8><body style="margin:0"><script type=module>
+import { buildReceiptPdf } from '/src/utils/printReceipt.js';
+const r = await (await fetch('/tmp_real.json')).json();
+const v = r[2]; v.voucher_date='02-10-2025';
+try{const o=await buildReceiptPdf(v,v.customer);const i=new Image();i.style.width='874px';i.src=o.canvas.toDataURL('image/png');document.body.appendChild(i);document.title='OK pages '+o.pages;}catch(e){document.body.textContent='ERR '+e;}
+</script>

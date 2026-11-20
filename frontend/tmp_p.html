@@ -1,0 +1,11 @@
+<meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><body style="font-family:sans-serif;padding:20px">
+<h2>TK new design print test</h2>
+<button id=b style="font-size:28px;padding:34px;width:100%;background:#2563eb;color:#fff;border:0;border-radius:16px">Print voucher #6056 (A5)</button>
+<pre id=o>loading</pre>
+<script type=module>
+import { printVoucher } from '/src/utils/printReceipt.js';
+const r = await (await fetch('/tmp_real.json')).json();
+const v = r[2]; v.voucher_date = '02-10-2025';
+document.getElementById('o').textContent = 'ready';
+document.getElementById('b').onclick = async () => { document.getElementById('o').textContent = 'working'; try { document.getElementById('o').textContent = 'done ' + await printVoucher(v, v.customer); } catch (e) { document.getElementById('o').textContent = 'ERR ' + e; } };
+</script>
