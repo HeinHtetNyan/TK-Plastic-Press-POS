@@ -33,7 +33,7 @@ android {
         applicationIdSuffix = localProps.getProperty("app.id.suffix", "")
         minSdk = 24
         targetSdk = 36
-        versionCode = 3
+        versionCode = 4
         versionName = "1.2"
         // Injected from local.properties — change pos.url there, not in source code
         buildConfigField("String", "POS_URL", "\"$posUrl\"")
