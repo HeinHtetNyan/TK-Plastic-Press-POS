@@ -1,4 +1,5 @@
 import Dexie from 'dexie';
+import { isDemo } from './demoMode';
 
 /**
  * UUID generator that works in both secure (HTTPS) and non-secure (HTTP LAN)
@@ -27,7 +28,7 @@ export function generateUUID() {
  * For customers that already exist on the server, client_id = 'server_<server_id>'.
  * For records created while offline, client_id = crypto.randomUUID().
  */
-const db = new Dexie('TKPlasticPress');
+const db = new Dexie(isDemo() ? 'TKPlasticPress-demo' : 'TKPlasticPress');
 
 db.version(1).stores({
   customers: '&client_id, server_id, name, sync_status, created_at',

@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { Lock, User, ShieldCheck } from 'lucide-react';
 import { authService } from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
+import { isDemo, enterDemo, exitDemo, DEMO_LOGIN } from '../lib/demoMode';
 
 const Login = () => {
   const { t } = useLanguage();
@@ -100,6 +101,11 @@ const Login = () => {
           >
             Retry
           </button>
+          {!isDemo() && (
+            <button type="button" onClick={enterDemo} className="w-full text-center text-base font-bold text-blue-600 underline">
+              {t('x4_demo_link')}
+            </button>
+          )}
         </div>
       </div>
     );
@@ -231,6 +237,17 @@ const Login = () => {
             </button>
           </div>
         </form>
+        {isDemo() ? (
+          <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-center space-y-2">
+            <p className="text-base font-black text-amber-800">{t('x4_demo_pill')}</p>
+            <p className="text-base text-amber-900">{t('x4_demo_login_hint')}: <b>{DEMO_LOGIN.username}</b> / <b>{DEMO_LOGIN.password}</b></p>
+            <button type="button" onClick={exitDemo} className="text-base font-bold text-amber-800 underline">{t('x4_demo_exit')}</button>
+          </div>
+        ) : (
+          <button type="button" onClick={enterDemo} className="w-full text-center text-base font-bold text-blue-600 underline">
+            {t('x4_demo_link')}
+          </button>
+        )}
       </div>
     </div>
   );
