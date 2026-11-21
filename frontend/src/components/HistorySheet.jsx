@@ -1,4 +1,5 @@
 import React from 'react';
+import { Printer } from 'lucide-react';
 import RowActions from './RowActions';
 import MethodTags from './MethodTags';
 import { useLanguage } from '../context/LanguageContext';
@@ -16,6 +17,7 @@ const num = 'text-right tabular-nums whitespace-nowrap';
 const HistorySheet = ({
   rows, allRows, isAdmin, canEdit, paidLater = new Set(),
   onEditVoucher, onDeleteVoucher, onEditPayment, onDeletePayment,
+  onPrint, printingId,
 }) => {
   const { t } = useLanguage();
 
@@ -101,6 +103,16 @@ const HistorySheet = ({
                     <>
                       <td rowSpan={span} className={`${td} ${zebra} font-black text-gray-800 sticky left-0 z-[1]`}>
                         {r.voucher_number}
+                        {onPrint && (
+                          <button
+                            type="button"
+                            disabled={printingId === r.id}
+                            onClick={(e) => onPrint(e, r)}
+                            className="mt-1.5 flex items-center gap-1 px-2.5 py-2 rounded-lg bg-blue-600 text-white text-sm font-black disabled:opacity-60 whitespace-nowrap"
+                          >
+                            <Printer size={16} /> {printingId === r.id ? '...' : t('x3_reprint_short')}
+                          </button>
+                        )}
                         {r.core_weight_lb > 0 && <span className="block text-xs font-black text-amber-700 whitespace-nowrap">{t('core_weight').replace(' (lb)', '').replace(' (ပေါင်)', '').replace(' Core', '').replace('ကတ်ထူလိပ်', 'ကတ်ထူ')}<span className="block">{r.core_weight_lb} lb</span></span>}
                         {r.sync_status === 'pending' && <span className="block text-xs text-yellow-700">{t('x2_pending')}</span>}
                       </td>

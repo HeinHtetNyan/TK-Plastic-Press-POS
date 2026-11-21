@@ -22,7 +22,15 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.ProgressBar
 import androidx.activity.OnBackPressedCallback
+import android.util.Base64
+import android.webkit.JavascriptInterface
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.FileProvider
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import java.io.File
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 
 class MainActivity : AppCompatActivity() {
@@ -50,11 +58,23 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // Android 15+ draws apps edge to edge: keep the web page clear of the status bar, the navigation
+        // bar, camera cutouts and the on-screen keyboard.
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowCompat.getInsetsController(window, findViewById<View>(R.id.root)).isAppearanceLightStatusBars = false
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.root)) { v, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+            v.setPadding(bars.left, bars.top, bars.right, maxOf(bars.bottom, ime.bottom))
+            WindowInsetsCompat.CONSUMED
+        }
+
         webView = findViewById(R.id.webView)
         progressBar = findViewById(R.id.progressBar)
         swipeRefreshLayout = findViewById(R.id.swipeRefresh)
 
         setupWebView()
+        webView.addJavascriptInterface(PrintBridge(), "TKAndroid")
 
         // Set correct network availability BEFORE loading URL so navigator.onLine
         // is accurate on first render (avoids sync engine skipping initial syncAll)
@@ -217,6 +237,40 @@ class MainActivity : AppCompatActivity() {
     override fun onRestoreInstanceState(savedInstanceState: Bundle) {
         super.onRestoreInstanceState(savedInstanceState)
         webView.restoreState(savedInstanceState)
+    }
+
+    // Called from the web page (utils/printReceipt.js): saves the A5 voucher PDF and
+    // opens it in Brother iPrint&Scan (falls back to any PDF app / chooser).
+    inner class PrintBridge {
+        @JavascriptInterface
+        fun sharePdf(base64: String, fileName: String) {
+            try {
+                val safeName = fileName.replace(Regex("[^A-Za-z0-9._-]"), "_")
+                val dir = File(cacheDir, "receipts").apply { mkdirs() }
+                dir.listFiles()?.forEach { if (it.name != safeName) it.delete() }
+                val file = File(dir, safeName)
+                file.writeBytes(Base64.decode(base64, Base64.DEFAULT))
+                val uri = FileProvider.getUriForFile(this@MainActivity, "${BuildConfig.APPLICATION_ID}.fileprovider", file)
+                runOnUiThread {
+                    val view = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(uri, "application/pdf")
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    try {
+                        // Preferred: straight into Brother iPrint&Scan
+                        startActivity(Intent(view).setPackage("com.brother.mfc.brprint"))
+                    } catch (e: Exception) {
+                        try {
+                            startActivity(Intent.createChooser(view, null))
+                        } catch (e2: Exception) {
+                            Toast.makeText(this@MainActivity, "No app can open the voucher PDF", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                runOnUiThread { Toast.makeText(this@MainActivity, "Could not save the voucher", Toast.LENGTH_LONG).show() }
+            }
+        }
     }
 
     override fun onDestroy() {

@@ -1,8 +1,10 @@
 import axios from 'axios';
+import { isDemo, k, DEMO_API_URL } from '../lib/demoMode';
 
 // In production (Vercel), VITE_API_URL must point to the VPS backend.
 // In development, proxy through Vite dev server.
 const getBaseURL = () => {
+  if (isDemo()) return DEMO_API_URL;
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
@@ -22,7 +24,7 @@ const api = axios.create({
 // Add a request interceptor to attach the JWT token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem(k('token'));
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -38,8 +40,8 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      localStorage.removeItem(k('token'));
+      localStorage.removeItem(k('user'));
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
@@ -57,20 +59,20 @@ export const authService = {
     formData.append('password', password);
     const response = await api.post('/auth/login', formData);
     if (response.data.access_token) {
-      localStorage.setItem('token', response.data.access_token);
+      localStorage.setItem(k('token'), response.data.access_token);
       const userRes = await api.get('/users/me');
-      localStorage.setItem('user', JSON.stringify(userRes.data));
+      localStorage.setItem(k('user'), JSON.stringify(userRes.data));
       return userRes.data;
     }
     return null;
   },
   logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    localStorage.removeItem(k('token'));
+    localStorage.removeItem(k('user'));
     window.location.href = '/login';
   },
   getCurrentUser: () => {
-    const user = localStorage.getItem('user');
+    const user = localStorage.getItem(k('user'));
     return user ? JSON.parse(user) : null;
   }
 };

@@ -4,6 +4,7 @@ import { Home, FileText, CreditCard, History, BarChart3, LogOut, User as UserIco
 import { useAuth } from '../hooks/useAuth';
 import { useLanguage } from '../context/LanguageContext';
 import SyncStatus from './SyncStatus';
+import DemoPill from './DemoPill';
 
 const Layout = ({ children, wide = false }) => {
   const location = useLocation();
@@ -24,6 +25,7 @@ const Layout = ({ children, wide = false }) => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col lg:flex-row">
+      <DemoPill />
       {/* Desktop Sidebar / Mobile Header */}
       <header className="bg-blue-600 text-white px-3 py-2 lg:p-3 shadow-md sticky top-0 z-20 flex flex-row items-center gap-2 lg:flex-col lg:items-stretch lg:gap-0 lg:h-screen lg:w-64 lg:fixed lg:left-0">
         <div className="flex items-center gap-3 lg:mb-8">

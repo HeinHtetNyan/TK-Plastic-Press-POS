@@ -1,4 +1,5 @@
 import db from '../lib/db';
+import { k } from '../lib/demoMode';
 import api from './api';
 
 const MAX_RETRIES = 3;
@@ -22,7 +23,7 @@ export async function getPendingCount() {
 export function cacheBalance(customerServerId, balance) {
   try {
     localStorage.setItem(
-      `balance_${customerServerId}`,
+      k(`balance_${customerServerId}`),
       JSON.stringify({ balance, ts: Date.now() })
     );
   } catch (err) {
@@ -32,7 +33,7 @@ export function cacheBalance(customerServerId, balance) {
 
 export function getCachedBalance(customerServerId) {
   try {
-    const raw = localStorage.getItem(`balance_${customerServerId}`);
+    const raw = localStorage.getItem(k(`balance_${customerServerId}`));
     if (!raw) return null;
     return JSON.parse(raw).balance;
   } catch {
@@ -119,6 +120,7 @@ async function syncVoucher(item) {
 
   await db.vouchers.update(item.client_id, {
     server_id: res.data.id,
+    voucher_number: res.data.voucher_number,
     sync_status: 'synced',
     items_total: res.data.items_total,
     extra_charge_note: res.data.extra_charge_note ?? null,
