@@ -120,6 +120,7 @@ async function syncVoucher(item) {
 
   await db.vouchers.update(item.client_id, {
     server_id: res.data.id,
+    voucher_number: res.data.voucher_number,
     sync_status: 'synced',
     items_total: res.data.items_total,
     extra_charge_note: res.data.extra_charge_note ?? null,

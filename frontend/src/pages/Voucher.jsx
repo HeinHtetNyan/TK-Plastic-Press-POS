@@ -25,6 +25,23 @@ const Voucher = () => {
   const [balanceIsEstimate, setBalanceIsEstimate] = useState(false);
 
   const [voucherNumber, setVoucherNumber] = useState('');
+  // Number mode: 'custom' = typed by hand, 'auto' = the server picks the next number when the voucher is saved.
+  const [numCfg, setNumCfg] = useState(() => {
+    const base = { mode: 'custom', kind: 'YEAR', prefix: 'TK-', digits: 6 };
+    try { return { ...base, ...JSON.parse(localStorage.getItem('tk_voucher_number_cfg') || '{}') }; } catch { return base; }
+  });
+  const setCfg = (patch) => setNumCfg(prev => {
+    const next = { ...prev, ...patch };
+    try { localStorage.setItem('tk_voucher_number_cfg', JSON.stringify(next)); } catch { /* remembered choice is optional */ }
+    return next;
+  });
+  const isAuto = numCfg.mode === 'auto';
+  const autoNumber = isAuto
+    ? { kind: numCfg.kind, prefix: numCfg.kind === 'PREFIX' ? String(numCfg.prefix || '').trim() : '', digits: Math.min(9, Math.max(1, parseInt(numCfg.digits) || 4)) }
+    : null;
+  const autoExample = autoNumber
+    ? (autoNumber.kind === 'YEAR' ? `${new Date().getFullYear()}-0001` : `${autoNumber.prefix}${String(1).padStart(autoNumber.digits, '0')}`)
+    : '';
   const [voucherDate, setVoucherDate] = useState(new Date().toLocaleDateString('en-GB').split('/').join('-'));
   const [items, setItems] = useState([{ lb: '', plastic_size: '', gate: '', plastic_price: '', color: '', print_color: '', color_price: '', total_price: 0 }]);
   const [wastes, setWastes] = useState([]);
@@ -100,7 +117,7 @@ const Voucher = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!voucherNumber) return alert(t('enter_voucher_number'));
+    if (!isAuto && !voucherNumber.trim()) return alert(t('enter_voucher_number'));
 
     const wErr = wasteError(wastes);
     if (wErr) return alert(t(wErr));
@@ -135,7 +152,8 @@ const Voucher = () => {
     const apiPayload = {
       customer_id: serverId,
       customer_client_id: customer.client_id ?? null,
-      voucher_number: voucherNumber,
+      voucher_number: isAuto ? null : voucherNumber.trim(),
+      auto_number: autoNumber,
       voucher_date: voucherDate,
       paid_amount: paid,
       payment_method: paid > 0 ? method : null,
@@ -155,6 +173,7 @@ const Voucher = () => {
       try {
         const created = await voucherService.create(apiPayload);
         const warnings = created?.data?.stock_warnings || [];
+        const createdNumber = created?.data?.voucher_number;
 
         // Save to IndexedDB in background (non-blocking, don't fail if Dexie broken)
         db.vouchers.add({
@@ -162,7 +181,7 @@ const Voucher = () => {
           server_id: null,
           customer_client_id: customer.client_id ?? `server_${serverId}`,
           customer_server_id: serverId,
-          voucher_number: voucherNumber,
+          voucher_number: isAuto ? (createdNumber || t('auto_number_pending')) : voucherNumber.trim(),
           voucher_date: voucherDate,
           items_total: itemsTotal,
           extra_charge_note: extraChargeNote || null,
@@ -179,7 +198,8 @@ const Voucher = () => {
           created_at: now,
         }).catch(() => {});
 
-        alert(warnings.length ? `${t('stock_warning_title')}\n\n${warnings.join('\n')}` : t('voucher_saved_successfully'));
+        const savedMsg = isAuto && createdNumber ? `${t('voucher_saved_successfully')} (#${createdNumber})` : t('voucher_saved_successfully');
+        alert(warnings.length ? `${t('stock_warning_title')}\n\n${warnings.join('\n')}\n\n${savedMsg}` : savedMsg);
         setLoading(false);
         navigate('/', { state: { customer } });
         return;
@@ -203,7 +223,7 @@ const Voucher = () => {
           server_id: null,
           customer_client_id: customer.client_id ?? `server_${serverId}`,
           customer_server_id: serverId,
-          voucher_number: voucherNumber,
+          voucher_number: isAuto ? t('auto_number_pending') : voucherNumber.trim(),
           voucher_date: voucherDate,
           items_total: itemsTotal,
           extra_charge_note: extraChargeNote || null,
@@ -280,14 +300,48 @@ const Voucher = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-base font-bold text-gray-600 uppercase px-1">{t('voucher_number')}</label>
-              <input
-                required
-                type="text"
-                className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 outline-none transition-all font-bold text-lg"
-                placeholder="V-001"
-                value={voucherNumber}
-                onChange={(e) => setVoucherNumber(e.target.value)}
-              />
+              <div className="grid grid-cols-2 gap-1 p-1 bg-gray-100 rounded-xl">
+                {[['custom', t('vn_custom')], ['auto', t('vn_auto')]].map(([m, label]) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setCfg({ mode: m })}
+                    className={`py-2 rounded-lg font-black text-base transition-all ${numCfg.mode === m ? 'bg-blue-600 text-white shadow' : 'text-gray-600'}`}
+                  >{label}</button>
+                ))}
+              </div>
+              {!isAuto ? (
+                <input
+                  required
+                  type="text"
+                  className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 outline-none transition-all font-bold text-lg"
+                  placeholder="V-001"
+                  value={voucherNumber}
+                  onChange={(e) => setVoucherNumber(e.target.value)}
+                />
+              ) : (
+                <div className="space-y-2 p-3 border-2 border-blue-100 bg-blue-50 rounded-xl">
+                  <select
+                    className="w-full p-2 border-2 border-gray-200 rounded-lg bg-white font-bold text-base"
+                    value={numCfg.kind}
+                    onChange={(e) => setCfg({ kind: e.target.value })}
+                  >
+                    <option value="YEAR">{t('vn_pattern_year')}</option>
+                    <option value="PREFIX">{t('vn_pattern_prefix')}</option>
+                  </select>
+                  {numCfg.kind === 'PREFIX' && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className="text-sm font-bold text-gray-600">{t('vn_prefix')}
+                        <input type="text" maxLength={12} className="w-full mt-1 p-2 border-2 border-gray-200 rounded-lg bg-white font-bold" value={numCfg.prefix} onChange={(e) => setCfg({ prefix: e.target.value })} />
+                      </label>
+                      <label className="text-sm font-bold text-gray-600">{t('vn_digits')}
+                        <input type="number" min={1} max={9} className="w-full mt-1 p-2 border-2 border-gray-200 rounded-lg bg-white font-bold" value={numCfg.digits} onChange={(e) => setCfg({ digits: e.target.value })} />
+                      </label>
+                    </div>
+                  )}
+                  <p className="text-sm font-bold text-blue-700">{t('vn_example')}: {autoExample} &middot; {t('vn_auto_hint')}</p>
+                </div>
+              )}
             </div>
             <DropdownDatePicker
               label={t('voucher_date')}

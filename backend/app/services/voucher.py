@@ -1,4 +1,6 @@
+import re
 from fastapi import HTTPException
+from sqlalchemy import text
 from sqlalchemy.exc import NoResultFound
 from sqlmodel import Session, select
 from app.models import Voucher, Item, Customer
@@ -13,6 +15,26 @@ def core_total(wastes, fallback):
     """Voucher.core_weight_lb (used by the core-weight report) = the cardboard-core lb entered; old clients send the number alone."""
     core = round(sum(w.lb for w in (wastes or []) if w.kind == "CORE"), 4)
     return core if core > 0 else (fallback or None)
+
+
+def next_voucher_number(session: Session, auto) -> str:
+    """Next free number for the chosen pattern = highest existing number of that pattern + 1 (never reuses a number)."""
+    if session.bind is not None and session.bind.dialect.name == "postgresql":
+        # one number at a time, so two simultaneous saves cannot pick the same one (released at commit/rollback)
+        session.exec(text("SELECT pg_advisory_xact_lock(724001)"))
+    if auto.kind == "YEAR":
+        head = f"{get_yangon_date().year}-"
+    else:
+        head = (auto.prefix or "").strip()
+    pattern = re.compile("^" + re.escape(head) + r"(\d+)$")
+    like = head.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+    highest = 0
+    for num in session.exec(select(Voucher.voucher_number).where(Voucher.voucher_number.like(like, escape="\\"))).all():
+        m = pattern.match(num or "")
+        if m:
+            highest = max(highest, int(m.group(1)))
+    digits = 4 if auto.kind == "YEAR" else auto.digits
+    return f"{head}{highest + 1:0{digits}d}"
 
 
 def create_voucher_service(session: Session, voucher_in: VoucherCreate, user_id: int, client_id: str = None):
@@ -46,11 +68,16 @@ def create_voucher_service(session: Session, voucher_in: VoucherCreate, user_id:
 
     splits, primary = normalize_splits(voucher_in.payment_splits, voucher_in.paid_amount or 0.0)
 
-    # 5. Create voucher
+    # 5. Create voucher (number: typed one, or the next auto number)
+    number = (voucher_in.voucher_number or "").strip()
+    if voucher_in.auto_number:
+        number = next_voucher_number(session, voucher_in.auto_number)
+    if not number:
+        raise HTTPException(status_code=400, detail="Voucher number is required")
     voucher = Voucher(
         client_id=client_id,
         customer_id=voucher_in.customer_id,
-        voucher_number=voucher_in.voucher_number,
+        voucher_number=number,
         voucher_date=voucher_in.voucher_date or get_yangon_date(),
         items_total=items_total,
         extra_charge_note=voucher_in.extra_charge_note or None,

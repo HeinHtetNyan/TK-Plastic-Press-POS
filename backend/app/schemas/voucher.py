@@ -1,5 +1,5 @@
 from datetime import datetime, date
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Literal
 from pydantic import BaseModel, Field, field_validator, field_serializer
 from app.models.enums import PaymentMethod
 from app.schemas.payment import PaymentSplit
@@ -67,7 +67,16 @@ class VoucherBase(BaseModel):
             return v.strftime("%d-%m-%Y")
         return v
 
+class AutoNumber(BaseModel):
+    """Ask the server to pick the voucher number. kind YEAR -> 2026-0001; PREFIX -> <prefix><zero-padded running number>."""
+    kind: Literal["YEAR", "PREFIX"]
+    prefix: str = Field(default="", max_length=12)
+    digits: int = Field(default=4, ge=1, le=9)
+
+
 class VoucherCreate(VoucherBase):
+    voucher_number: Optional[str] = None  # typed number; may be empty when auto_number is given
+    auto_number: Optional[AutoNumber] = None
     items: List[ItemCreate]
     client_id: Optional[str] = None
 
