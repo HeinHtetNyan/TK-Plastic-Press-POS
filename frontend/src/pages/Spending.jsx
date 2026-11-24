@@ -22,15 +22,22 @@ const Spending = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editingClientId, setEditingClientId] = useState(null);
-  const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState('');
+  // Several lines (what for + amount) are saved as ONE record: the description is built from the lines
+  // and the amount is their sum (same shape as the existing records, so lists/totals/reports are unchanged).
+  const [lines, setLines] = useState([{ what: '', amount: '' }]);
   const [spendingDate, setSpendingDate] = useState(today());
+  const filledLines = lines.filter((l) => l.what.trim() || l.amount !== '');
+  const lineSum = lines.reduce((a, l) => a + (parseFloat(l.amount) || 0), 0);
+  const description = filledLines.length > 1
+    ? filledLines.map((l) => `${l.what.trim()} = ${l.amount}`).join('\n')
+    : (filledLines[0]?.what.trim() || '');
+  const amount = lineSum > 0 ? String(Math.round(lineSum * 100) / 100) : '';
+  const setLine = (i, patch) => setLines((ls) => ls.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
 
   const resetForm = () => {
     setEditingId(null);
     setEditingClientId(null);
-    setDescription('');
-    setAmount('');
+    setLines([{ what: '', amount: '' }]);
     setSpendingDate(today());
     setShowForm(false);
   };
@@ -66,8 +73,8 @@ const Spending = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!description.trim()) return alert(t('spending_desc_required'));
-    if (!amount || parseFloat(amount) <= 0) return alert(t('spending_amount_required'));
+    if (filledLines.length === 0 || filledLines.some((l) => !l.what.trim())) return alert(t('spending_desc_required'));
+    if (filledLines.some((l) => !(parseFloat(l.amount) > 0))) return alert(t('spending_amount_required'));
 
     setSaving(true);
     const now = new Date().toISOString();
@@ -189,14 +196,20 @@ const Spending = () => {
   const handleEdit = (s) => {
     setEditingId(s.id);
     setEditingClientId(s.client_id);
-    setDescription(s.description);
-    setAmount(String(s.amount));
+    setLines([{ what: s.description || '', amount: String(s.amount) }]);
     setSpendingDate(s.spending_date || today());
     setShowForm(true);
   };
 
+  // delete = confirm pop-up first (was window.confirm); the delete logic itself is unchanged
+  const [confirmDel, setConfirmDel] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const handleDelete = async (s) => {
-    if (!window.confirm(t('spending_delete_confirm'))) return;
+    setDeleting(true);
+    try { await doDelete(s); } finally { setDeleting(false); setConfirmDel(null); }
+  };
+
+  const doDelete = async (s) => {
     const now = new Date().toISOString();
 
     if (navigator.onLine && s.id) {
@@ -245,86 +258,173 @@ const Spending = () => {
 
   const totalSpending = spendings.reduce((sum, s) => sum + (s.amount || 0), 0);
 
+  const inputBase = 'w-full px-3 py-3 min-h-[var(--ctl)] bg-row border border-line-strong rounded-xl focus:border-accent outline-none transition-all';
+  const paged = paginate(spendings, spPage, 20);
+
   return (
     <Layout>
-      <div className="space-y-6 pb-12 animate-in fade-in duration-500">
-        <header className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-orange-50 text-orange-600 rounded-2xl">
-              <TrendingDown size={24} />
-            </div>
-            <div>
-              <h2 className="text-2xl sm:text-3xl font-black text-gray-900">{t('spending')}</h2>
-              <p className="text-base font-bold text-gray-600 uppercase tracking-wider">{t('spending_subtitle')}</p>
-            </div>
-          </div>
+      <div className="space-y-4 pb-12">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-base text-muted">{t('spending_subtitle')}</p>
           <button
             onClick={() => { resetForm(); setShowForm(true); }}
-            className="flex items-center gap-2 bg-orange-500 text-white px-4 py-2.5 rounded-2xl font-black text-base hover:bg-orange-600 active:scale-95 transition-all shadow-lg shadow-orange-100"
+            className="flex items-center gap-2 bg-accent text-on-accent px-5 min-h-[52px] rounded-xl font-semibold text-base hover:opacity-90 transition-all"
           >
-            <Plus size={18} />
+            <Plus size={20} />
             {t('add_spending')}
           </button>
-        </header>
+        </div>
 
         {!navigator.onLine && (
-          <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-200 text-yellow-800 text-base font-bold px-4 py-3 rounded-xl">
-            <WifiOff size={14} />
+          <div className="flex items-center gap-2 bg-extra-bg text-extra text-base font-medium px-4 py-3 rounded-xl">
+            <WifiOff size={16} />
             {t('offline_spending_notice')}
           </div>
         )}
 
-        {/* Summary card */}
-        <div className="bg-orange-50 border border-orange-100 p-5 rounded-3xl flex items-center gap-4">
-          <div className="p-3 bg-orange-500 text-white rounded-2xl">
-            <TrendingDown size={22} />
+        {/* Total panel: total spending and the number of records, one card divided by a thin line */}
+        <section className="bg-row rounded-2xl shadow-sm overflow-hidden">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-px bg-line">
+            <div className="bg-row px-5 py-4 min-w-0">
+              <span className="text-[length:var(--sfs)] text-muted block">{t('total_spending')}</span>
+              <span className="flex flex-wrap items-baseline gap-x-1.5">
+                <span className="text-2xl font-semibold text-ink tabular-nums">
+                  {totalSpending.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                </span>
+                <span className="text-sm font-medium text-muted">MMK</span>
+              </span>
+            </div>
+            <div className="bg-row px-5 py-4 text-right min-w-[7rem]">
+              <span className="text-[length:var(--sfs)] text-muted block">{t('x_records')}</span>
+              <span className="text-2xl font-semibold text-ink tabular-nums">{spendings.length.toLocaleString()}</span>
+            </div>
           </div>
-          <div>
-            <span className="text-base font-black text-orange-400 uppercase block tracking-wider">{t('total_spending')}</span>
-            <span className="text-2xl font-black text-orange-600">
-              {totalSpending.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-              <span className="text-base ml-1 font-bold opacity-50">MMK</span>
-            </span>
-          </div>
-        </div>
+        </section>
 
-        {/* Add / Edit Form */}
-        {showForm && (
-          <div className="bg-white p-5 rounded-3xl border-2 border-orange-200 shadow-sm space-y-4 animate-in slide-in-from-top-2 duration-300">
-            <div className="flex items-center justify-between">
-              <h3 className="font-black text-gray-700 uppercase text-base tracking-widest">
+        {/* Spending list */}
+        {loading ? (
+          <div className="py-12 text-center text-muted">{t('loading')}...</div>
+        ) : spendings.length === 0 ? (
+          <div className="py-16 text-center text-muted bg-row rounded-2xl shadow-sm">
+            {t('no_spendings')}
+          </div>
+        ) : (
+          <div className="bg-row rounded-2xl shadow-sm overflow-hidden divide-y divide-line">
+            {paged.rows.map((s, i) => {
+              const key = s.client_id || s.id || i;
+              const isExpanded = expandedIds.has(key);
+              return (
+                <div
+                  key={key}
+                  className="px-4 py-2 min-h-[var(--row-h)] hover:bg-zebra transition-colors cursor-pointer"
+                  onClick={() => toggleExpand(key)}
+                >
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0 sm:flex-nowrap sm:grid sm:grid-cols-[7rem_minmax(0,1fr)_auto] sm:gap-x-4">
+                    <span className="hidden sm:block text-sm text-muted tabular-nums">
+                      {s.spending_date}
+                      {s.sync_status === 'pending' && <span className="block text-extra">(pending sync)</span>}
+                    </span>
+                    <div className="basis-full sm:basis-auto sm:flex-1 min-w-0 py-1">
+                      <span className={`font-semibold text-ink text-base leading-snug break-words whitespace-pre-wrap ${isExpanded ? 'block' : 'line-clamp-2'}`}>
+                        {s.description}
+                      </span>
+                      <span className="sm:hidden text-sm text-muted mt-0.5 block">
+                        {s.spending_date}
+                        {s.sync_status === 'pending' && (
+                          <span className="ml-2 text-extra">(pending sync)</span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-0.5 flex-shrink-0 ml-auto">
+                      <span className="text-lg font-semibold text-ink tabular-nums mr-1 text-right min-w-[6.5rem]">
+                        {(s.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                        <span className="text-sm ml-1 font-medium text-muted">MMK</span>
+                      </span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleEdit(s); }}
+                        aria-label={t('edit_spending')}
+                        className="w-11 h-11 flex items-center justify-center text-muted hover:text-accent hover:bg-band rounded-xl transition-all"
+                      >
+                        <Pencil size={18} />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setConfirmDel(s); }}
+                        aria-label={t('delete')}
+                        className="w-11 h-11 flex items-center justify-center text-debt hover:bg-debt-bg rounded-xl transition-all"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            <Pager page={paged.page} pages={paged.pages} onChange={setSpPage} className="p-3" />
+          </div>
+        )}
+      </div>
+
+      {/* Add / Edit pop-up: bottom sheet on phone, centred dialog on tablet / PC */}
+      {showForm && (
+        <div className="fixed inset-0 z-50 bg-[var(--scrim)] flex items-end sm:items-center justify-center sm:p-4" onClick={resetForm}>
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={editingId ? t('edit_spending') : t('add_spending')}
+            className="bg-row w-full sm:max-w-md max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl shadow-lg p-5 sm:p-6 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 rounded-full bg-line-strong mx-auto mb-3 sm:hidden" aria-hidden="true" />
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-ink text-lg">
                 {editingId ? t('edit_spending') : t('add_spending')}
               </h3>
-              <button onClick={resetForm} className="text-gray-400 hover:text-gray-600">
+              <button onClick={resetForm} aria-label={t('x_cancel')} className="w-11 h-11 -mr-2 flex items-center justify-center text-muted hover:text-ink hover:bg-band rounded-xl">
                 <X size={20} />
               </button>
             </div>
+            {!navigator.onLine && (
+              <p className="text-sm text-extra bg-extra-bg rounded-xl px-3 py-2 mb-3">{t('offline_spending_notice')}</p>
+            )}
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-base font-black text-gray-600 uppercase px-1 tracking-widest">{t('spending_description')}</label>
-                  <textarea
-                    required
-                    rows={3}
-                    className="w-full p-3 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-orange-400 outline-none transition-all font-bold resize-y"
-                    placeholder={t('spending_desc_placeholder')}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                  />
+              <div className="space-y-2">
+                <div className="grid grid-cols-[1fr_7.5rem_2.75rem] sm:grid-cols-[1fr_10rem_2.75rem] gap-2 px-1 text-sm font-medium text-muted">
+                  <span>{t('spending_what_for')}</span><span className="text-right">{t('spending_amount')}</span><span />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-base font-black text-gray-600 uppercase px-1 tracking-widest">{t('spending_amount')}</label>
-                  <input
-                    type="number"
-                    required
-                    min="0"
-                    step="any"
-                    className="w-full p-3 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-orange-400 outline-none transition-all font-bold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                    placeholder="0"
-                    value={amount}
-                    onKeyDown={(e) => e.key === '-' && e.preventDefault()}
-                    onChange={(e) => setAmount(e.target.value)}
-                  />
+                {lines.map((l, i) => (
+                  <div key={i} className="grid grid-cols-[1fr_7.5rem_2.75rem] sm:grid-cols-[1fr_10rem_2.75rem] gap-2 items-start">
+                    <textarea
+                      rows={1}
+                      autoFocus={i === 0}
+                      aria-label={t('spending_what_for')}
+                      className={`${inputBase} resize-y font-medium`}
+                      placeholder={t('spending_desc_placeholder')}
+                      value={l.what}
+                      onChange={(e) => setLine(i, { what: e.target.value })}
+                    />
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      inputMode="decimal"
+                      aria-label={t('spending_amount')}
+                      className={`${inputBase} font-medium text-right tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
+                      placeholder="0"
+                      value={l.amount}
+                      onKeyDown={(e) => e.key === '-' && e.preventDefault()}
+                      onChange={(e) => setLine(i, { amount: e.target.value })}
+                    />
+                    {lines.length > 1 ? (
+                      <button type="button" onClick={() => setLines((ls) => ls.filter((_, idx) => idx !== i))} aria-label={t('x_cancel')} className="w-11 h-12 flex items-center justify-center text-debt hover:bg-debt-bg rounded-xl"><Trash2 size={18} /></button>
+                    ) : <span />}
+                  </div>
+                ))}
+                <button type="button" onClick={() => setLines((ls) => [...ls, { what: '', amount: '' }])} className="flex items-center gap-2 min-h-[48px] px-4 rounded-xl font-medium bg-row border border-line-strong text-ink">
+                  <Plus size={18} /> {t('spending_add_more')}
+                </button>
+                <div className="flex items-baseline justify-between gap-3 rounded-xl bg-band px-4 py-3">
+                  <span className="text-muted font-medium">{t('spending_sum')}</span>
+                  <span className="text-2xl font-semibold tabular-nums text-ink">{lineSum.toLocaleString(undefined, { maximumFractionDigits: 2 })} <span className="text-sm font-medium text-muted">MMK</span></span>
                 </div>
               </div>
               <DropdownDatePicker
@@ -332,74 +432,67 @@ const Spending = () => {
                 value={spendingDate}
                 onChange={setSpendingDate}
               />
-              <button
-                type="submit"
-                disabled={saving}
-                className="w-full p-4 rounded-2xl text-white font-black bg-orange-500 hover:bg-orange-600 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                <Save size={20} />
-                {saving ? t('saving') : t('save_spending')}
-              </button>
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="flex-1 min-h-[52px] px-4 rounded-xl font-medium bg-row border border-line-strong text-ink"
+                >
+                  {t('x_cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-[1.4] min-h-[52px] px-4 rounded-xl text-on-accent font-semibold bg-ok hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <Save size={20} />
+                  {saving ? t('saving') : t('save_spending')}
+                </button>
+              </div>
             </form>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Spending list */}
-        {loading ? (
-          <div className="py-12 text-center text-gray-400 font-bold">{t('loading')}...</div>
-        ) : spendings.length === 0 ? (
-          <div className="py-16 text-center text-gray-400 font-bold bg-gray-50 rounded-3xl border-2 border-dashed border-gray-100">
-            {t('no_spendings')}
+      {/* Delete confirm pop-up (replaces window.confirm) */}
+      {confirmDel && (
+        <div className="fixed inset-0 z-50 bg-[var(--scrim)] flex items-end sm:items-center justify-center sm:p-4" onClick={() => !deleting && setConfirmDel(null)}>
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-label={t('delete')}
+            className="bg-row w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl shadow-lg p-5 sm:p-6 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 rounded-full bg-line-strong mx-auto mb-3 sm:hidden" aria-hidden="true" />
+            <h3 className="font-semibold text-ink text-lg mb-1">{t('delete')}</h3>
+            <p className="text-ink font-medium break-words line-clamp-2">{confirmDel.description}</p>
+            <p className="text-muted tabular-nums mb-3">
+              {confirmDel.spending_date} &middot; {(confirmDel.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} MMK
+            </p>
+            <p className="text-muted mb-4">{t('spending_delete_confirm')}</p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => setConfirmDel(null)}
+                className="flex-1 min-h-[52px] px-4 rounded-xl font-medium bg-row border border-line-strong text-ink"
+              >
+                {t('x_cancel')}
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => handleDelete(confirmDel)}
+                className="flex-1 min-h-[52px] px-4 rounded-xl font-semibold bg-danger text-on-danger flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                <Trash2 size={18} />
+                {t('delete')}
+              </button>
+            </div>
           </div>
-        ) : (
-          <div className="space-y-3">
-            {paginate(spendings, spPage, 20).rows.map((s, i) => {
-              const key = s.client_id || s.id || i;
-              const isExpanded = expandedIds.has(key);
-              return (
-                <div
-                  key={key}
-                  className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer"
-                  onClick={() => toggleExpand(key)}
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
-                    <div className="flex-1 min-w-[10rem]">
-                      <span className={`font-black text-gray-800 text-lg leading-tight break-words whitespace-pre-wrap ${isExpanded ? 'block' : 'line-clamp-2'}`}>
-                        {s.description}
-                      </span>
-                      <span className="text-base font-black text-gray-600 uppercase tracking-wider mt-1 block">
-                        {s.spending_date}
-                        {s.sync_status === 'pending' && (
-                          <span className="ml-2 text-yellow-500">(pending sync)</span>
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="text-xl font-black text-orange-600 tabular-nums">
-                        {(s.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-                        <span className="text-base ml-1 font-bold opacity-50">MMK</span>
-                      </span>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleEdit(s); }}
-                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
-                      >
-                        <Pencil size={16} />
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleDelete(s); }}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-            <Pager page={paginate(spendings, spPage, 20).page} pages={paginate(spendings, spPage, 20).pages} onChange={setSpPage} className="pt-2" />
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </Layout>
   );
 };

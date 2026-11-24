@@ -15,6 +15,11 @@ import { wastesToPayload, coreTotal, wasteError } from '../utils/waste';
 import { usePlasticOptions } from '../hooks/usePlasticOptions';
 import { emptyParts, partsToSplits, splitError, primaryMethod } from '../utils/paymentSplits';
 
+// Shared look for number / text boxes and small labels on this page
+const inp = 'w-full px-3 h-[var(--ctl)] bg-row border border-line-strong rounded-xl focus:border-accent focus:ring-1 focus:ring-accent outline-none text-right font-medium tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
+const inpL = inp.replace('text-right', 'text-left');
+const lab = 'block truncate text-sm font-medium text-muted';
+
 const Voucher = () => {
   const { t } = useLanguage();
   const { options, addOption } = usePlasticOptions();
@@ -262,383 +267,394 @@ const Voucher = () => {
   };
 
   const paymentMethods = [
-    { id: 'CASH', label: t('cash'), icon: Banknote, active: 'bg-green-600 text-white' },
-    { id: 'KBZPAY', label: t('kbzpay'), icon: Smartphone, active: 'bg-blue-600 text-white' },
-    { id: 'BANK_TRANSFER', label: t('bank_transfer'), icon: Landmark, active: 'bg-purple-600 text-white' },
+    { id: 'CASH', label: t('cash'), icon: Banknote, active: 'bg-ok text-on-accent' },
+    { id: 'KBZPAY', label: t('kbzpay'), icon: Smartphone, active: 'bg-accent text-on-accent' },
+    { id: 'BANK_TRANSFER', label: t('bank_transfer'), icon: Landmark, active: 'bg-m-bank text-on-accent' },
   ];
 
   return (
     <Layout>
-      <div className="space-y-5 pb-32 lg:pb-12 animate-in slide-in-from-right-4 duration-500">
-        <header className="flex items-center gap-4">
-          <button onClick={() => navigate('/', { state: { customer } })} className="p-2 bg-white rounded-full shadow-sm hover:bg-gray-100 transition-all">
-            <ArrowLeft size={24} className="text-gray-600" />
+      <div className="space-y-4 pb-36 xl:pb-12 max-w-[1280px] mx-auto">
+        <header className="flex items-center gap-3">
+          <button onClick={() => navigate('/', { state: { customer } })} aria-label="Back" className="w-[var(--ctl)] h-[var(--ctl)] flex items-center justify-center bg-row shadow-sm rounded-xl hover:bg-band transition-all">
+            <ArrowLeft size={22} className="text-ink" />
           </button>
-          <h2 className="text-2xl sm:text-3xl font-black text-gray-900">{t('create_voucher')}</h2>
+          <h2 className="text-xl sm:text-2xl font-semibold text-ink">{t('create_voucher')}</h2>
         </header>
 
         {!navigator.onLine && (
-          <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-200 text-yellow-800 text-base font-bold px-4 py-3 rounded-xl">
+          <div className="flex items-center gap-2 bg-extra-bg text-extra text-base font-medium px-4 py-3 rounded-xl">
             <WifiOff size={14} />
             {t('offline_voucher_notice')}
           </div>
         )}
 
         {customer && (
-          <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex justify-between items-center">
-            <span className="font-bold text-blue-800 text-lg">{customer.name}</span>
-            <div className="text-right">
-              <span className="text-base text-blue-600 uppercase font-bold block">
-                {t('previous_balance')}{balanceIsEstimate ? ` ${t('est')}` : ''}
-              </span>
-              <span className="text-lg font-black text-blue-700">{balance.toLocaleString()} MMK</span>
-            </div>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-base font-bold text-gray-600 uppercase px-1">{t('voucher_number')}</label>
-              <div className="grid grid-cols-2 gap-1 p-1 bg-gray-100 rounded-xl">
-                {[['custom', t('vn_custom')], ['auto', t('vn_auto')]].map(([m, label]) => (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => setCfg({ mode: m })}
-                    className={`py-2 rounded-lg font-black text-base transition-all ${numCfg.mode === m ? 'bg-blue-600 text-white shadow' : 'text-gray-600'}`}
-                  >{label}</button>
-                ))}
-              </div>
-              {!isAuto ? (
-                <input
-                  required
-                  type="text"
-                  className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 outline-none transition-all font-bold text-lg"
-                  placeholder="V-001"
-                  value={voucherNumber}
-                  onChange={(e) => setVoucherNumber(e.target.value)}
-                />
-              ) : (
-                <div className="space-y-2 p-3 border-2 border-blue-100 bg-blue-50 rounded-xl">
-                  <select
-                    className="w-full p-2 border-2 border-gray-200 rounded-lg bg-white font-bold text-base"
-                    value={numCfg.kind}
-                    onChange={(e) => setCfg({ kind: e.target.value })}
-                  >
-                    <option value="YEAR">{t('vn_pattern_year')}</option>
-                    <option value="PREFIX">{t('vn_pattern_prefix')}</option>
-                  </select>
-                  {numCfg.kind === 'PREFIX' && (
-                    <div className="grid grid-cols-2 gap-2">
-                      <label className="text-sm font-bold text-gray-600">{t('vn_prefix')}
-                        <input type="text" maxLength={12} className="w-full mt-1 p-2 border-2 border-gray-200 rounded-lg bg-white font-bold" value={numCfg.prefix} onChange={(e) => setCfg({ prefix: e.target.value })} />
-                      </label>
-                      <label className="text-sm font-bold text-gray-600">{t('vn_digits')}
-                        <input type="number" min={1} max={9} className="w-full mt-1 p-2 border-2 border-gray-200 rounded-lg bg-white font-bold" value={numCfg.digits} onChange={(e) => setCfg({ digits: e.target.value })} />
-                      </label>
+          <form onSubmit={handleSubmit} className="space-y-4 xl:space-y-0 xl:grid xl:grid-cols-[minmax(0,1fr)_360px] xl:gap-6 xl:items-start">
+            <div className="space-y-4 min-w-0">
+              {/* Who, and what they owed before this voucher */}
+              <section className="bg-row rounded-2xl shadow-sm overflow-hidden">
+                <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 px-5 py-4">
+                  <div className="min-w-0">
+                    <span className="block text-sm text-muted">{t('customer')}</span>
+                    <span className="block text-xl font-semibold text-ink break-words">{customer.name}</span>
+                  </div>
+                  <div className="sm:text-right">
+                    <span className="block text-sm text-muted">{t('previous_balance')}{balanceIsEstimate ? ` ${t('est')}` : ''}</span>
+                    <span className={`block text-xl font-semibold tabular-nums ${balance > 0 ? 'text-debt' : 'text-ok'}`}>{balance.toLocaleString()} <span className="text-sm font-medium text-muted">MMK</span></span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-line border-t border-line">
+                  <div className="bg-row px-5 py-4 space-y-2 min-w-0">
+                    <label className={lab}>{t('voucher_number')}</label>
+                    <div className="grid grid-cols-2 rounded-xl overflow-hidden border border-line-strong">
+                      {[['custom', t('vn_custom')], ['auto', t('vn_auto')]].map(([m, label]) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => setCfg({ mode: m })}
+                          className={`h-[var(--ctl)] font-medium text-base transition-all ${numCfg.mode === m ? 'bg-accent text-on-accent' : 'bg-row text-ink hover:bg-band'}`}
+                        >{label}</button>
+                      ))}
                     </div>
-                  )}
-                  <p className="text-sm font-bold text-blue-700">{t('vn_example')}: {autoExample} &middot; {t('vn_auto_hint')}</p>
-                </div>
-              )}
-            </div>
-            <DropdownDatePicker
-              label={t('voucher_date')}
-              value={voucherDate}
-              onChange={setVoucherDate}
-            />
-          </div>
-
-          <div className="space-y-4">
-            <h3 className="text-xl font-black text-gray-800 flex justify-between items-center px-1">
-              {t('items')}
-              <button type="button" onClick={addItem} className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 transition-colors shadow-lg shadow-blue-100">
-                <Plus size={20} />
-              </button>
-            </h3>
-
-            {items.map((item, index) => (
-              <div key={index} className="bg-white p-3 sm:p-4 rounded-3xl shadow-sm border border-gray-100 space-y-3 sm:space-y-4 relative overflow-hidden">
-                <div className="flex justify-between items-center">
-                  <span className="bg-gray-100 px-3 py-1 rounded-full text-sm font-black text-gray-500 uppercase tracking-widest">{t('item')} {index + 1}</span>
-                  {items.length > 1 && (
-                    <button type="button" onClick={() => removeItem(index)} className="text-red-400 hover:text-red-600 transition-colors">
-                      <Trash2 size={18} />
-                    </button>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
-                  <div className="space-y-1 sm:col-span-1">
-                    <label className="block truncate text-base font-black text-gray-600 uppercase px-1 tracking-widest">{t('size')}</label>
-                    <SizeInput
-                      autoFocus={index > 0 && index === items.length - 1}
-                      required
-                      placeholder={t('pick_or_type')}
-                      addLabel={t('add_new')}
-                      secondPlaceholder={t('size_second')}
-                      sizes={options.sizes}
-                      value={item.plastic_size}
-                      onChange={(v) => handleItemChange(index, 'plastic_size', v)}
-                      addOption={addOption}
-                    />
+                    {!isAuto ? (
+                      <input
+                        required
+                        type="text"
+                        className={`${inpL} text-lg`}
+                        placeholder="V-001"
+                        value={voucherNumber}
+                        onChange={(e) => setVoucherNumber(e.target.value)}
+                      />
+                    ) : (
+                      <div className="space-y-2 p-3 bg-band rounded-xl">
+                        <select
+                          className={`${inpL} text-base`}
+                          value={numCfg.kind}
+                          onChange={(e) => setCfg({ kind: e.target.value })}
+                        >
+                          <option value="YEAR">{t('vn_pattern_year')}</option>
+                          <option value="PREFIX">{t('vn_pattern_prefix')}</option>
+                        </select>
+                        {numCfg.kind === 'PREFIX' && (
+                          <div className="grid grid-cols-2 gap-2">
+                            <label className="text-sm font-medium text-muted">{t('vn_prefix')}
+                              <input type="text" maxLength={12} className={`${inpL} mt-1`} value={numCfg.prefix} onChange={(e) => setCfg({ prefix: e.target.value })} />
+                            </label>
+                            <label className="text-sm font-medium text-muted">{t('vn_digits')}
+                              <input type="number" min={1} max={9} className={`${inp} mt-1`} value={numCfg.digits} onChange={(e) => setCfg({ digits: e.target.value })} />
+                            </label>
+                          </div>
+                        )}
+                        <p className="text-sm text-muted">{t('vn_example')}: {autoExample} &middot; {t('vn_auto_hint')}</p>
+                      </div>
+                    )}
                   </div>
-                  <div className="space-y-1 sm:col-span-1">
-                    <label className="block truncate text-base font-black text-gray-600 uppercase px-1 tracking-widest">{t('gate')}</label>
-                    <Combo
-                      placeholder={t('pick_or_type')}
-                      addLabel={t('add_new')}
-                      options={options.gates}
-                      value={item.gate}
-                      onChange={(v) => handleItemChange(index, 'gate', v)}
-                      onAdd={(name) => addOption('GATE', name)}
-                    />
-                  </div>
-                  <div className="space-y-1 sm:col-span-1">
-                    <label className="block truncate text-base font-black text-gray-600 uppercase px-1 tracking-widest">{t('plastic_color')}</label>
-                    <Combo
-                      required
-                      placeholder={t('pick_or_type')}
-                      addLabel={t('add_new')}
-                      options={options.colors}
-                      value={item.color}
-                      onChange={(v) => handleItemChange(index, 'color', v)}
-                      onAdd={(name) => addOption('COLOR', name)}
-                    />
-                  </div>
-                  <div className="space-y-1 sm:col-span-1">
-                    <label className="block truncate text-sm font-black text-gray-400 uppercase px-1 tracking-widest">{t('print_color')}</label>
-                    <Combo
-                      placeholder={t('pick_or_type')}
-                      addLabel={t('add_new')}
-                      options={options.prints || []}
-                      value={item.print_color}
-                      onChange={(v) => handleItemChange(index, 'print_color', v)}
-                      onAdd={(name) => addOption('PRINT', name)}
-                    />
-                  </div>
-                  <div className="space-y-1 sm:col-span-1">
-                    <label className="block truncate text-base font-black text-gray-600 uppercase px-1 tracking-widest">{t('weight_lb')}</label>
-                    <input
-                      type="number" step="any" required min="0"
-                      className="w-full p-2 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none transition-all font-bold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                      value={item.lb}
-                      onKeyDown={(e) => e.key === '-' && e.preventDefault()}
-                      onChange={(e) => handleItemChange(index, 'lb', e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1 sm:col-span-1">
-                    <label className="block truncate text-base font-black text-gray-600 uppercase px-1 tracking-widest">{t('plastic_price')}</label>
-                    <input
-                      type="number" required min="0" step="any"
-                      className="w-full p-2 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none transition-all font-bold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                      value={item.plastic_price}
-                      onKeyDown={(e) => e.key === '-' && e.preventDefault()}
-                      onChange={(e) => handleItemChange(index, 'plastic_price', e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1 sm:col-span-1">
-                    <label className="block truncate text-base font-black text-gray-600 uppercase px-1 tracking-widest">{t('color_price')}</label>
-                    <input
-                      type="number" required min="0" step="any"
-                      className="w-full p-2 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none transition-all font-bold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                      value={item.color_price}
-                      onKeyDown={(e) => e.key === '-' && e.preventDefault()}
-                      onChange={(e) => handleItemChange(index, 'color_price', e.target.value)}
+                  <div className="bg-row px-5 py-4 min-w-0">
+                    <DropdownDatePicker
+                      label={t('voucher_date')}
+                      value={voucherDate}
+                      onChange={setVoucherDate}
                     />
                   </div>
                 </div>
+              </section>
 
-                <div className="bg-gray-50 px-3 py-2 sm:p-3 rounded-2xl border border-gray-100 grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-3">
-                  <div className="hidden sm:block text-sm font-bold text-gray-500">
-                    <span className="block uppercase text-xs mb-0.5 tracking-tighter">{t('plastic')}: {item.lb || 0} × {item.plastic_price || 0}</span>
-                    <div className="text-blue-600 font-black">{((item.lb || 0) * (item.plastic_price || 0)).toLocaleString()}</div>
+              {/* Items */}
+              <div className="flex items-center justify-between gap-3 pt-2">
+                <h3 className="text-lg font-semibold text-ink">{t('items')} <span className="text-muted font-medium">({items.length})</span></h3>
+                <button type="button" onClick={addItem} aria-label="Add item" className="h-[var(--ctl)] w-[var(--ctl)] bg-accent text-on-accent rounded-full hover:opacity-90 transition-opacity flex items-center justify-center">
+                  <Plus size={22} />
+                </button>
+              </div>
+
+              {items.map((item, index) => (
+                <section key={index} className="bg-row rounded-2xl shadow-sm overflow-hidden">
+                  <div className="flex justify-between items-center px-5 py-3 border-b border-line">
+                    <span className="inline-flex items-center px-3 py-0.5 rounded-full bg-band text-sm font-semibold text-ink">{t('item')} {index + 1}</span>
+                    {items.length > 1 && (
+                      <button type="button" onClick={() => removeItem(index)} aria-label="Remove item" className="w-10 h-10 flex items-center justify-center rounded-xl text-debt hover:bg-debt-bg transition-colors">
+                        <Trash2 size={18} />
+                      </button>
+                    )}
                   </div>
-                  <div className="hidden sm:block text-sm font-bold text-gray-500">
-                    <span className="block uppercase text-xs mb-0.5 tracking-tighter">{t('color')}: {item.lb || 0} × {item.color_price || 0}</span>
-                    <div className="text-blue-600 font-black">{((item.lb || 0) * (item.color_price || 0)).toLocaleString()}</div>
+
+                  <div className="px-5 py-4 grid grid-cols-2 md:grid-cols-12 gap-x-3 gap-y-3">
+                    <div className="space-y-1 col-span-2 md:col-span-6">
+                      <label className={lab}>{t('size')}</label>
+                      <SizeInput
+                        autoFocus={index > 0 && index === items.length - 1}
+                        required
+                        placeholder={t('pick_or_type')}
+                        addLabel={t('add_new')}
+                        secondPlaceholder={t('size_second')}
+                        sizes={options.sizes}
+                        value={item.plastic_size}
+                        onChange={(v) => handleItemChange(index, 'plastic_size', v)}
+                        addOption={addOption}
+                      />
+                    </div>
+                    <div className="space-y-1 md:col-span-3">
+                      <label className={lab}>{t('gate')}</label>
+                      <Combo
+                        placeholder={t('pick_or_type')}
+                        addLabel={t('add_new')}
+                        options={options.gates}
+                        value={item.gate}
+                        onChange={(v) => handleItemChange(index, 'gate', v)}
+                        onAdd={(name) => addOption('GATE', name)}
+                      />
+                    </div>
+                    <div className="space-y-1 md:col-span-3">
+                      <label className={lab}>{t('plastic_color')}</label>
+                      <Combo
+                        required
+                        placeholder={t('pick_or_type')}
+                        addLabel={t('add_new')}
+                        options={options.colors}
+                        value={item.color}
+                        onChange={(v) => handleItemChange(index, 'color', v)}
+                        onAdd={(name) => addOption('COLOR', name)}
+                      />
+                    </div>
+                    <div className="space-y-1 md:col-span-3">
+                      <label className={lab}>{t('print_color')}</label>
+                      <Combo
+                        placeholder={t('pick_or_type')}
+                        addLabel={t('add_new')}
+                        options={options.prints || []}
+                        value={item.print_color}
+                        onChange={(v) => handleItemChange(index, 'print_color', v)}
+                        onAdd={(name) => addOption('PRINT', name)}
+                      />
+                    </div>
+                    <div className="space-y-1 md:col-span-3">
+                      <label className={lab}>{t('weight_lb')}</label>
+                      <input
+                        type="number" step="any" required min="0"
+                        className={inp}
+                        value={item.lb}
+                        onKeyDown={(e) => e.key === '-' && e.preventDefault()}
+                        onChange={(e) => handleItemChange(index, 'lb', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1 md:col-span-3">
+                      <label className={lab}>{t('plastic_price')}</label>
+                      <input
+                        type="number" required min="0" step="any"
+                        className={inp}
+                        value={item.plastic_price}
+                        onKeyDown={(e) => e.key === '-' && e.preventDefault()}
+                        onChange={(e) => handleItemChange(index, 'plastic_price', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1 md:col-span-3">
+                      <label className={lab}>{t('color_price')}</label>
+                      <input
+                        type="number" required min="0" step="any"
+                        className={inp}
+                        value={item.color_price}
+                        onKeyDown={(e) => e.key === '-' && e.preventDefault()}
+                        onChange={(e) => handleItemChange(index, 'color_price', e.target.value)}
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between sm:text-right sm:flex-col sm:items-end sm:justify-center">
-                    <span className="text-sm font-black text-gray-600 uppercase block tracking-widest">{t('total')}</span>
-                    <span className="text-lg font-black text-blue-700">{(item.total_price || 0).toLocaleString()} <span className="text-base">MMK</span></span>
+
+                  {/* Live working-out for this item: plastic + colour = total, as a ruled strip */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-px bg-line border-t border-line">
+                    <div className="bg-band px-5 py-3 min-w-0">
+                      <span className="block text-sm text-muted">{t('plastic')}: {item.lb || 0} × {item.plastic_price || 0}</span>
+                      <span className="block font-semibold text-ink tabular-nums">{((item.lb || 0) * (item.plastic_price || 0)).toLocaleString()}</span>
+                    </div>
+                    <div className="bg-band px-5 py-3 min-w-0">
+                      <span className="block text-sm text-muted">{t('color')}: {item.lb || 0} × {item.color_price || 0}</span>
+                      <span className="block font-semibold text-ink tabular-nums">{((item.lb || 0) * (item.color_price || 0)).toLocaleString()}</span>
+                    </div>
+                    <div className="bg-band px-5 py-3 col-span-2 sm:col-span-1 flex sm:block items-baseline justify-between">
+                      <span className="block text-sm text-muted">{t('total')}</span>
+                      <span className="block text-xl font-semibold text-accent tabular-nums">{(item.total_price || 0).toLocaleString()} <span className="text-sm font-medium text-muted">MMK</span></span>
+                    </div>
+                  </div>
+                </section>
+              ))}
+
+              <WasteBox wastes={wastes} onChange={setWastes} options={options} addOption={addOption} firstItem={items[0]} />
+
+              {/* Note, extra charge and discount grouped in one card */}
+              <section className="bg-row rounded-2xl shadow-sm overflow-hidden">
+                <div className="px-5 py-4 space-y-1">
+                  <label className={lab}>{t('voucher_note')}</label>
+                  <textarea
+                    className="w-full p-3 bg-row border border-line-strong rounded-xl focus:border-accent focus:ring-1 focus:ring-accent outline-none font-medium"
+                    placeholder={t('add_note_placeholder')}
+                    rows="2"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-line border-t border-line">
+                  <div className="bg-row px-5 py-4 space-y-3 min-w-0">
+                    <span className="block text-base font-semibold text-ink">{t('x2_extra_charge')} <span className="text-muted font-normal">({t('optional')})</span></span>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className={lab}>{t('x2_label')}</label>
+                        <input
+                          type="text"
+                          className={inpL}
+                          placeholder={t('x2_ph_delivery')}
+                          value={extraChargeNote}
+                          onChange={(e) => setExtraChargeNote(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className={lab}>{t('amount')}</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="any"
+                          className={inp}
+                          placeholder="0"
+                          value={extraChargeAmount}
+                          onKeyDown={(e) => e.key === '-' && e.preventDefault()}
+                          onChange={(e) => setExtraChargeAmount(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-row px-5 py-4 space-y-3 min-w-0">
+                    <span className="block text-base font-semibold text-ink">{t('discount')} <span className="text-muted font-normal">({t('optional')})</span></span>
+                    <div className="space-y-1">
+                      <label className={lab}>{t('amount')}</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        className={inp}
+                        placeholder="0"
+                        value={discountAmount}
+                        onKeyDown={(e) => e.key === '-' && e.preventDefault()}
+                        onChange={(e) => setDiscountAmount(e.target.value)}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-
-          <WasteBox wastes={wastes} onChange={setWastes} options={options} addOption={addOption} firstItem={items[0]} />
-
-          <div className="space-y-1 px-1">
-            <label className="text-base font-bold text-gray-600 uppercase">{t('voucher_note')}</label>
-            <textarea
-              className="w-full p-4 border-2 border-gray-200 rounded-2xl focus:border-blue-500 outline-none transition-all font-bold"
-              placeholder={t('add_note_placeholder')}
-              rows="2"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-            />
-          </div>
-
-          <div className="bg-white p-4 rounded-3xl border-2 border-dashed border-gray-200 space-y-3">
-            <label className="text-base font-black text-gray-500 uppercase tracking-widest">{t('x2_extra_charge')} <span className="text-gray-300 font-bold normal-case">({t('optional')})</span></label>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-base font-black text-gray-600 uppercase px-1">{t('x2_label')}</label>
-                <input
-                  type="text"
-                  className="w-full p-3 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-orange-400 outline-none transition-all font-bold"
-                  placeholder={t('x2_ph_delivery')}
-                  value={extraChargeNote}
-                  onChange={(e) => setExtraChargeNote(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-base font-black text-gray-600 uppercase px-1">{t('amount')}</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="any"
-                  className="w-full p-3 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-orange-400 outline-none transition-all font-bold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                  placeholder="0"
-                  value={extraChargeAmount}
-                  onKeyDown={(e) => e.key === '-' && e.preventDefault()}
-                  onChange={(e) => setExtraChargeAmount(e.target.value)}
-                />
-              </div>
+              </section>
             </div>
-          </div>
 
-          <div className="bg-white p-4 rounded-3xl border-2 border-dashed border-gray-200 space-y-3">
-            <label className="text-base font-black text-gray-500 uppercase tracking-widest">{t('discount')} <span className="text-gray-300 font-bold normal-case">({t('optional')})</span></label>
-            <div className="space-y-1">
-              <label className="text-base font-black text-gray-600 uppercase px-1">{t('amount')}</label>
-              <input
-                type="number"
-                min="0"
-                step="any"
-                className="w-full p-3 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-red-400 outline-none transition-all font-bold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                placeholder="0"
-                value={discountAmount}
-                onKeyDown={(e) => e.key === '-' && e.preventDefault()}
-                onChange={(e) => setDiscountAmount(e.target.value)}
-              />
-            </div>
-          </div>
+            {/* Summary: one ruled card. Sticky on wide screens; below the form on tablet and phone. */}
+            <aside className="min-w-0 xl:sticky xl:top-4">
+              <section className="bg-row rounded-2xl shadow-sm overflow-hidden">
+                <div className="flex justify-between items-center px-5 py-3 border-b border-line text-muted">
+                  <span>{t('items_total')}</span>
+                  <span className="font-semibold text-ink tabular-nums">{itemsTotal.toLocaleString()}</span>
+                </div>
+                {extraCharge > 0 && (
+                  <div className="flex justify-between items-center gap-3 px-5 py-3 border-b border-line text-muted">
+                    <span className="min-w-0 break-words">{extraChargeNote || t('x2_extra_charge')}</span>
+                    <span className="font-semibold text-extra tabular-nums">+{extraCharge.toLocaleString()}</span>
+                  </div>
+                )}
+                {discount > 0 && (
+                  <div className="flex justify-between items-center px-5 py-3 border-b border-line text-muted">
+                    <span>{t('discount')}</span>
+                    <span className="font-semibold text-debt tabular-nums">-{discount.toLocaleString()}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center px-5 py-3 border-b border-line text-muted">
+                  <span>{t('previous_balance')}{balanceIsEstimate ? ` ${t('est')}` : ''}</span>
+                  <span className="font-semibold text-ink tabular-nums">{balance.toLocaleString()}</span>
+                </div>
+                <div className="px-5 py-4 bg-band border-b border-line">
+                  <span className="block text-sm text-muted">{t('final_total')}</span>
+                  <span className="block text-3xl font-semibold text-ink tabular-nums">{finalTotal.toLocaleString()} <span className="text-sm font-medium text-muted">MMK</span></span>
+                </div>
+                <div className="px-5 py-4 space-y-1 border-b border-line">
+                  <label className={lab}>{t('paid_amount')}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    className={`${inp} !h-14 text-2xl font-semibold`}
+                    placeholder="0"
+                    value={paidAmount}
+                    onKeyDown={(e) => e.key === '-' && e.preventDefault()}
+                    onChange={(e) => setPaidAmount(e.target.value)}
+                  />
+                </div>
+                <div className={`px-5 py-4 ${remainingBalance > 0 ? 'bg-debt-bg' : 'bg-ok-bg'}`}>
+                  <span className="block text-sm text-muted">{t('remaining_balance')}</span>
+                  <span className={`block text-2xl font-semibold tabular-nums ${remainingBalance > 0 ? 'text-debt' : 'text-ok'}`}>
+                    {remainingBalance.toLocaleString()} <span className="text-sm font-medium text-muted">MMK</span>
+                  </span>
+                </div>
 
-          <div className="bg-gray-800 p-6 rounded-3xl shadow-xl text-white space-y-4">
-            <div className="flex justify-between items-center opacity-70">
-              <span className="font-bold">{t('previous_balance')}{balanceIsEstimate ? ` ${t('est')}` : ''}</span>
-              <span className="font-bold">{balance.toLocaleString()} MMK</span>
-            </div>
-            <div className="flex justify-between items-center opacity-70">
-              <span className="font-bold">{t('items_total')}</span>
-              <span className="font-bold">{itemsTotal.toLocaleString()} MMK</span>
-            </div>
-            {extraCharge > 0 && (
-              <div className="flex justify-between items-center opacity-70">
-                <span className="font-bold">{extraChargeNote || t('x2_extra_charge')}</span>
-                <span className="font-bold text-orange-300">+{extraCharge.toLocaleString()} MMK</span>
-              </div>
-            )}
-            {discount > 0 && (
-              <div className="flex justify-between items-center opacity-70">
-                <span className="font-bold">{t('discount')}</span>
-                <span className="font-bold text-red-300">-{discount.toLocaleString()} MMK</span>
-              </div>
-            )}
-            <div className="border-t border-gray-700 pt-4 flex justify-between items-center">
-              <span className="text-xl font-black">{t('final_total')}</span>
-              <span className="text-3xl font-black text-blue-400">{finalTotal.toLocaleString()} MMK</span>
-            </div>
-          </div>
+                {parseFloat(paidAmount) > 0 && (
+                  <div className="px-5 py-4 space-y-2 border-t border-line">
+                    <label className={lab}>{t('payment_method')}</label>
+                    <SplitPicker
+                      total={paidAmount}
+                      split={splitMode}
+                      onSplitChange={setSplitMode}
+                      parts={parts}
+                      onParts={setParts}
+                      method={paymentMethod}
+                      single={(
+                        <div className="grid grid-cols-3 gap-3">
+                          {paymentMethods.map((m) => (
+                            <button
+                              key={m.id}
+                              type="button"
+                              onClick={() => setPaymentMethod(m.id)}
+                              className={`flex flex-col items-center justify-center min-h-[var(--ctl)] p-2 rounded-xl border transition-all gap-1 ${
+                                paymentMethod === m.id
+                                  ? `${m.active} border-transparent`
+                                  : 'bg-row border-line-strong text-ink hover:bg-band'
+                              }`}
+                            >
+                              <m.icon size={20} />
+                              <span className="text-sm font-semibold">{m.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    />
+                  </div>
+                )}
 
-          <div className="bg-white p-6 rounded-3xl border-2 border-blue-100 shadow-sm space-y-4">
-            <div className="space-y-2">
-              <label className="text-base font-black text-gray-600 uppercase px-1">{t('paid_amount')}</label>
-              <input
-                type="number"
-                min="0"
-                step="any"
-                className="w-full p-4 bg-blue-50 border-2 border-blue-100 rounded-2xl outline-none focus:border-blue-500 transition-all text-2xl font-black text-blue-700 text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                placeholder="0"
-                value={paidAmount}
-                onKeyDown={(e) => e.key === '-' && e.preventDefault()}
-                onChange={(e) => setPaidAmount(e.target.value)}
-              />
-            </div>
-            <div className="flex justify-between items-center bg-gray-50 p-4 rounded-2xl">
-              <span className="font-bold text-gray-500 uppercase text-base">{t('remaining_balance')}</span>
-              <span className={`text-2xl font-black ${remainingBalance > 0 ? 'text-red-500' : 'text-green-500'}`}>
-                {remainingBalance.toLocaleString()} MMK
-              </span>
-            </div>
-          </div>
-
-          {parseFloat(paidAmount) > 0 && (
-            <div className="space-y-2 px-1 animate-in fade-in slide-in-from-top-2 duration-300">
-              <label className="text-base font-bold text-gray-600 uppercase">{t('payment_method')}</label>
-              <SplitPicker
-                total={paidAmount}
-                split={splitMode}
-                onSplitChange={setSplitMode}
-                parts={parts}
-                onParts={setParts}
-                method={paymentMethod}
-                single={(
-                  <div className="grid grid-cols-3 gap-3">
-                {paymentMethods.map((m) => (
+                <div className="hidden xl:block p-5 border-t border-line">
                   <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => setPaymentMethod(m.id)}
-                    className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all gap-1 ${
-                      paymentMethod === m.id
-                        ? `${m.active} border-transparent shadow-md transform scale-105`
-                        : `bg-white border-gray-100 text-gray-400 hover:border-gray-200`
+                    type="submit"
+                    disabled={loading}
+                    className={`w-full h-14 rounded-xl text-on-accent text-lg font-semibold transition-all flex items-center justify-center gap-3 ${
+                      loading ? 'bg-accent/40' : 'bg-accent hover:opacity-90'
                     }`}
                   >
-                    <m.icon size={20} />
-                    <span className="text-sm font-black uppercase">{m.label}</span>
+                    <Save size={22} />
+                    {loading ? t('saving') : t('save_voucher')}
                   </button>
-                ))}
+                </div>
+              </section>
+            </aside>
+
+            {/* Phone and tablet: total and Save stay on screen (above the phone tab bar, beside the tablet/laptop sidebar) */}
+            <div className="xl:hidden fixed left-0 min-[600px]:left-24 lg:left-60 right-0 bottom-[calc(4.4rem+env(safe-area-inset-bottom))] min-[600px]:bottom-0 z-30 bg-row border-t border-line-strong px-4 py-2 flex items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <span className="block text-sm text-muted leading-tight">{t('final_total')}</span>
+                <span className="block text-xl font-semibold text-ink whitespace-nowrap tabular-nums">{finalTotal.toLocaleString()} <span className="text-sm">MMK</span></span>
               </div>
-                )}
-              />
+              <button
+                type="submit"
+                disabled={loading}
+                className={`shrink-0 flex items-center gap-2 px-5 h-[var(--ctl)] rounded-xl text-on-accent text-base font-semibold transition-all ${
+                  loading ? 'bg-accent/40' : 'bg-accent'
+                }`}
+              >
+                <Save size={20} />
+                {loading ? t('saving') : t('save_voucher')}
+              </button>
             </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className={`hidden lg:flex w-full p-5 rounded-3xl text-white text-xl font-black shadow-lg shadow-blue-200 transition-all items-center justify-center gap-4 ${
-              loading ? 'bg-blue-300' : 'bg-blue-600 hover:bg-blue-700 active:scale-95'
-            }`}
-          >
-            <Save size={28} />
-            {loading ? t('saving') : t('save_voucher')}
-          </button>
-
-          {/* Phone: the total and the Save button stay on screen, just above the bottom menu */}
-          <div className="lg:hidden fixed left-0 right-0 z-30 bg-white/95 backdrop-blur border-t border-gray-200 px-3 py-2 flex items-center gap-3 shadow-[0_-4px_12px_rgba(0,0,0,0.08)]"
-            style={{ bottom: 'calc(4.4rem + env(safe-area-inset-bottom))' }}>
-            <div className="min-w-0 flex-1">
-              <span className="block text-sm font-black text-gray-600 uppercase leading-tight">{t('final_total')}</span>
-              <span className="block text-xl font-black text-blue-700 whitespace-nowrap">{finalTotal.toLocaleString()} <span className="text-sm">MMK</span></span>
-            </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className={`shrink-0 flex items-center gap-2 px-4 py-3 rounded-2xl text-white text-base font-black shadow-md transition-all ${
-                loading ? 'bg-blue-300' : 'bg-blue-600 active:scale-95'
-              }`}
-            >
-              <Save size={20} />
-              {loading ? t('saving') : t('save_voucher')}
-            </button>
-          </div>
-        </form>
+          </form>
+        )}
       </div>
     </Layout>
   );

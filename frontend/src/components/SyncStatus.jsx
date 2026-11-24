@@ -46,11 +46,11 @@ const SyncStatus = () => {
   // Offline
   if (!isOnline) {
     return (
-      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-100 text-red-700 text-sm font-black uppercase tracking-wider select-none">
-        <WifiOff size={13} />
+      <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-debt-bg text-debt text-[.87em] font-medium whitespace-nowrap select-none">
+        <WifiOff size={14} strokeWidth={2} />
         <span>{t('x2_offline')}</span>
         {pendingCount > 0 && (
-          <span className="bg-red-600 text-white rounded-full px-1.5 py-0.5 text-sm leading-none">
+          <span className="font-semibold">
             {pendingCount}
           </span>
         )}
@@ -61,8 +61,8 @@ const SyncStatus = () => {
   // Syncing
   if (syncing) {
     return (
-      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-100 text-blue-700 text-sm font-black uppercase tracking-wider select-none">
-        <RefreshCw size={13} className="animate-spin" />
+      <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-band text-accent text-[.87em] font-medium whitespace-nowrap select-none">
+        <RefreshCw size={14} strokeWidth={2} className="animate-spin" />
         <span>{t('x2_syncing')}</span>
       </div>
     );
@@ -74,11 +74,11 @@ const SyncStatus = () => {
       <button
         onClick={handleSync}
         title={t('x2_tap_sync')}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-yellow-100 text-yellow-800 text-sm font-black uppercase tracking-wider hover:bg-yellow-200 active:scale-95 transition-all"
+        className="flex items-center gap-1.5 px-2.5 min-h-8 rounded-full bg-extra-bg text-extra text-[.87em] font-medium whitespace-nowrap"
       >
-        <AlertCircle size={13} />
+        <AlertCircle size={14} strokeWidth={2} />
         <span>{t('x2_pending')}</span>
-        <span className="bg-yellow-600 text-white rounded-full px-1.5 py-0.5 text-sm leading-none">
+        <span className="font-semibold">
           {pendingCount}
         </span>
       </button>
@@ -87,8 +87,8 @@ const SyncStatus = () => {
 
   // All synced
   return (
-    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-100 text-green-700 text-sm font-black uppercase tracking-wider select-none">
-      <CheckCircle2 size={13} />
+    <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-ok-bg text-ok text-[.87em] font-medium whitespace-nowrap select-none">
+      <CheckCircle2 size={14} strokeWidth={2} />
       <span>{t('x2_online')}</span>
     </div>
   );

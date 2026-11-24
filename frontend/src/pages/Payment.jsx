@@ -5,7 +5,6 @@ import Layout from '../components/Layout';
 import DropdownDatePicker from '../components/DropdownDatePicker';
 import { customerService, paymentService } from '../services/api';
 import { cacheBalance, getOfflineBalance, syncAll } from '../services/syncService';
-import BalanceDisplay from '../components/BalanceDisplay';
 import db, { generateUUID } from '../lib/db';
 import { useLanguage } from '../context/LanguageContext';
 import SplitPicker from '../components/SplitPicker';
@@ -171,107 +170,140 @@ const Payment = () => {
   };
 
   const paymentMethods = [
-    { id: 'CASH', label: t('cash'), icon: Banknote, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200', active: 'bg-green-600 text-white' },
-    { id: 'KBZPAY', label: t('kbzpay'), icon: Smartphone, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200', active: 'bg-blue-600 text-white' },
-    { id: 'BANK_TRANSFER', label: t('bank_transfer'), icon: Landmark, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200', active: 'bg-purple-600 text-white' },
+    { id: 'CASH', label: t('cash'), icon: Banknote, color: 'text-ok', bg: 'bg-ok-bg', border: 'border-ok/30', active: 'bg-ok text-on-accent' },
+    { id: 'KBZPAY', label: t('kbzpay'), icon: Smartphone, color: 'text-accent', bg: 'bg-band', border: 'border-line', active: 'bg-accent text-on-accent' },
+    { id: 'BANK_TRANSFER', label: t('bank_transfer'), icon: Landmark, color: 'text-m-bank', bg: 'bg-band', border: 'border-m-bank/40', active: 'bg-m-bank text-on-accent' },
   ];
+
+  const payNow = parseFloat(amount) || 0;
+  const payDiscount = parseFloat(discountAmount) || 0;
+  const debtAfter = balance - payNow - payDiscount;
 
   return (
     <Layout>
-      <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
-        <header className="flex items-center gap-4">
-          <button onClick={() => navigate('/', { state: { customer } })} className="p-2 bg-white rounded-full shadow-sm hover:bg-gray-100 transition-all">
-            <ArrowLeftIcon size={24} className="text-gray-600" />
+      <div className="space-y-4 pb-36 xl:pb-12 max-w-[1100px] mx-auto">
+        <header className="flex items-center gap-3">
+          <button onClick={() => navigate('/', { state: { customer } })} aria-label="Back" className="w-[var(--ctl)] h-[var(--ctl)] flex items-center justify-center bg-row shadow-sm rounded-xl hover:bg-band transition-all">
+            <ArrowLeftIcon size={22} className="text-ink" />
           </button>
-          <h2 className="text-2xl sm:text-3xl font-black text-gray-900">{t('add_payment')}</h2>
+          <h2 className="text-xl sm:text-2xl font-semibold text-ink">{t('add_payment')}</h2>
         </header>
 
         {!navigator.onLine && (
-          <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-200 text-yellow-800 text-base font-bold px-4 py-3 rounded-xl">
+          <div className="flex items-center gap-2 bg-extra-bg text-extra text-base font-medium px-4 py-3 rounded-xl">
             <WifiOff size={14} />
             {t('offline_payment_notice')}
           </div>
         )}
 
         {customer && (
-          <div className="space-y-6">
-            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-              <span className="text-base font-bold text-gray-600 uppercase px-1">{t('customer')}</span>
-              <p className="text-xl font-black text-blue-600 truncate">{customer.name}</p>
-            </div>
+          <form onSubmit={handleSubmit} className="space-y-4 xl:space-y-0 xl:grid xl:grid-cols-[minmax(0,1fr)_360px] xl:gap-6 xl:items-start">
+            {/* Who pays and what they owe. On wide screens this sits on the right and stays in view. */}
+            <aside className="min-w-0 xl:col-start-2 xl:row-start-1 xl:sticky xl:top-4">
+              <section className="bg-row rounded-2xl shadow-sm overflow-hidden">
+                <div className="px-5 py-4">
+                  <span className="block text-sm text-muted">{t('customer')}</span>
+                  <p className="text-xl font-semibold text-ink break-words">{customer.name}</p>
+                </div>
+                <div className={`px-5 py-4 border-t border-line ${balance > 0 ? 'bg-debt-bg' : 'bg-ok-bg'}`}>
+                  <span className="block text-sm text-muted">{balanceIsEstimate ? t('current_debt_est') : t('current_debt')}</span>
+                  <span className={`block text-3xl font-semibold tabular-nums ${balance > 0 ? 'text-debt' : 'text-ok'}`}>{balance.toLocaleString()} <span className="text-sm font-medium text-muted">MMK</span></span>
+                </div>
+                <div className="flex justify-between items-center gap-3 px-5 py-3 border-t border-line text-muted">
+                  <span>{t('payment_amount')} + {t('discount')}</span>
+                  <span className="font-semibold text-ink tabular-nums">{(payNow + payDiscount).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center gap-3 px-5 py-3 border-t border-line bg-band">
+                  <span className="font-semibold text-ink">{t('remaining_balance')}</span>
+                  <span className={`text-xl font-semibold tabular-nums ${debtAfter > 0 ? 'text-debt' : 'text-ok'}`}>{debtAfter.toLocaleString()} <span className="text-sm font-medium text-muted">MMK</span></span>
+                </div>
+                <div className="hidden xl:block p-5 border-t border-line">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className={`w-full h-14 rounded-xl text-on-accent text-lg font-semibold transition-all flex items-center justify-center gap-3 ${
+                      loading ? 'bg-ok/50' : 'bg-ok hover:opacity-90'
+                    }`}
+                  >
+                    <CreditCardIcon size={22} />
+                    {loading ? t('saving') : t('save_payment')}
+                  </button>
+                </div>
+              </section>
+            </aside>
 
-            <BalanceDisplay balance={balance} label={balanceIsEstimate ? t('current_debt_est') : t('current_debt')} />
-
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 space-y-6">
-                <div className="space-y-2">
-                  <label className="text-base font-black text-gray-600 uppercase px-1">{t('payment_amount')}</label>
+            <div className="space-y-4 min-w-0 xl:col-start-1 xl:row-start-1">
+              {/* Amount is the one thing the owner types every time, so it gets the big green box; discount sits beside it */}
+              <section className="bg-row rounded-2xl shadow-sm px-5 py-5 grid grid-cols-1 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] gap-4">
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-muted">{t('payment_amount')}</label>
                   <input
                     autoFocus type="number" step="any"
-                    className="w-full p-4 bg-green-50 border-2 border-green-100 rounded-2xl outline-none focus:border-green-500 transition-all text-3xl font-black text-green-700 text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    className="w-full px-3 h-16 bg-ok-bg border border-transparent rounded-xl outline-none focus:border-ok focus:ring-1 focus:ring-ok text-3xl font-semibold text-ok text-center tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                     placeholder="0"
                     value={amount}
                     onKeyDown={(e) => e.key === '-' && e.preventDefault()}
                     onChange={(e) => setAmount(e.target.value)}
                   />
                 </div>
-
-                <div className="space-y-2">
-                  <label className="text-base font-bold text-gray-600 uppercase px-1">{t('discount')} <span className="text-gray-400 font-bold normal-case">({t('optional')})</span></label>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-muted">{t('discount')} <span className="font-normal">({t('optional')})</span></label>
                   <input
                     type="number"
                     min="0"
                     step="any"
-                    className="w-full p-3 bg-red-50 border-2 border-red-100 rounded-xl outline-none focus:border-red-400 transition-all font-bold text-red-700 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    className="w-full px-3 h-16 bg-row border border-line-strong rounded-xl outline-none focus:border-accent focus:ring-1 focus:ring-accent text-xl font-semibold text-ink text-right tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                     placeholder="0"
                     value={discountAmount}
                     onKeyDown={(e) => e.key === '-' && e.preventDefault()}
                     onChange={(e) => setDiscountAmount(e.target.value)}
                   />
                 </div>
+              </section>
 
-                <div className="grid grid-cols-1 gap-4">
-                  <DropdownDatePicker
-                    label={t('payment_date')}
-                    value={paymentDate}
-                    onChange={setPaymentDate}
+              <section className="bg-row rounded-2xl shadow-sm overflow-hidden">
+                <div className="px-5 py-4 space-y-2">
+                  <label className="text-sm font-medium text-muted">{t('payment_method')}</label>
+                  <SplitPicker
+                    total={amount}
+                    split={splitMode}
+                    onSplitChange={setSplitMode}
+                    parts={parts}
+                    onParts={setParts}
+                    method={paymentMethod}
+                    single={(
+                      <div className="grid grid-cols-3 gap-3">
+                        {paymentMethods.map((m) => (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => setPaymentMethod(m.id)}
+                            className={`flex flex-col items-center justify-center min-h-[var(--ctl)] p-2 rounded-xl border transition-all gap-1 ${
+                              paymentMethod === m.id
+                                ? `${m.active} border-transparent`
+                                : 'bg-row border-line-strong text-ink hover:bg-band'
+                            }`}
+                          >
+                            <m.icon size={20} />
+                            <span className="text-sm font-semibold">{m.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   />
-
-                  <div className="space-y-2">
-                    <label className="text-base font-bold text-gray-600 uppercase px-1">{t('payment_method')}</label>
-                    <SplitPicker
-                      total={amount}
-                      split={splitMode}
-                      onSplitChange={setSplitMode}
-                      parts={parts}
-                      onParts={setParts}
-                      method={paymentMethod}
-                      single={(
-                        <div className="grid grid-cols-3 gap-2">
-                      {paymentMethods.map((m) => (
-                        <button
-                          key={m.id}
-                          type="button"
-                          onClick={() => setPaymentMethod(m.id)}
-                          className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all gap-1 ${
-                            paymentMethod === m.id
-                              ? `${m.active} border-transparent shadow-md transform scale-105`
-                              : `bg-white border-gray-100 text-gray-400 hover:border-gray-200`
-                          }`}
-                        >
-                          <m.icon size={20} />
-                          <span className="text-sm font-black uppercase">{m.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                      )}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-line border-t border-line">
+                  <div className="bg-row px-5 py-4 min-w-0">
+                    <DropdownDatePicker
+                      label={t('payment_date')}
+                      value={paymentDate}
+                      onChange={setPaymentDate}
                     />
                   </div>
-
-                  <div className="space-y-1">
-                    <label className="text-base font-bold text-gray-600 uppercase px-1">{t('note_optional')}</label>
+                  <div className="bg-row px-5 py-4 space-y-1 min-w-0">
+                    <label className="text-sm font-medium text-muted">{t('note_optional')}</label>
                     <textarea
-                      className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-500 font-bold transition-all"
+                      className="w-full p-3 bg-row border border-line-strong rounded-xl outline-none focus:border-accent focus:ring-1 focus:ring-accent font-medium"
                       rows="2"
                       placeholder={t('note_placeholder')}
                       value={note}
@@ -279,20 +311,27 @@ const Payment = () => {
                     />
                   </div>
                 </div>
-              </div>
+              </section>
+            </div>
 
+            {/* Phone and tablet: the Save button stays on screen (above the phone tab bar, beside the tablet/laptop sidebar) */}
+            <div className="xl:hidden fixed left-0 min-[600px]:left-24 lg:left-60 right-0 bottom-[calc(4.4rem+env(safe-area-inset-bottom))] min-[600px]:bottom-0 z-30 bg-row border-t border-line-strong px-4 py-2 flex items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <span className="block text-sm text-muted leading-tight">{t('remaining_balance')}</span>
+                <span className={`block text-xl font-semibold whitespace-nowrap tabular-nums ${debtAfter > 0 ? 'text-debt' : 'text-ok'}`}>{debtAfter.toLocaleString()} <span className="text-sm">MMK</span></span>
+              </div>
               <button
                 type="submit"
                 disabled={loading}
-                className={`w-full p-5 rounded-3xl text-white text-xl font-black shadow-lg shadow-green-200 transition-all flex items-center justify-center gap-4 ${
-                  loading ? 'bg-green-300' : 'bg-green-600 hover:bg-green-700 active:scale-95'
+                className={`shrink-0 flex items-center gap-2 px-5 h-[var(--ctl)] rounded-xl text-on-accent text-base font-semibold transition-all ${
+                  loading ? 'bg-ok/50' : 'bg-ok'
                 }`}
               >
-                <CreditCardIcon size={28} />
+                <CreditCardIcon size={20} />
                 {loading ? t('saving') : t('save_payment')}
               </button>
-            </form>
-          </div>
+            </div>
+          </form>
         )}
       </div>
     </Layout>

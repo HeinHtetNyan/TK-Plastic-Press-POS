@@ -23,7 +23,7 @@ const SizeInput = ({ value, onChange, sizes, addOption, required, autoFocus, pla
           className={className}
         />
       </div>
-      <span className="font-black text-gray-400 text-lg">x</span>
+      <span className="font-semibold text-muted text-lg">x</span>
       <input
         type="text"
         inputMode="decimal"
@@ -36,7 +36,7 @@ const SizeInput = ({ value, onChange, sizes, addOption, required, autoFocus, pla
           setDraft(b);
           onChange(joinSize(parsed.front, b.trim()));
         }}
-        className={`w-20 sm:w-24 p-2 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none transition-all font-bold ${className}`}
+        className={`w-20 sm:w-24 px-2 h-[var(--ctl)] bg-row border border-line-strong rounded-lg focus:border-accent focus:ring-1 focus:ring-accent outline-none font-medium ${className}`}
       />
     </div>
   );

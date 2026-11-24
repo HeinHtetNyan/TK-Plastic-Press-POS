@@ -95,15 +95,15 @@ const Combo = ({ value, onChange, options, onAdd, placeholder, required, classNa
           if (value) onChange(''); // typing again un-picks, so a half-typed name is never saved
         }}
         onKeyDown={onKeyDown}
-        className={`w-full p-2 pr-8 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none transition-all font-bold ${className}`}
+        className={`w-full px-3 pr-8 h-[var(--ctl)] bg-row border border-line-strong rounded-xl focus:border-accent focus:ring-1 focus:ring-accent outline-none font-medium ${className}`}
       />
-      <ChevronDown size={16} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+      <ChevronDown size={16} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
       {open && (
-        <ul className="absolute z-30 left-0 right-0 mt-1 max-h-60 overflow-auto bg-white border-2 border-gray-100 rounded-xl shadow-xl">
+        <ul className="absolute z-30 left-0 right-0 mt-1 max-h-60 overflow-auto bg-row border border-line-strong rounded-xl shadow-xl">
           {shown.map((o) => (
             <li key={o.id}>
               <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => pick(o.name)}
-                className={`w-full text-left px-3 py-2.5 font-bold text-base hover:bg-blue-50 ${o.name === value ? 'bg-blue-50 text-blue-700' : 'text-gray-700'}`}>
+                className={`w-full text-left px-3 py-2.5 font-medium text-base hover:bg-band ${o.name === value ? 'bg-band text-accent' : 'text-ink'}`}>
                 {o.name}
               </button>
             </li>
@@ -111,12 +111,12 @@ const Combo = ({ value, onChange, options, onAdd, placeholder, required, classNa
           {canAdd && (
             <li>
               <button type="button" disabled={busy} onMouseDown={(e) => e.preventDefault()} onClick={add}
-                className="w-full text-left px-3 py-2.5 font-black text-base text-green-700 bg-green-50 hover:bg-green-100 flex items-center gap-2">
+                className="w-full text-left px-3 py-2.5 font-semibold text-base text-ok bg-ok-bg hover:bg-ok-bg flex items-center gap-2">
                 <Plus size={16} /> {addLabel} &ldquo;{typed}&rdquo;
               </button>
             </li>
           )}
-          {!shown.length && !canAdd && <li className="px-3 py-2.5 text-gray-400 font-bold text-base">-</li>}
+          {!shown.length && !canAdd && <li className="px-3 py-2.5 text-muted font-medium text-base">-</li>}
         </ul>
       )}
     </div>

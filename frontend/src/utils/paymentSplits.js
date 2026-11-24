@@ -9,9 +9,9 @@ export const emptyParts = () => ({ CASH: '', KBZPAY: '', BANK_TRANSFER: '' });
 export const methodShort = (m) => (m === 'BANK_TRANSFER' ? 'BANK' : m);
 
 export const methodTagClass = (m) =>
-  m === 'KBZPAY' ? 'bg-blue-100 text-blue-600' :
-  m === 'BANK_TRANSFER' ? 'bg-purple-100 text-purple-600' :
-  'bg-green-100 text-green-600';
+  m === 'KBZPAY' ? 'bg-m-kbz/15 text-m-kbz' :
+  m === 'BANK_TRANSFER' ? 'bg-m-bank/15 text-m-bank' :
+  'bg-m-cash/15 text-m-cash';
 
 export const splitsToParts = (splits) => {
   const parts = emptyParts();

@@ -1,0 +1,792 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TK POS: key screens mock-up</title>
+<style>
+:root{
+  --page:#F6F4EF; --row:#FFFFFF; --band:#EFEBE2; --zebra:#FAF8F3; --line:#D9D4C8; --line-strong:#B9B2A3; --grid:#BDB6A6;
+  --ink:#1F2430; --muted:#5C6270; --accent:#173F8A; --on-accent:#FFFFFF;
+  --debt:#B3402F; --debt-bg:#F8E9E6; --ok:#2F7D5B; --ok-bg:#E6F2EC; --pay-bg:#E9F3EC; --extra:#B35A1F; --extra-bg:#F9ECE0;
+  --danger:#B3402F; --on-danger:#FFFFFF; --scrim:rgba(31,36,48,.5); --shadow-pin:rgba(31,36,48,.14);
+  --m-cash:#2F7D5B; --m-kbz:#2F5FA8; --m-bank:#7A5A98;
+  --fs:16px; --sfs:15px; --row-h:56px; --ctl:48px;
+  --sans:"Public Sans","Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mm:"Noto Sans Myanmar","Myanmar Text","Padauk","Pyidaungsu",sans-serif;
+}
+:root[data-theme="dark"]{
+  --page:#111419; --row:#181C23; --band:#1F242D; --zebra:#1C2028; --line:#343A45; --line-strong:#4A5260; --grid:#485060;
+  --ink:#EAEDF2; --muted:#A9B1BE; --accent:#86A6E8; --on-accent:#0E1626;
+  --debt:#F29B8C; --debt-bg:#3A2420; --ok:#7CCBA3; --ok-bg:#1E3329; --pay-bg:#1B2E25; --extra:#E7A56F; --extra-bg:#3A2A1B;
+  --danger:#F29B8C; --on-danger:#2A0F0A; --scrim:rgba(0,0,0,.6); --shadow-pin:rgba(0,0,0,.5);
+  --m-cash:#7CCBA3; --m-kbz:#8FB0EE; --m-bank:#C1A5DB;
+}
+:root[data-size="large"]{--fs:19px;--sfs:17px;--row-h:64px;--ctl:56px}
+*{box-sizing:border-box}
+html{color-scheme:light dark;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--page);color:var(--ink);font:400 var(--fs)/1.5 var(--sans);height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+html[lang="my"] body{font-family:var(--mm),var(--sans);line-height:1.7}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+svg{flex:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3,p{margin:0}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* preview strip (not part of the app) */
+.pv{background:#1d1f24;color:#e8e8e8;font:400 13px/1.3 system-ui,sans-serif;flex:none;padding:6px 10px;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}
+.pv b{font-weight:600;color:#fff;margin-right:2px}
+.pv .grp{display:flex;align-items:center;gap:4px}
+.pv .grp>span{color:#aaa;margin-right:2px}
+.pv button,.pv select{min-height:32px;padding:0 10px;border:1px solid #555;background:#2a2d34;color:#eee;border-radius:4px;font:inherit}
+.pv button[aria-pressed="true"]{background:#eee;color:#111;border-color:#eee}
+.pv .tog{display:none}
+@media (max-width:700px){.pv .body{display:none;flex-wrap:wrap;gap:6px 12px;width:100%}.pv.open .body{display:flex}.pv .tog{display:inline-block}}
+@media (min-width:701px){.pv .body{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}}
+body.bare .pv{display:none}
+
+/* shell */
+.app{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto}
+.main{display:flex;flex-direction:column;min-width:0;min-height:0;position:relative}
+.side{display:none}
+.tabs{display:flex;background:var(--row);border-top:1px solid var(--line-strong);padding-bottom:env(safe-area-inset-bottom)}
+.tabs button{flex:1;min-height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:0;border-top:3px solid transparent;color:var(--muted);font-size:12.5px;font-weight:500;padding:4px 2px;min-width:0}
+.tabs button span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.5}
+.tabs button[aria-current="page"]{color:var(--accent);border-top-color:var(--accent);font-weight:600}
+body.task .tabs{display:none}
+@media (min-width:600px){
+  .app{grid-template-columns:96px minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
+  .tabs{display:none}
+  .side{display:flex;flex-direction:column;gap:4px;padding:12px 8px;background:var(--row);border-right:1px solid var(--line-strong)}
+  .side button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:68px;border:0;background:none;color:var(--ink);border-radius:4px;font-size:13px;font-weight:500;padding:6px 2px}
+  .side button:hover{background:var(--band)}
+  .side button[aria-current="page"]{background:var(--accent);color:var(--on-accent);font-weight:600}
+  body.task .tabs{display:none}
+}
+@media (min-width:1024px){
+  .app{grid-template-columns:240px minmax(0,1fr)}
+  .side{padding:16px 12px}
+  .side button{flex-direction:row;justify-content:flex-start;gap:12px;min-height:52px;padding:0 16px;font-size:1em}
+}
+header.top{display:flex;align-items:center;gap:8px;min-height:56px;padding:0 8px 0 8px;background:var(--row);border-bottom:1px solid var(--line-strong);flex:none;position:relative;z-index:20}
+header.top h1{font-size:1.2em;font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:8px}
+header.top h1.nopad{padding-left:8px}
+.icon-btn{min-width:48px;min-height:48px;display:grid;place-items:center;background:none;border:0;color:var(--ink);border-radius:4px}
+.icon-btn:hover{background:var(--band)}
+.avatar{width:40px;height:40px;border-radius:50%;border:1px solid var(--line-strong);display:grid;place-items:center;font-size:.85em;font-weight:600;background:var(--band)}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:4px;font-size:.87em;font-weight:500;white-space:nowrap;line-height:1.6}
+.pill.ok{background:var(--ok-bg);color:var(--ok)}
+.pill.off{background:var(--debt-bg);color:var(--debt)}
+.pill .long{display:none}
+@media (min-width:600px){.pill .long{display:inline}}
+.banner{display:flex;gap:8px;align-items:center;padding:8px 16px;background:var(--extra-bg);color:var(--ink);border-bottom:1px solid var(--line);font-size:.93em;flex:none}
+.banner svg{color:var(--extra)}
+.pop{position:absolute;top:56px;right:8px;width:min(300px,calc(100% - 16px));background:var(--row);border:1px solid var(--line-strong);border-radius:4px;padding:12px;z-index:30;display:none;box-shadow:0 6px 18px -8px var(--shadow-pin)}
+.pop.open{display:block}
+.pop .who{display:flex;flex-direction:column;padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:10px}
+.pop .who small{color:var(--muted)}
+
+.content{flex:1;min-height:0;overflow:auto;padding:16px;-webkit-overflow-scrolling:touch}
+.content.fill{display:flex;flex-direction:column;overflow:hidden;padding:0}
+@media (min-width:0px){.content.flush,.content.fill{padding:0}}
+@media (min-width:600px){.content{padding:24px}}
+@media (min-width:1024px){.content{padding:24px 32px}}
+.wrap{max-width:1120px;margin:0 auto}
+.wrap.narrow{max-width:760px}
+
+/* common parts */
+.sec{background:var(--row);border:1px solid var(--line);border-radius:4px;margin-bottom:16px}
+.sec>h2,.sec>summary{background:var(--band);padding:12px 16px;font-size:1em;font-weight:600;border-bottom:1px solid var(--line);border-radius:4px 4px 0 0;display:flex;align-items:center;gap:8px;min-height:48px}
+.sec>summary{cursor:pointer;list-style:none}
+.sec>summary::-webkit-details-marker{display:none}
+.sec:not([open])>summary{border-bottom:0;border-radius:4px}
+.sec>summary .chev{margin-left:auto;transition:transform .15s}
+.sec[open]>summary .chev{transform:rotate(180deg)}
+.sec .pad{padding:16px}
+.grid{display:grid;gap:12px 12px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g-auto{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+.f{display:flex;flex-direction:column;gap:4px;min-width:0}
+.f>label,.lbl{font-size:.88em;font-weight:500;color:var(--muted)}
+.inp{min-height:var(--ctl);width:100%;padding:0 12px;border:1px solid var(--line-strong);border-radius:4px;background:var(--row);color:var(--ink)}
+textarea.inp{padding:10px 12px;min-height:84px;resize:vertical}
+.inp.num{text-align:right;font-variant-numeric:tabular-nums}
+select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238a8f99' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px}
+.btn{min-height:var(--ctl);padding:0 18px;border-radius:4px;border:1px solid var(--line-strong);background:var(--row);color:var(--ink);font-weight:500;display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap}
+.btn:hover{background:var(--band)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
+.btn.primary:hover{filter:brightness(1.08);background:var(--accent)}
+.btn.danger{background:var(--danger);border-color:var(--danger);color:var(--on-danger);font-weight:600}
+.btn.block{width:100%}
+.btn.ghost{border-color:transparent;background:none}
+.seg{display:flex;gap:0;border:1px solid var(--line-strong);border-radius:4px;overflow:hidden;background:var(--row)}
+.seg button{flex:1;min-height:var(--ctl);padding:0 14px;border:0;border-right:1px solid var(--line);background:var(--row);font-weight:500;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--row);font-weight:600}
+.link{background:none;border:0;padding:0;min-height:48px;color:var(--ink);text-decoration:underline;text-underline-offset:3px;font-weight:500;display:inline-flex;align-items:center;gap:6px}
+.tag{font-size:.8em;padding:1px 8px;border-radius:4px;background:var(--band);color:var(--muted);font-weight:500;white-space:nowrap;border:1px solid var(--line)}
+.tag.pend{background:var(--extra-bg);color:var(--extra);border-color:transparent}
+.kv{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line);min-height:44px}
+.kv:last-child{border-bottom:0}
+.kv span:first-child{color:var(--muted)}
+.kv b{font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+.kv.big b{font-size:1.25em}
+.kv.band{background:var(--band)}
+.kv.band span:first-child{color:var(--ink);font-weight:500}
+.debt{color:var(--debt)} .zero{color:var(--ok)} .extra{color:var(--extra)}
+.dot{width:10px;height:10px;border-radius:2px;display:inline-block;flex:none}
+.page-h{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.page-h h2{font-size:1.25em;font-weight:600;margin-right:auto}
+.logo{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.logo i{width:40px;height:40px;border:2px solid var(--ink);border-radius:4px;display:grid;place-items:center;font-style:normal;font-weight:600;letter-spacing:.02em}
+.logo b{font-weight:600;font-size:1.1em}
+.search{display:flex;gap:8px;margin-bottom:12px}
+.search .box{position:relative;flex:1}
+.search .box svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.search .inp{padding-left:42px}
+.list{background:var(--row);border:1px solid var(--line);border-radius:4px}
+.crow{display:flex;align-items:center;gap:12px;width:100%;min-height:64px;padding:8px 16px;border:0;border-bottom:1px solid var(--line);background:var(--row);text-align:left}
+.list>.crow:last-child,.list>div:last-child .crow{border-bottom:0}
+button.crow:hover{background:var(--zebra)}
+.crow .nm{flex:1;min-width:0}
+.crow .nm b{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-weight:600}
+.crow .nm small{display:block;color:var(--muted)}
+.crow .bal{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.crow .bal small{display:block;font-weight:400;color:var(--muted)}
+.bal-card{border:1px solid var(--line-strong);background:var(--row);border-radius:4px;margin-bottom:16px}
+.bal-card .top{padding:16px;display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.bal-card .nm{font-size:1.2em;font-weight:600}
+.bal-card .ph{color:var(--muted)}
+.bal-card .owe{padding:16px;border-top:1px solid var(--line);background:var(--band);display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.bal-card .owe b{font-size:1.6em;font-weight:600;font-variant-numeric:tabular-nums}
+.actions{display:grid;gap:12px;grid-template-columns:1fr}
+@media (min-width:600px){.actions{grid-template-columns:repeat(3,1fr)}}
+.actions .btn{min-height:56px}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:16px}
+@media (min-width:1024px){.tiles{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.tile{background:var(--row);border:1px solid var(--line);border-radius:4px;padding:12px 16px;min-width:0}
+.tile small{display:block;color:var(--muted);font-size:.87em}
+.tile b{display:block;font-size:1.2em;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pills{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.pills button{min-height:44px;padding:0 16px;border:1px solid var(--line-strong);background:var(--row);border-radius:4px;font-weight:500}
+.pills button[aria-pressed="true"]{background:var(--ink);color:var(--row);border-color:var(--ink);font-weight:600}
+.bar-row{display:grid;grid-template-columns:124px 1fr auto;align-items:center;gap:12px;padding:8px 16px;border-bottom:1px solid var(--line)}
+.bar-row:last-child{border-bottom:0}
+.bar-row .tr{height:10px;background:var(--band);border-radius:2px;overflow:hidden}
+.bar-row .tr i{display:block;height:100%}
+.bar-row b{font-variant-numeric:tabular-nums;font-weight:600}
+.two{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:1024px){.two{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px;min-height:50vh;color:var(--muted)}
+.empty h2{color:var(--ink);font-size:1.4em;font-weight:600}
+
+/* voucher/payment two-column */
+.vgrid{display:grid;gap:0;grid-template-columns:minmax(0,1fr)}
+.vgrid>*{min-width:0}
+@media (min-width:600px){.vgrid{grid-template-columns:minmax(0,1fr) 270px;gap:20px;align-items:start}}
+@media (min-width:1024px){.vgrid{grid-template-columns:minmax(0,1fr) 360px;gap:24px}}
+.vsum{position:static}
+@media (min-width:600px){.vsum{position:sticky;top:0}}
+.vsum .btn.primary{display:none;margin-top:12px}
+@media (min-width:600px){.vsum .btn.primary{display:flex}}
+.savebar{position:sticky;bottom:-16px;margin:0 -16px -16px;padding:10px 16px;background:var(--row);border-top:1px solid var(--line-strong);display:flex;align-items:center;gap:12px;z-index:5}
+.savebar .t{flex:1;min-width:0;line-height:1.3}
+.savebar .t small{display:block;color:var(--muted);font-size:.85em}
+.savebar .t b{font-size:1.2em;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+@media (min-width:600px){.savebar{display:none}}
+.item-sum{display:flex;align-items:center;gap:8px;justify-content:space-between;padding:12px 16px;border-top:1px solid var(--line);background:var(--band);font-weight:600}
+.methodrow{display:flex;align-items:center;gap:10px;width:100%;min-height:var(--ctl);padding:6px 12px;border:1px solid var(--line-strong);border-radius:4px;background:var(--row);text-align:left}
+.methodrow span.v{flex:1;min-width:0}
+.hint{font-size:.88em;color:var(--muted)}
+.notice{display:flex;gap:8px;padding:10px 12px;background:var(--extra-bg);border-radius:4px;font-size:.93em;margin-bottom:12px}
+
+/* overlay: bottom sheet (phone), dialog (tablet), side panel (laptop) */
+.scrim{position:fixed;inset:0;background:var(--scrim);z-index:60;display:none}
+.scrim.open{display:block}
+.sheet{position:fixed;left:0;right:0;bottom:0;max-height:90dvh;overflow:auto;background:var(--row);color:var(--ink);border-top:1px solid var(--line-strong);border-radius:8px 8px 0 0;padding:20px 16px 16px;z-index:61}
+.sheet::before{content:"";display:block;width:40px;height:4px;border-radius:2px;background:var(--line-strong);margin:-8px auto 12px}
+.sheet h2{font-size:1.2em;font-weight:600;margin-bottom:4px}
+.sheet .sub{color:var(--muted);margin-bottom:12px}
+.sheet .foot{display:flex;gap:12px;margin-top:16px}
+.sheet .foot .btn{flex:1}
+@media (min-width:600px){
+  .sheet{left:50%;right:auto;bottom:auto;top:50%;transform:translate(-50%,-50%);width:min(480px,calc(100% - 32px));max-height:88dvh;border:1px solid var(--line-strong);border-radius:4px;padding:24px}
+  .sheet::before{display:none}
+  .sheet .foot{justify-content:flex-end}
+  .sheet .foot .btn{flex:none;min-width:120px}
+}
+@media (min-width:1024px){
+  .sheet.pnl{left:auto;right:0;top:0;bottom:0;transform:none;width:440px;max-height:none;height:100dvh;border-radius:0;border-width:0 0 0 1px}
+}
+.opt{display:flex;align-items:center;gap:12px;min-height:52px;padding:0 12px;border:1px solid var(--line-strong);border-radius:4px;margin-bottom:8px;background:var(--row);width:100%;text-align:left}
+.opt .rd{width:20px;height:20px;border:2px solid var(--line-strong);border-radius:50%;display:grid;place-items:center;flex:none}
+.opt[aria-checked="true"]{border-color:var(--ink);border-width:2px;padding:0 11px}
+.opt[aria-checked="true"] .rd{border-color:var(--ink)}
+.opt[aria-checked="true"] .rd::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--ink)}
+.srow{display:grid;grid-template-columns:minmax(0,1fr) 128px auto;gap:8px;align-items:center;margin-bottom:8px}
+.srow .nm{display:flex;align-items:center;gap:8px}
+.left{display:flex;justify-content:space-between;padding:10px 12px;border-radius:4px;background:var(--band);font-weight:600}
+.left.done{background:var(--ok-bg);color:var(--ok)}
+.left.bad{background:var(--debt-bg);color:var(--debt)}
+
+/* toast (errors only) */
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;z-index:80;width:min(440px,calc(100% - 32px));display:none;gap:10px;align-items:flex-start;padding:12px 14px;background:var(--row);border:1px solid var(--debt);border-left-width:4px;border-radius:4px;color:var(--ink);box-shadow:0 8px 20px -10px var(--shadow-pin)}
+#toast.open{display:flex}
+#toast svg{color:var(--debt);margin-top:2px}
+@media (min-width:600px){#toast{bottom:24px}}
+
+/* history */
+.hbar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:flex-end;padding:12px 16px;background:var(--row);border-bottom:1px solid var(--line-strong);flex:none}
+.hbar .f{flex:1 1 140px}
+.hbar .vt{flex:none}
+.hbar .dsearch{display:none}
+@media (min-width:600px){.hbar .dsearch{display:flex}}
+@media (max-width:599px){.hbar .vt{flex:1 1 100%}.hbar .f{flex:1 1 120px}}
+.hbar .vt .seg button{padding:0 12px}
+.summary{display:flex;flex:none;background:var(--band);border-bottom:1px solid var(--line-strong)}
+.summary div{flex:1;padding:8px 16px;border-right:1px solid var(--line);min-width:0}
+.summary div:last-child{border-right:0}
+.summary small{display:block;color:var(--muted);font-size:.8em}
+.summary b{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.summary .owes b{color:var(--debt)}
+.scroller{flex:1;min-height:0;overflow:auto;background:var(--row);-webkit-overflow-scrolling:touch;font-size:var(--sfs)}
+table{border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums;width:max-content;min-width:100%;height:100%}
+tr.spacer td{height:auto!important;padding:0;border:0;background:var(--row)!important}
+th,td{padding:0 12px;height:var(--row-h);white-space:nowrap;text-align:left;border-bottom:1px solid var(--grid);border-right:1px solid var(--line);background:var(--row)}
+thead th{position:sticky;top:0;z-index:3;background:var(--band);font-weight:600;border-bottom:1px solid var(--line-strong);height:48px;font-size:.93em}
+tbody tr:nth-child(even) td{background:var(--zebra)}
+td.num,th.num{text-align:right}
+.pin-l1{position:sticky;left:0;z-index:2;min-width:116px;width:116px;max-width:116px;white-space:normal;line-height:1.3;padding:0 8px 0 12px;border-right:1px solid var(--line-strong);box-shadow:4px 0 6px -4px var(--shadow-pin)}
+.pin-l1 small{display:block;color:var(--muted);font-size:.87em;font-weight:400}
+tr.pay .pin-l1 small{color:var(--ok)}
+.pin-r{position:sticky;right:0;z-index:2;min-width:96px;padding:0 12px;text-align:right;border-left:1px solid var(--line-strong);box-shadow:-4px 0 6px -4px var(--shadow-pin)}
+thead .pin-l1,thead .pin-r{z-index:4}
+.vno{color:var(--ink);font-weight:600;display:inline-flex;align-items:center;gap:4px;background:none;border:0;text-decoration:underline;text-underline-offset:3px;min-height:48px;padding:0}
+.rem{font-weight:600}
+.rem.debt{color:var(--debt)} .rem.zero{color:var(--ok)} .rem.later{color:var(--muted);font-weight:400}
+tr.pay td{background:var(--pay-bg)!important;color:var(--ok)}
+tr.pay td.pin-l1{font-weight:600}
+tr.sub td{height:36px;font-size:.87em;background:var(--row)!important;color:var(--muted)}
+tr.sub.extra td.amt{color:var(--extra);font-weight:600}
+tr.sub.disc td.amt{color:var(--debt);font-weight:600}
+tr.sub td.amt{text-align:right}
+.menu{min-width:44px;min-height:44px;display:inline-grid;place-items:center;background:none;border:0;color:var(--muted);border-radius:4px}
+tfoot td{position:sticky;bottom:0;z-index:3;background:var(--band)!important;font-weight:600;border-top:1px solid var(--line-strong);height:52px}
+tfoot .pin-l1,tfoot .pin-r{z-index:5}
+table.wide{width:100%;font-size:calc(var(--sfs) - 1px)}
+table.wide th,table.wide td{padding:0 8px}
+table.wide .pin-l1,table.wide .pin-r{position:static;box-shadow:none;min-width:0;width:auto;max-width:none;border:0;border-bottom:1px solid var(--grid);border-right:1px solid var(--line);padding:0 8px;white-space:nowrap}
+table.wide thead .pin-r,table.wide thead .pin-l1{position:sticky;top:0;right:auto;left:auto}
+table.wide tfoot .pin-r{right:auto}
+table.wide th{white-space:normal;line-height:1.25;vertical-align:middle}
+html[lang="my"] table.wide thead th{line-height:1.6;height:68px}
+.app.rail{grid-template-columns:96px minmax(0,1fr)}
+.app.rail .side{padding:12px 8px}
+.app.rail .side button{flex-direction:column;justify-content:center;gap:4px;min-height:68px;padding:6px 2px;font-size:13px}
+@media (max-width:1279px){table.wide{font-size:13px}table.wide th,table.wide td{padding:0 5px}}
+table.wide tfoot .pin-l1,table.wide tfoot .pin-r{position:sticky;bottom:0;border-top:1px solid var(--line-strong)}
+table.wide tr.pay td.pin-l1{font-weight:600}
+table.wide td,table.wide th{height:calc(var(--row-h) - 6px)}
+table.wide .vno{min-height:44px}
+.hint-bar{flex:none;padding:6px 16px;font-size:.87em;color:var(--muted);background:var(--page);border-top:1px solid var(--line)}
+.cards{display:grid;gap:12px;grid-template-columns:minmax(0,1fr);padding:16px}
+@media (min-width:600px){.cards{grid-template-columns:repeat(2,minmax(0,1fr));padding:24px}}
+@media (min-width:1024px){.cards{grid-template-columns:repeat(3,minmax(0,1fr));padding:24px 32px}}
+.card{background:var(--row);border:1px solid var(--line);border-radius:4px}
+.card .hd{display:flex;align-items:center;gap:8px;padding:8px 8px 8px 16px;background:var(--band);border-bottom:1px solid var(--line);border-radius:4px 4px 0 0}
+.card .hd b{font-weight:600;flex:1}
+.card.pay .hd{background:var(--pay-bg);color:var(--ok)}
+.card .spec{padding:10px 16px;border-bottom:1px solid var(--line);color:var(--muted);font-size:.93em}
+.card .remr{display:flex;justify-content:space-between;align-items:baseline;padding:10px 16px;border-top:1px solid var(--line)}
+.card .remr b{font-size:1.35em;font-weight:600;font-variant-numeric:tabular-nums}
+.card .ft{display:flex;gap:8px;padding:8px 16px 12px}
+.card .ft .btn{min-height:44px;flex:1}
+.card .kv{padding:8px 16px;min-height:40px}
+</style>
+</head>
+<body>
+<div class="pv" id="pv" role="toolbar" aria-label="Preview options (not part of the app)">
+  <b>Mock-up</b><button class="tog" id="pvtog" type="button">Options</button>
+  <div class="body" id="pvbody"></div>
+</div>
+<div class="app" id="app">
+  <nav class="side" id="side" aria-label="Main"></nav>
+  <div class="main">
+    <header class="top" id="top"></header>
+    <div id="banner"></div>
+    <div class="pop" id="pop"></div>
+    <main class="content" id="content" tabindex="-1"></main>
+  </div>
+  <nav class="tabs" id="tabs" aria-label="Main"></nav>
+</div>
+<div class="scrim" id="scrim"></div>
+<div id="toast" role="alert"></div>
+
+<script>
+/* ---------- icons (Lucide-style, stroke 1.75) ---------- */
+const P={
+ home:'<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+ stock:'<path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
+ reports:'<path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
+ spending:'<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>',
+ settings:'<path d="M10 5H3"/><path d="M12 19H3"/><path d="M14 3v4"/><path d="M16 17v4"/><path d="M21 12h-9"/><path d="M21 19h-5"/><path d="M21 5h-7"/><path d="M8 10v4"/><path d="M8 12H3"/>',
+ search:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+ plus:'<path d="M5 12h14M12 5v14"/>',
+ back:'<path d="M19 12H5M12 19l-7-7 7-7"/>',
+ check:'<path d="M20 6 9 17l-5-5"/>',
+ x:'<path d="M18 6 6 18M6 6l12 12"/>',
+ wifioff:'<path d="M12 20h.01"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/><path d="M5 12.859a10 10 0 0 1 5.17-2.69"/><path d="M19 12.859a10 10 0 0 0-2.007-1.523"/><path d="M2 8.82a15 15 0 0 1 4.177-2.643"/><path d="M22 8.82a15 15 0 0 0-11.288-3.764"/><path d="m2 2 20 20"/>',
+ user:'<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+ users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+ trash:'<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+ pencil:'<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>',
+ file:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8M16 13H8M16 17H8"/>',
+ cash:'<rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>',
+ down:'<path d="m6 9 6 6 6-6"/>',
+ right:'<path d="m9 18 6-6-6-6"/>',
+ more:'<circle cx="12" cy="5" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="12" cy="19" r="1.2"/>',
+ logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
+ clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+ table:'<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18M3 15h18M12 3v18"/>',
+ cards:'<rect width="18" height="7" x="3" y="3" rx="1"/><rect width="18" height="7" x="3" y="14" rx="1"/>',
+ alert:'<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>',
+ printer:'<path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/><rect x="6" y="14" width="12" height="8" rx="1"/>',
+ file2:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/>'
+};
+const ic=(n,s=24,w=1.75)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n]}</svg>`;
+
+/* ---------- dictionaries (column names + labels from the real app) ---------- */
+const T={
+en:{home:'Home',stock:'Stock',reports:'Reports',spending:'Spending',settings:'Settings',
+ online:'Online',offline:'Offline',pending:'pending',offBanner:'You are offline. Changes are saved on this device and sync when internet is back.',
+ designed:'Designed separately',profile:'Profile',language:'Language',signOut:'Sign out',admin:'Admin',staff:'Staff',
+ shop:'TK Plastic Press',searchPh:'Search customer name...',add:'Add',recent:'Recent customers',results:'Customers',browse:'Browse all customers',noRes:'No customers found',
+ owesNow:'Owes now',credit:'Credit',local:'Local',newVoucher:'Create voucher',addPayment:'Add payment',history:'History',change:'Change customer',selected:'Selected customer',
+ today:'Today',week:'This week',month:'This month',revenue:'Revenue',debts:'Customer debts',received:'Money received',profit:'Profit',byMethod:'Income by method',outstanding:'Outstanding debts',
+ createVoucher:'Create voucher',voucherNo:'Voucher number',auto:'Auto number',own:'Type my own',autoHint:'The next number is given when the voucher is saved.',date:'Date',
+ items:'Items',item:'Item 1',size:'Size',gate:'Thickness',pc:'Plastic Color',prc:'Print Color',lbw:'Weight (LB)',pp:'Plastic Price',cp:'Color Price',itemTotal:'Item total',addItem:'Add item',
+ extra:'Extra charge',delivery:'Delivery fee',discount:'Discount',note:'Note',core:'Cardboard core / Damage',coreHint:'Optional. Not on the customer voucher and not in the price.',
+ summary:'Summary',itemsTotal:'Items total',voucherTotal:'Voucher total',prevBal:'Previous Balance',paidAmt:'Paid amount',method:'Payment method',remaining:'Remaining',owedAfter:'Owes after this voucher',save:'Save voucher',finalTotal:'Voucher total',
+ oneMethod:'One method',split:'Split',rest:'Rest',left:'Left to assign',allDone:'All assigned',done:'Done',cancel:'Cancel',cash:'Cash',kbz:'KBZPay',bank:'Bank transfer',payOf:'Amount paid',
+ curDebt:'Current debt',payAmt:'Payment amount',payDate:'Payment date',settle:'Settle oldest debts first (FIFO)',recommended:'Recommended for regular payments',noteOpt:'Note (optional)',savePay:'Save payment',afterPay:'Debt after payment',
+ hTitle:'History',cardsV:'Cards',sheetV:'Sheet',monthL:'Month',curMonth:'Nov 2026',dateSearch:'Specific date',sort:'Sort',newest:'Newest first',oldest:'Oldest first',
+ voucher:'Voucher',dateC:'Date',sizeC:'Size',gateC:'Thickness',pcC:'Plastic Color',prcC:'Print Color',lb:'LB',ppC:'Plastic Price',cpC:'Color Price',price:'Price',total:'Total',vt:'Voucher Total',prev:'Previous Balance',paid:'Paid at Site',rem:'Remaining',
+ pay:'Direct Payment',later:'Paid later',totals:'Totals',billed:'Billed',paidT:'Paid',edit:'Edit / delete',reprint:'Reprint voucher',pendTag:'Pending',editB:'Edit',delB:'Delete',
+ hintP:'Swipe sideways for more columns. Turn the phone for a wider view.',hintT:'Swipe sideways for more columns. Voucher, date and remaining stay in view.',
+ colors:{Clear:'Clear',White:'White',Yellow:'Yellow',Red:'Red',Black:'Black',Blue:'Blue'},
+ custTitle:'Customers',totalCust:'Total customers',phone:'Phone number',delTitle:'Delete customer?',delBody:n=>`Delete customer "${n}"? This cannot be undone.`,delOk:'Delete',
+ users:'Users',addStaff:'Add staff',you:'(you)',active:'Active',disabled:'Disabled',textSize:'Text size',normal:'Normal',large:'Large',theme:'Theme',light:'Light',dark:'Dark',signOutQ:'Sign out of this device?',
+ errNo:'Enter voucher number.',errSplit:'Split amounts must add up to the amount paid.',errAmt:'Enter a valid amount.',back:'Back',nav:'Main',clearSearch:'Clear'},
+my:{home:'ပင်မ',stock:'ကုန်လက်ကျန်',reports:'မှတ်တမ်းများ',spending:'အသုံးစရိတ်',settings:'ဆက်တင်',
+ online:'အွန်လိုင်း',offline:'အော့ဖ်လိုင်း',pending:'စောင့်ဆိုင်းဆဲ',offBanner:'အင်တာနက်မရှိပါ။ ပြောင်းလဲမှုများကို စက်တွင်း၌ သိမ်းထားပြီး အင်တာနက်ရလျှင် အလိုအလျောက် ပေးပို့ပါမည်။',
+ designed:'သီးခြားဒီဇိုင်းလုပ်ထားသည်',profile:'ပရိုဖိုင်',language:'ဘာသာစကား',signOut:'ထွက်ရန်',admin:'အက်ဒမင်',staff:'ဝန်ထမ်း',
+ shop:'TK Plastic Press',searchPh:'ဝယ်ယူသူအမည်ဖြင့် ရှာဖွေရန်...',add:'အသစ်ထည့်ရန်',recent:'မကြာသေးမီ ဝယ်ယူသူများ',results:'ဝယ်ယူသူများ',browse:'ဝယ်ယူသူအားလုံးကြည့်ရန်',noRes:'ဝယ်ယူသူရှာမတွေ့ပါ',
+ owesNow:'ယခုကြွေးကျန်',credit:'ပိုပေးထားငွေ',local:'စက်တွင်း',newVoucher:'ဘောက်ချာအသစ်',addPayment:'ငွေပေးချေမှုထည့်ရန်',history:'မှတ်တမ်း',change:'ဝယ်ယူသူပြောင်းရန်',selected:'ရွေးချယ်ထားသော ဝယ်ယူသူ',
+ today:'ယနေ့',week:'ဤအပတ်',month:'ဤလ',revenue:'ဝင်ငွေ',debts:'ကြွေးကျန်စုစုပေါင်း',received:'လက်ခံရငွေ',profit:'အမြတ်',byMethod:'ငွေပေးချေမှုနည်းလမ်းအလိုက်',outstanding:'ကြွေးကျန်များ',
+ createVoucher:'ဘောက်ချာအသစ်ဖန်တီးရန်',voucherNo:'ဘောက်ချာနံပါတ်',auto:'အလိုအလျောက်နံပါတ်',own:'ကိုယ်တိုင်ရိုက်မည်',autoHint:'ဘောက်ချာသိမ်းသောအခါ နံပါတ်ကို အလိုအလျောက်ပေးမည်',date:'နေ့စွဲ',
+ items:'ပစ္စည်းများ',item:'ပစ္စည်း ၁',size:'အရွယ်အစား',gate:'အထူ',pc:'ပလတ်စတစ် အရောင်',prc:'ပုံနှိပ် အရောင်',lbw:'အလေးချိန် (ပေါင်)',pp:'ပလပ်စတစ်စျေး',cp:'အရောင်စျေး',itemTotal:'ပစ္စည်းစုစုပေါင်း',addItem:'ပစ္စည်းထည့်ရန်',
+ extra:'ထပ်ဆောင်းစရိတ်',delivery:'ပို့ခ',discount:'လျှော့ငွေ',note:'မှတ်ချက်',core:'ကတ်ထူလိပ် / ပျက်စီးမှု',coreHint:'မဖြစ်မနေ မဟုတ်။ ဝယ်သူ ဘောက်ချာတွင် မပါ၊ ဈေးနှုန်းတွင် မပါ။',
+ summary:'အနှစ်ချုပ်',itemsTotal:'ပစ္စည်းစုစုပေါင်း',voucherTotal:'ဘောက်ချာစုစုပေါင်း',prevBal:'ယခင်လက်ကျန်ငွေ',paidAmt:'ပေးချေငွေ',method:'ငွေပေးချေမည့်နည်းလမ်း',remaining:'လက်ကျန်ငွေ',owedAfter:'ဤဘောက်ချာအပြီး ကြွေးကျန်',save:'ဘောက်ချာသိမ်းမည်',finalTotal:'ဘောက်ချာစုစုပေါင်း',
+ oneMethod:'တစ်မျိုးတည်း',split:'ခွဲပေးမည်',rest:'ကျန်ရှိ',left:'ခွဲရန်ကျန်ငွေ',allDone:'ခွဲပြီးပြီ',done:'ပြီးပြီ',cancel:'မလုပ်တော့ပါ',cash:'ငွေသား',kbz:'KBZPay',bank:'ဘဏ်လွှဲ',payOf:'ပေးချေငွေ',
+ curDebt:'လက်ရှိကြွေးကျန်',payAmt:'ပေးချေငွေ',payDate:'ပေးချေသည့်နေ့စွဲ',settle:'အဟောင်းဆုံးကြွေးကျန်များကိုအရင်ရှင်းမည်',recommended:'ပုံမှန်ငွေပေးချေမှုများအတွက်အကြံပြုသည်',noteOpt:'မှတ်ချက် (ရွေးချယ်နိုင်သည်)',savePay:'ငွေပေးချေမှုသိမ်းမည်',afterPay:'ပေးချေပြီးနောက် ကြွေးကျန်',
+ hTitle:'မှတ်တမ်း',cardsV:'ကတ်',sheetV:'ဇယား',monthL:'လ',curMonth:'နိုဝင်ဘာ ၂၀၂၆',dateSearch:'ရက်စွဲဖြင့်ရှာရန်',sort:'စီရန်',newest:'အသစ်ဦးစွာ',oldest:'အဟောင်းဦးစွာ',
+ voucher:'ဘောက်ချာ',dateC:'ရက်စွဲ',sizeC:'အရွယ်အစား',gateC:'အထူ',pcC:'ပလတ်စတစ် အရောင်',prcC:'ပုံနှိပ် အရောင်',lb:'ပေါင်',ppC:'ပလပ်စတစ်စျေး',cpC:'အရောင်စျေး',price:'စျေးနှုန်း',total:'စုစုပေါင်း',vt:'ဘောက်ချာစုစုပေါင်း',prev:'ယခင်လက်ကျန်ငွေ',paid:'ပေးချေပြီးငွေ',rem:'ကျန်ငွေ',
+ pay:'ငွေပေးချေမှု',later:'နောက်မှပေးပြီး',totals:'စုစုပေါင်း',billed:'ဘောက်ချာစုစုပေါင်း',paidT:'ပေးချေပြီးငွေ',edit:'ပြင်ရန် / ဖျက်ရန်',reprint:'ဘောက်ချာ ပြန်ထုတ်',pendTag:'စောင့်ဆိုင်းဆဲ',editB:'ပြင်ရန်',delB:'ဖျက်ရန်',
+ hintP:'ဘေးသို့ ပွတ်ဆွဲ၍ ကော်လံများ ပိုကြည့်ပါ။ ဖုန်းကို လှည့်ပါ။',hintT:'ဘေးသို့ ပွတ်ဆွဲ၍ ကော်လံများ ပိုကြည့်ပါ။',
+ colors:{Clear:'ကြည်',White:'အဖြူ',Yellow:'အဝါ',Red:'အနီ',Black:'အနက်',Blue:'အပြာ'},
+ custTitle:'ဝယ်ယူသူများ',totalCust:'ဝယ်ယူသူစုစုပေါင်း',phone:'ဖုန်းနံပါတ်',delTitle:'ဝယ်ယူသူကို ဖျက်မလား?',delBody:n=>`ဝယ်ယူသူ "${n}" ကို ဖျက်ရန် သေချာပါသလား? ပြန်ယူ၍မရပါ။`,delOk:'ဖျက်ရန်',
+ users:'အသုံးပြုသူများ',addStaff:'ဝန်ထမ်းထည့်ရန်',you:'(သင်)',active:'အသုံးပြုနိုင်',disabled:'ပိတ်ထားသည်',textSize:'စာလုံးအရွယ်',normal:'ပုံမှန်',large:'ကြီး',theme:'အသွင်',light:'အလင်း',dark:'အမှောင်',signOutQ:'ဤစက်မှ ထွက်မလား?',
+ errNo:'ဘောက်ချာနံပါတ် ထည့်ပါ။',errSplit:'ခွဲထားသော ပမာဏများ၏ပေါင်းလဒ်သည် ပေးငွေနှင့် တူရမည်။',errAmt:'မှန်ကန်သောပမာဏထည့်ပါ',back:'နောက်သို့',nav:'ပင်မ',clearSearch:'ရှင်းရန်'}
+};
+const CUST=[
+ {id:1,en:'U Aung',my:'ဦးအောင်',ph:'09 78123 456',bal:214275},
+ {id:2,en:'Daw Mya Mya',my:'ဒေါ်မြမြ',ph:'09 25555 0192',bal:0},
+ {id:3,en:'Ko Zaw Lin',my:'ကိုဇော်လင်း',ph:'09 40123 8871',bal:-12000},
+ {id:4,en:'Ma Hnin',my:'မနှင်း',ph:'09 79444 6120',bal:0,pend:true},
+ {id:5,en:'U Tun Tun',my:'ဦးထွန်းထွန်း',ph:'09 45099 7712',bal:45000}
+];
+const HROWS=[
+ {t:'v',no:'000123',d:'24 Nov 2026',size:'8x12',g:'10g',pc:'Clear',prc:'Red',lb:45,pp:4900,cp:1295,tot:278775,vt:281775,prev:32500,paid:100000,rem:181775,extra:5000,disc:2000,pend:true},
+ {t:'p',d:'22 Nov 2026',amt:50000,m:'Cash 30,000 · KBZPay 20,000',mm:'ငွေသား 30,000 · KBZPay 20,000'},
+ {t:'v',no:'000122',d:'20 Nov 2026',size:'6x9',g:'9g',pc:'White',prc:'Black',lb:30,pp:4500,cp:0,tot:135000,vt:135000,prev:82500,paid:135000,rem:0},
+ {t:'v',no:'000121',d:'18 Nov 2026',size:'10x15',g:'11g',pc:'Yellow',prc:'Blue',lb:25,pp:4200,cp:1100,tot:132500,vt:132500,prev:0,paid:50000,rem:'later'}
+];
+const n=x=>Number(x).toLocaleString('en-US');
+const $=s=>document.querySelector(s);
+
+/* ---------- state ---------- */
+const S={screen:'home',lang:'en',size:'normal',theme:'light',role:'admin',offline:false,cust:null,query:'',sheet:null,hview:null,sort:'new',delId:null,period:'month',
+ numMode:'auto',vno:'',vdate:'2026-11-24',f:{size:'8x12',g:'10g',pc:'Clear',prc:'Red',lb:45,pp:4900,cp:1295,extra:5000,disc:2000,paid:100000,note:''},
+ pay:{amt:50000,date:'2026-11-25',note:'',fifo:true},
+ pm:{ctx:'voucher',total:100000,mode:'one',one:'cash',sp:{cash:0,kbz:0,bank:0}},
+ voucherMethod:'Cash',payMethod:'Cash 30,000 · KBZPay 20,000',
+ vm:{mode:'one',one:'cash',sp:{cash:0,kbz:0,bank:0}}, ym:{mode:'split',one:'cash',sp:{cash:30000,kbz:20000,bank:0}}};
+const L=()=>T[S.lang];
+const isRole=r=>S.role===r;
+const mqL=matchMedia('(min-width:1024px)'),mqT=matchMedia('(min-width:600px)');
+const bp=()=>mqL.matches?'L':mqT.matches?'T':'P';
+const cname=c=>S.lang==='my'?c.my:c.en;
+const NAV=['home','stock','reports','spending','settings'];
+const navItems=()=>isRole('admin')?NAV:NAV.slice(0,3);
+const navOf=s=>({voucher:'home',payment:'home',history:'home',customers:'home'}[s]||s);
+const TASK=['voucher','payment','history','customers'];
+const selCust=()=>CUST.find(c=>c.id===S.cust);
+
+/* ---------- shell ---------- */
+function renderShell(){
+  const l=L(),h=document.documentElement;
+  h.lang=S.lang;h.dataset.theme=S.theme;h.dataset.size=S.size;
+    document.body.classList.toggle('task',bp()==='P'&&(S.screen==='voucher'||S.screen==='payment'));
+  $('#app').classList.toggle('rail',bp()==='L'&&innerWidth<1280&&S.screen==='history'&&(S.hview||'sheet')==='sheet');
+  const items=navItems();
+  const btns=items.map(k=>`<button type="button" data-nav="${k}" ${navOf(S.screen)===k?'aria-current="page"':''}>${ic(k,24)}<span>${l[k]}</span></button>`).join('');
+  $('#side').innerHTML=btns;$('#tabs').innerHTML=btns;
+  $('#side').setAttribute('aria-label',l.nav);$('#tabs').setAttribute('aria-label',l.nav);
+  const titles={home:l.home,voucher:S.lang==='my'?l.newVoucher:l.createVoucher,payment:l.addPayment,history:l.hTitle,customers:l.custTitle,stock:l.stock,reports:l.reports,spending:l.spending,settings:l.settings};
+  const back=['voucher','payment','history','customers'].includes(S.screen);
+  const pillOff=S.offline;
+  const pill=pillOff?`<span class="pill off">${ic('wifioff',14,2)}<span>${l.offline} · ${S.lang==='my'?'၂<span class="long"> '+l.pending+'</span>':'2<span class="long"> '+l.pending+'</span>'}</span></span>`:`<span class="pill ok">${ic('check',14,2)}<span>${l.online}</span></span>`;
+  $('#top').innerHTML=(back?`<button class="icon-btn" type="button" data-act="back" aria-label="${l.back}">${ic('back')}</button>`:'')+
+   `<h1 class="${back?'':'nopad'}">${titles[S.screen]||''}</h1>${pill}<button class="icon-btn" type="button" data-act="pop" aria-label="${l.profile}" aria-haspopup="true"><span class="avatar">${isRole('admin')?'KT':'MH'}</span></button>`;
+  $('#banner').innerHTML=S.offline?`<div class="banner" role="status">${ic('wifioff',20)}<span>${l.offBanner}</span></div>`:'';
+  $('#pop').innerHTML=`<div class="who"><b>${isRole('admin')?'Ko Thura':'Ma Hnin'}</b><small>${isRole('admin')?l.admin:l.staff}</small></div>
+   <div class="lbl" style="margin-bottom:4px">${l.language}</div>
+   <div class="seg" style="margin-bottom:12px"><button type="button" data-set="lang=en" aria-pressed="${S.lang==='en'}">English</button><button type="button" data-set="lang=my" aria-pressed="${S.lang==='my'}">မြန်မာ</button></div>
+   <button class="btn block" type="button" data-sheet="signout">${ic('logout',20)}${l.signOut}</button>`;
+}
+
+/* ---------- screens ---------- */
+function custRow(c,opts={}){
+  const l=L(),owes=c.bal>0,cr=c.bal<0;
+  const balTxt=owes?`<span class="debt">${n(c.bal)}</span><small>${l.owesNow}</small>`:cr?`<span class="zero">${n(-c.bal)}</span><small>${l.credit}</small>`:`<span class="zero">0</span>`;
+  const tag=(c.pend&&S.offline)||(c.pend&&opts.always)?`<span class="tag pend">${l.pendTag}</span>`:'';
+  const acts=opts.manage?`<button class="icon-btn" type="button" data-act="editc" aria-label="${l.editB} ${cname(c)}">${ic('pencil',20)}</button>${isRole('admin')?`<button class="icon-btn" type="button" data-del="${c.id}" aria-label="${l.delB} ${cname(c)}">${ic('trash',20)}</button>`:''}`:'';
+  const inner=`<div class="nm"><b>${cname(c)}${tag}</b><small>${c.ph}</small></div><div class="bal">${balTxt}</div>${acts}`;
+  return opts.manage?`<div class="crow">${inner}</div>`:`<button class="crow" type="button" data-cust="${c.id}">${inner}</button>`;
+}
+function homeHTML(){
+  const l=L(),c=selCust();
+  let h=`<div class="wrap"><div class="logo"><i aria-hidden="true">TK</i><b>${l.shop}</b></div>`;
+  if(c){
+    const owes=c.bal>0,cr=c.bal<0;
+    h+=`<div class="bal-card"><div class="top"><div><div class="lbl">${l.selected}</div><div class="nm">${cname(c)}</div><div class="ph">${c.ph}</div></div><button class="btn" type="button" data-cust="">${l.change}</button></div>
+     <div class="owe"><span class="lbl" style="color:var(--ink);font-weight:500">${cr?l.credit:l.owesNow}${S.offline?' (est.)':''}</span><b class="${owes?'debt':'zero'}">${n(Math.abs(c.bal))} MMK</b></div></div>
+     <div class="actions"><button class="btn primary" type="button" data-go="voucher">${ic('file',22)}${l.newVoucher}</button><button class="btn" type="button" data-go="payment">${ic('cash',22)}${l.addPayment}</button><button class="btn" type="button" data-go="history">${ic('clock',22)}${l.history}</button></div></div>`;
+    return h;
+  }
+  h+=`<div class="search"><div class="box">${ic('search',20)}<input class="inp" id="q" type="search" value="${S.query}" placeholder="${l.searchPh}" aria-label="${l.searchPh}" autocomplete="off"></div><button class="btn primary" type="button" data-act="addc" aria-label="${l.add}">${ic('plus',20)}<span class="hide-s">${l.add}</span></button></div><div id="custlist"></div>`;
+  h+=`<div style="margin:12px 0 20px"><button class="link" type="button" data-go="customers">${ic('users',20)}${l.browse}</button></div>`;
+  const tile=(k,v,cls='')=>`<div class="tile"><small>${k}</small><b class="${cls}">${v}</b></div>`;
+  h+=`<div class="pills" role="group">${['today','week','month'].map(p=>`<button type="button" data-set="period=${p}" aria-pressed="${S.period===p}">${l[p]}</button>`).join('')}</div>
+   <div class="tiles">${tile(l.revenue,n(549275))}${tile(l.received,n(335000),'zero')}${tile(l.debts,n(214275),'debt')}${isRole('admin')?tile(l.profit,n(118400)):tile(l.items,'3')}</div>
+   <div class="two"><section class="sec"><h2>${l.byMethod}</h2>${[['cash',l.cash,215000,64],['kbz',l.kbz,90000,27],['bank',l.bank,30000,9]].map(r=>`<div class="bar-row"><span style="display:flex;gap:8px;align-items:center"><i class="dot" style="background:var(--m-${r[0]})"></i>${r[1]}</span><div class="tr"><i style="width:${r[3]}%;background:var(--m-${r[0]})"></i></div><b>${n(r[2])}</b></div>`).join('')}</section>
+   <section class="sec"><h2>${l.outstanding}</h2>${CUST.filter(x=>x.bal>0).map(x=>`<div class="kv"><span>${cname(x)}</span><b class="debt">${n(x.bal)}</b></div>`).join('')}</section></div></div>`;
+  return h;
+}
+function custListHTML(){
+  const l=L(),q=S.query.trim().toLowerCase();
+  const list=q?CUST.filter(c=>(c.en+c.my+c.ph).toLowerCase().includes(q)):CUST.slice(0,4);
+  if(!list.length)return `<p class="hint" style="padding:16px 0">${l.noRes}</p>`;
+  return `<div class="lbl" style="margin:4px 0 6px">${q?l.results:l.recent}</div><div class="list">${list.map(c=>custRow(c)).join('')}</div>`;
+}
+function customersHTML(){
+  const l=L();
+  return `<div class="wrap narrow"><div class="page-h"><h2>${l.custTitle}</h2><span class="hint">${l.totalCust}: ${CUST.length}</span><button class="btn primary" type="button" data-act="addc">${ic('plus',20)}${l.add}</button></div>
+  <div class="list">${CUST.map(c=>custRow(c,{manage:true,always:false})).join('')}</div></div>`;
+}
+/* voucher */
+function calc(){
+  const f=S.f,price=(+f.pp||0)+(+f.cp||0),items=(+f.lb||0)*price,vt=items+(+f.extra||0)-(+f.disc||0),rem=vt-(+f.paid||0),owed=rem+32500;
+  return {price,items,vt,rem,owed};
+}
+function fld(id,label,val,o={}){
+  const t=o.type||'text';
+  if(o.opts)return `<div class="f"><label for="${id}">${label}</label><select class="inp" id="${id}" data-f="${id}">${o.opts.map(x=>`<option value="${x[0]}" ${x[0]==val?'selected':''}>${x[1]}</option>`).join('')}</select></div>`;
+  return `<div class="f"><label for="${id}">${label}</label><input class="inp ${o.num?'num':''}" id="${id}" data-f="${id}" type="${t}" ${o.num?'inputmode="numeric"':''} value="${o.num?n(val):val}"></div>`;
+}
+function summaryHTML(kind){
+  const l=L();
+  if(kind==='pay'){
+    return `<section class="sec vsum-card"><h2>${l.summary}</h2><div class="kv"><span>${l.curDebt}</span><b class="debt">${n(214275)}</b></div><div class="kv"><span>${l.payAmt}</span><b data-b="pamt"></b></div><div class="kv band big"><span>${l.afterPay}</span><b data-b="pafter"></b></div></section>`;
+  }
+  return `<section class="sec"><h2>${l.summary}</h2>
+   <div class="kv"><span>${l.itemsTotal}</span><b data-b="items"></b></div>
+   <div class="kv"><span>${l.delivery}</span><b class="extra" data-b="extra"></b></div>
+   <div class="kv"><span>${l.discount}</span><b class="debt" data-b="disc"></b></div>
+   <div class="kv band big"><span>${l.voucherTotal}</span><b data-b="vt"></b></div>
+   <div class="kv"><span>${l.prevBal}</span><b data-b="prev"></b></div>
+   <div class="kv"><span>${l.paidAmt}</span><b data-b="paid"></b></div>
+   <div class="kv"><span>${l.remaining}</span><b data-b="rem"></b></div>
+   <div class="kv band big"><span>${l.owedAfter}</span><b data-b="owed"></b></div></section>`;
+}
+function methodSummary(m){
+  const l=L();
+  if(m.mode==='one')return `${l[m.one]==null?'':''}${m.one==='cash'?l.cash:m.one==='kbz'?l.kbz:l.bank}`;
+  return [['cash',l.cash],['kbz',l.kbz],['bank',l.bank]].filter(x=>m.sp[x[0]]>0).map(x=>`${x[1]} ${n(m.sp[x[0]])}`).join(' · ');
+}
+function voucherHTML(){
+  const l=L(),f=S.f,c=selCust()||CUST[0];
+  const sizes=['8x12','6x9','10x15'].map(x=>[x,x]),gs=['9g','10g','11g'].map(x=>[x,x]);
+  const cols=['Clear','White','Yellow'].map(x=>[x,l.colors[x]]),pcols=['Red','Black','Blue'].map(x=>[x,l.colors[x]]);
+  return `<div class="wrap"><div class="vgrid"><div class="vform">
+  ${S.offline?`<div class="notice">${ic('wifioff',20)}<span>${S.lang==='my'?'အော့ဖ်လိုင်း - ဘောက်ချာကို စက်တွင်း၌ သိမ်းဆည်းထားပြီး အင်တာနက်ရလျှင် အလိုအလျောက် ပေးပို့ပါမည်။':'Offline: voucher will be saved on this device and sent when internet returns.'}</span></div>`:''}
+  <section class="sec"><h2>${cname(c)}</h2><div class="pad grid">
+    <div class="f"><span class="lbl">${l.voucherNo}</span><div class="seg" role="group"><button type="button" data-set="numMode=auto" aria-pressed="${S.numMode==='auto'}">${l.auto}</button><button type="button" data-set="numMode=own" aria-pressed="${S.numMode==='own'}">${l.own}</button></div>
+    ${S.numMode==='own'?`<input class="inp" id="vno" data-f="vno" value="${S.vno}" aria-label="${l.voucherNo}" placeholder="000123">`:`<span class="hint">${l.autoHint}</span>`}</div>
+    ${fld('vdate',l.date,S.vdate,{type:'date'})}</div></section>
+  <details class="sec" open><summary>${ic('file2',20)}${l.item}<span class="hint" style="margin-left:auto;font-weight:400" data-b="itemline"></span><span class="chev">${ic('down',20)}</span></summary>
+   <div class="pad grid g-auto">
+    ${fld('size',l.size,f.size,{opts:sizes})}${fld('g',l.gate,f.g,{opts:gs})}${fld('pc',l.pc,f.pc,{opts:cols})}${fld('prc',l.prc,f.prc,{opts:pcols})}
+    ${fld('lb',l.lbw,f.lb,{num:1})}${fld('pp',l.pp,f.pp,{num:1})}${fld('cp',l.cp,f.cp,{num:1})}</div>
+   <div class="item-sum"><span>${l.itemTotal}</span><span data-b="itemtot"></span></div></details>
+  <button class="btn block" type="button" style="margin-bottom:16px" data-act="noop">${ic('plus',20)}${l.addItem}</button>
+  <section class="sec"><h2>${l.extra}</h2><div class="pad grid g2">${fld('extra',l.delivery,f.extra,{num:1})}${fld('disc',l.discount,f.disc,{num:1})}</div></section>
+  <section class="sec"><h2>${l.paidAmt}</h2><div class="pad grid">
+    ${fld('paid',l.paidAmt,f.paid,{num:1})}
+    <div class="f"><span class="lbl">${l.method}</span><button class="methodrow" type="button" data-sheet="method-voucher"><span class="v" data-b="vmethod">${methodSummary(S.vm)}</span>${ic('right',20)}</button></div></div></section>
+  <section class="sec"><h2>${l.note}</h2><div class="pad"><textarea class="inp" id="note" data-f="note" aria-label="${l.note}">${f.note}</textarea></div></section>
+  <details class="sec"><summary>${l.core}<span class="chev">${ic('down',20)}</span></summary><div class="pad hint">${l.coreHint}</div></details>
+  </div>
+  <aside class="vsum">${summaryHTML('v')}<button class="btn primary block" type="button" data-act="savev">${l.save}</button></aside></div>
+  <div class="savebar"><div class="t"><small>${l.finalTotal}</small><b data-b="vt"></b></div><button class="btn primary" type="button" data-act="savev" style="min-width:150px">${l.save}</button></div></div>`;
+}
+function paymentHTML(){
+  const l=L(),c=selCust()||CUST[0];
+  return `<div class="wrap"><div class="vgrid"><div class="vform">
+  ${S.offline?`<div class="notice">${ic('wifioff',20)}<span>${S.lang==='my'?'အော့ဖ်လိုင်း - ငွေပေးချေမှုကို စက်တွင်း၌ သိမ်းဆည်းထားပြီး အင်တာနက်ရလျှင် အလိုအလျောက် ပေးပို့ပါမည်။':'Offline: payment will be saved on this device and sent when internet returns.'}</span></div>`:''}
+  <section class="sec"><h2>${cname(c)}</h2><div class="kv"><span>${l.curDebt}${S.offline?' (est.)':''}</span><b class="debt" style="font-size:1.25em">${n(214275)} MMK</b></div></section>
+  <section class="sec"><div class="pad grid">${fld('pamt',l.payAmt,S.pay.amt,{num:1})}${fld('pdate',l.payDate,S.pay.date,{type:'date'})}
+   <div class="f"><span class="lbl">${l.method}</span><button class="methodrow" type="button" data-sheet="method-pay"><span class="v" data-b="ymethod">${methodSummary(S.ym)}</span>${ic('right',20)}</button></div>
+   ${fld('pnote',l.noteOpt,S.pay.note)}</div></section>
+  <section class="sec"><div class="pad"><label style="display:flex;gap:12px;align-items:flex-start;min-height:48px"><input type="checkbox" checked style="width:24px;height:24px;margin-top:2px;accent-color:var(--ink)"><span><b style="font-weight:600">${l.settle}</b><br><span class="hint">${l.recommended}</span></span></label></div></section>
+  </div><aside class="vsum">${summaryHTML('pay')}<button class="btn primary block" type="button" data-act="savep">${l.savePay}</button></aside></div>
+  <div class="savebar"><div class="t"><small>${l.payAmt}</small><b data-b="pamt"></b></div><button class="btn primary" type="button" data-act="savep" style="min-width:150px">${l.savePay}</button></div></div>`;
+}
+/* history */
+function rowsData(){const r=HROWS.slice();return S.sort==='old'?r.reverse():r;}
+function sheetHTML(wide){
+  const l=L();
+  const adm=isRole('admin');
+  const menu=adm?`<button class="menu" type="button" aria-label="${l.edit}">${ic('more',20)}</button>`:'';
+  const tag=r=>S.offline&&r.pend?`<span class="tag pend">${l.pendTag}</span>`:'';
+  let head,body='<tbody>',foot;
+  const mid=`<th>${l.sizeC}</th><th>${l.gateC}</th><th>${l.pcC}</th><th>${l.prcC}</th><th class="num">${l.lb}</th><th class="num">${l.ppC}</th><th class="num">${l.cpC}</th><th class="num">${l.price}</th><th class="num">${l.total}</th><th class="num">${l.vt}</th><th class="num">${l.prev}</th><th class="num">${l.paid}</th>`;
+  head=`<thead><tr>${wide?`<th class="pin-l1">${l.voucher}</th><th>${l.dateC}</th>`:`<th class="pin-l1">${l.voucher} / ${l.dateC}</th>`}${mid}${wide?'':(adm?`<th aria-label="${l.edit}"></th>`:'')}<th class="pin-r num">${l.rem}</th>${wide&&adm?`<th aria-label="${l.edit}"></th>`:''}</tr></thead>`;
+  for(const r of rowsData()){
+    if(r.t==='v'){
+      const price=r.pp+r.cp;
+      const remC=r.rem==='later'?`<span class="rem later">${l.later}</span>`:`<span class="rem ${r.rem>0?'debt':'zero'}">${n(r.rem)}</span>`;
+      const first=wide?`<td class="pin-l1"><button class="vno" type="button" aria-label="${l.reprint} ${r.no}">${r.no}</button>${tag(r)}</td><td>${r.d}</td>`:`<td class="pin-l1"><button class="vno" type="button" aria-label="${l.reprint} ${r.no}">${r.no}</button>${tag(r)}<small>${r.d}</small></td>`;
+      const cells=`<td>${r.size}</td><td>${r.g}</td><td>${l.colors[r.pc]}</td><td>${l.colors[r.prc]}</td><td class="num">${r.lb}</td><td class="num">${n(r.pp)}</td><td class="num">${n(r.cp)}</td><td class="num">${n(price)}</td><td class="num">${n(r.tot)}</td><td class="num">${n(r.vt)}</td><td class="num">${n(r.prev)}</td><td class="num">${n(r.paid)}</td>`;
+      body+=`<tr>${first}${cells}${wide?'':(adm?`<td>${menu}</td>`:'')}<td class="pin-r">${remC}</td>${wide&&adm?`<td>${menu}</td>`:''}</tr>`;
+      const lead=wide?2:1;
+      if(r.extra)body+=`<tr class="sub extra"><td class="pin-l1" ${wide?'colspan="2"':''}>${l.extra}</td><td colspan="8">${l.delivery}</td><td class="amt">+${n(r.extra)}</td><td colspan="3"></td>${wide?'':(adm?'<td></td>':'')}<td class="pin-r"></td>${wide&&adm?'<td></td>':''}</tr>`;
+      if(r.disc)body+=`<tr class="sub disc"><td class="pin-l1" ${wide?'colspan="2"':''}>${l.discount}</td><td colspan="8"></td><td class="amt">−${n(r.disc)}</td><td colspan="3"></td>${wide?'':(adm?'<td></td>':'')}<td class="pin-r"></td>${wide&&adm?'<td></td>':''}</tr>`;
+    }else{
+      const first=wide?`<td class="pin-l1">${l.pay}</td><td>${r.d}</td>`:`<td class="pin-l1">${l.pay}<small>${r.d}</small></td>`;
+      body+=`<tr class="pay">${first}<td colspan="11">${S.lang==='my'?r.mm:r.m}</td><td class="num" style="font-weight:600">${n(r.amt)}</td>${wide?'':(adm?`<td>${menu}</td>`:'')}<td class="pin-r"></td>${wide&&adm?`<td>${menu}</td>`:''}</tr>`;
+    }
+  }
+  body+='<tr class="spacer"><td colspan="20"></td></tr></tbody>';
+  foot=`<tfoot><tr><td class="pin-l1" ${wide?'colspan="2"':''}>${l.totals}</td><td colspan="4"></td><td class="num">100</td><td colspan="2"></td><td></td><td class="num">546,275</td><td class="num">549,275</td><td></td><td class="num">335,000</td>${wide?'':(adm?'<td></td>':'')}<td class="pin-r rem debt">214,275</td>${wide&&adm?'<td></td>':''}</tr></tfoot>`;
+  return `<table class="${wide?'wide':''}">${head}${body}${foot}</table>`;
+}
+function cardsHTML(){
+  const l=L(),adm=isRole('admin');
+  const m=adm?`<button class="menu" type="button" aria-label="${l.edit}">${ic('more',20)}</button>`:'';
+  return `<div class="cards">`+rowsData().map(r=>{
+    if(r.t==='p')return `<article class="card pay"><div class="hd"><b>${l.pay}</b><span>${r.d}</span>${m}</div><div class="spec" style="color:var(--ok)">${S.lang==='my'?r.mm:r.m}</div><div class="remr"><span>${l.paidT}</span><b class="zero">${n(r.amt)}</b></div></article>`;
+    const remC=r.rem==='later'?`<b style="font-weight:400;color:var(--muted);font-size:1em">${l.later}</b>`:`<b class="${r.rem>0?'debt':'zero'}">${n(r.rem)}</b>`;
+    return `<article class="card"><div class="hd"><b>${r.no}</b>${S.offline&&r.pend?`<span class="tag pend">${l.pendTag}</span>`:''}<span class="hint">${r.d}</span>${m}</div>
+    <div class="spec">${r.size} · ${r.g} · ${l.colors[r.pc]} · ${l.colors[r.prc]} · ${r.lb} ${l.lb}</div>
+    <div class="kv"><span>${l.total}</span><b>${n(r.tot)}</b></div>
+    ${r.extra?`<div class="kv"><span>${l.delivery}</span><b class="extra">+${n(r.extra)}</b></div>`:''}${r.disc?`<div class="kv"><span>${l.discount}</span><b class="debt">−${n(r.disc)}</b></div>`:''}
+    <div class="kv"><span>${l.vt}</span><b>${n(r.vt)}</b></div><div class="kv"><span>${l.prev}</span><b>${n(r.prev)}</b></div><div class="kv"><span>${l.paid}</span><b>${n(r.paid)}</b></div>
+    <div class="remr"><span>${l.rem}</span>${remC}</div><div class="ft"><button class="btn" type="button">${ic('printer',20)}${l.reprint}</button></div></article>`;}).join('')+`</div>`;
+}
+function historyHTML(){
+  const l=L(),c=selCust()||CUST[0];
+  const view=S.hview||(bp()==='P'?'cards':'sheet');
+  const wide=bp()==='L';
+  const filters=`<div class="hbar"><div class="f"><label for="hm">${l.monthL}</label><select class="inp" id="hm"><option>${l.curMonth}</option></select></div>
+   <div class="f dsearch"><label for="hd">${l.dateSearch}</label><input class="inp" id="hd" type="date"></div>
+   <div class="f"><label for="hs">${l.sort}</label><select class="inp" id="hs" data-sort><option value="new" ${S.sort==='new'?'selected':''}>${l.newest}</option><option value="old" ${S.sort==='old'?'selected':''}>${l.oldest}</option></select></div>
+   <div class="vt"><div class="seg" role="group"><button type="button" data-set="hview=cards" aria-pressed="${view==='cards'}">${ic('cards',20)}${l.cardsV}</button><button type="button" data-set="hview=sheet" aria-pressed="${view==='sheet'}">${ic('table',20)}${l.sheetV}</button></div></div></div>`;
+  const sum=`<div class="summary"><div><small>${l.billed}</small><b>549,275</b></div><div><small>${l.paidT}</small><b>335,000</b></div><div><small>${l.owesNow}</small><b class="debt">214,275</b></div></div>`;
+  if(view==='cards')return `<div class="content-inner" style="display:flex;flex-direction:column;min-height:100%"><div style="padding:12px 16px 0;font-weight:600">${cname(c)}</div>${filters}${sum}${cardsHTML()}</div>`;
+  return `<div style="padding:10px 16px;font-weight:600;background:var(--row);border-bottom:1px solid var(--line);flex:none">${cname(c)}</div>${filters}${sum}<div class="scroller" tabindex="0" role="region" aria-label="${l.hTitle}">${sheetHTML(wide)}</div>${wide?'':`<div class="hint-bar">${bp()==='P'?l.hintP:l.hintT}</div>`}`;
+}
+function settingsHTML(){
+  const l=L();
+  const users=[['Ko Thura','ကိုသူရ','admin',true],['Ma Hnin','မနှင်း','staff'],['Ko Min','ကိုမင်း','staff']];
+  const seg=(k,v,lab)=>`<button type="button" data-set="${k}=${v}" aria-pressed="${S[k]===v}">${lab}</button>`;
+  return `<div class="wrap narrow">
+  <section class="sec"><h2>${l.users}</h2>${users.map(u=>`<div class="crow" style="min-height:64px"><div class="nm"><b>${S.lang==='my'?u[1]:u[0]}${u[3]?` <span class="hint" style="font-weight:400">${l.you}</span>`:''}</b></div><span class="tag">${l[u[2]]}</span></div>`).join('')}
+   <div class="pad" style="border-top:1px solid var(--line)"><button class="btn" type="button">${ic('plus',20)}${l.addStaff}</button></div></section>
+  <section class="sec"><h2>${l.language}</h2><div class="pad"><div class="seg">${seg('lang','en','English')}${seg('lang','my','မြန်မာ')}</div></div></section>
+  <section class="sec"><h2>${l.textSize}</h2><div class="pad"><div class="seg">${seg('size','normal',l.normal)}${seg('size','large',l.large)}</div></div></section>
+  <section class="sec"><h2>${l.theme}</h2><div class="pad"><div class="seg">${seg('theme','light',l.light)}${seg('theme','dark',l.dark)}</div></div></section>
+  <button class="btn block" type="button" data-sheet="signout">${ic('logout',20)}${l.signOut}</button></div>`;
+}
+function placeholderHTML(){
+  const l=L();
+  return `<div class="empty"><h2>${l[S.screen]}</h2><p>${l.designed}</p></div>`;
+}
+
+/* ---------- render ---------- */
+function render(keepScroll){
+  if(!navItems().includes(navOf(S.screen))&&!TASK.includes(S.screen))S.screen='home';
+  const sc=$('#content').scrollTop;
+  renderShell();
+  const c=$('#content');
+  c.classList.toggle('flush',S.screen==='history');c.classList.toggle('fill',S.screen==='history'&&(S.hview||(bp()==='P'?'cards':'sheet'))==='sheet');
+  c.innerHTML=({home:homeHTML,voucher:voucherHTML,payment:paymentHTML,history:historyHTML,customers:customersHTML,settings:settingsHTML}[S.screen]||placeholderHTML)();
+  if(S.screen==='home'&&!S.cust)$('#custlist').innerHTML=custListHTML();
+  c.scrollTop=keepScroll?sc:0;
+  bind();
+  syncPv();
+}
+function bind(){
+  const l=L(),cc=calc();
+  const set=(k,v)=>document.querySelectorAll(`[data-b="${k}"]`).forEach(e=>e.textContent=v);
+  if(S.screen==='voucher'){
+    set('items',n(cc.items));set('extra',(S.f.extra>0?'+':'')+n(S.f.extra||0));set('disc',(S.f.disc>0?'−':'')+n(S.f.disc||0));document.querySelectorAll('.vsum [data-b="vt"]').forEach(e=>e.textContent=n(cc.vt));document.querySelectorAll('.savebar [data-b="vt"]').forEach(e=>e.textContent=n(cc.vt)+' MMK');
+    set('prev',n(32500));set('paid',n(+S.f.paid||0));set('rem',n(cc.rem));set('owed',n(cc.owed));set('itemtot',n(cc.items));
+    set('itemline',`${S.f.size} · ${S.f.g} · ${S.f.lb} ${l.lb}`);
+    document.querySelectorAll('[data-b="rem"]').forEach(e=>e.className=cc.rem>0?'debt':'zero');
+    document.querySelectorAll('[data-b="owed"]').forEach(e=>e.className=cc.owed>0?'debt':'zero');
+  }
+  if(S.screen==='payment'){const a=+S.pay.amt||0;document.querySelectorAll('.vsum [data-b="pamt"]').forEach(e=>e.textContent=n(a));document.querySelectorAll('.savebar [data-b="pamt"]').forEach(e=>e.textContent=n(a)+' MMK');set('pafter',n(214275-a));}
+}
+function syncPv(){
+  const pv=$('#pvbody');if(!pv.dataset.ready){
+    const g=(label,key,opts)=>`<div class="grp"><span>${label}</span>${opts.map(o=>`<button type="button" data-pv="${key}=${o[0]}" aria-pressed="false">${o[1]}</button>`).join('')}</div>`;
+    pv.innerHTML=g('Language','lang',[['en','EN'],['my','မြန်မာ']])+g('Text size','size',[['normal','Normal'],['large','Large']])+g('Theme','theme',[['light','Light'],['dark','Dark']])+g('Role','role',[['admin','Admin'],['staff','Staff']])+g('Connection','offline',[['0','Online'],['1','Offline']])+
+     `<div class="grp"><span>Jump to</span><select id="pvjump" aria-label="Jump to screen">${[['home','Home'],['home-sel','Home, customer selected'],['voucher','Create voucher'],['payment','Add payment'],['history','History'],['customers','Customers'],['settings','Settings'],['stock','Stock'],['reports','Reports'],['spending','Spending']].map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('')}</select></div>`;
+    pv.dataset.ready=1;
+  }
+  document.querySelectorAll('[data-pv]').forEach(b=>{const [k,v]=b.dataset.pv.split('=');const cur=k==='offline'?(S.offline?'1':'0'):S[k];b.setAttribute('aria-pressed',String(cur===v));});
+  const j=$('#pvjump');j.value=(S.screen==='home'&&S.cust)?'home-sel':S.screen;
+}
+
+/* ---------- overlay ---------- */
+function openSheet(kind,extra){
+  const l=L();let html='',cls='';
+  if(kind==='signout'){cls='dlg';html=`<h2 id="sh-t">${l.signOut}</h2><p class="sub">${l.signOutQ}</p><div class="foot"><button class="btn" type="button" data-act="closesheet">${l.cancel}</button><button class="btn primary" type="button" data-act="closesheet">${l.signOut}</button></div>`;}
+  if(kind==='delete'){cls='dlg';const c=CUST.find(x=>x.id===extra);html=`<h2 id="sh-t">${l.delTitle}</h2><p class="sub">${l.delBody(cname(c))}</p><div class="foot"><button class="btn" type="button" data-act="closesheet">${l.cancel}</button><button class="btn danger" type="button" data-act="closesheet">${ic('trash',20)}${l.delOk}</button></div>`;}
+  if(kind==='method-voucher'||kind==='method-pay'){
+    cls='pnl';const v=kind==='method-voucher';
+    S.mctx=v?'v':'y';S.mm=JSON.parse(JSON.stringify(v?S.vm:S.ym));S.mtotal=v?(+S.f.paid||0):(+S.pay.amt||0);
+    html=methodSheet();
+  }
+  if(kind==='addc'){cls='dlg';html=`<h2 id="sh-t">${l.add}</h2><div class="grid" style="margin-top:8px">${fld('nc-n',l.custTitle,'')}${fld('nc-p',l.phone,'')}</div>${S.offline?`<p class="hint" style="margin-top:8px">${S.lang==='my'?'အင်တာနက်မရှိပါ။ အင်တာနက်ရလျှင် အလိုအလျောက် သိမ်းဆည်းပေးပါမည်။':'You are offline. Customer will sync when internet is available.'}</p>`:''}<div class="foot"><button class="btn" type="button" data-act="closesheet">${l.cancel}</button><button class="btn primary" type="button" data-act="closesheet">${l.add}</button></div>`;}
+  S.sheet=kind;
+  const el=document.createElement('div');el.id='sheetbox';
+  el.innerHTML=`<div class="sheet ${cls}" role="dialog" aria-modal="true" aria-labelledby="sh-t">${html}</div>`;
+  closeSheet(true);
+  $('#scrim').classList.add('open');$('#scrim').appendChild(el.firstChild);
+  const f=$('#scrim .sheet button,#scrim .sheet input');if(f&&!window.__shot)f.focus();
+}
+function closeSheet(keep){$('#scrim').classList.remove('open');$('#scrim').innerHTML='';if(!keep)S.sheet=null;}
+function methodSheet(){
+  const l=L(),m=S.mm,tot=S.mtotal;
+  const names=[['cash',l.cash],['kbz',l.kbz],['bank',l.bank]];
+  const sum=names.reduce((a,x)=>a+(+m.sp[x[0]]||0),0),leftv=tot-sum;
+  let body;
+  if(m.mode==='one'){body=names.map(x=>`<button class="opt" type="button" role="radio" aria-checked="${m.one===x[0]}" data-one="${x[0]}"><span class="rd"></span><i class="dot" style="background:var(--m-${x[0]})"></i>${x[1]}</button>`).join('');}
+  else body=names.map(x=>`<div class="srow"><span class="nm"><i class="dot" style="background:var(--m-${x[0]})"></i>${x[1]}</span><input class="inp num" inputmode="numeric" data-sp="${x[0]}" value="${m.sp[x[0]]?n(m.sp[x[0]]):''}" placeholder="0" aria-label="${x[1]}"><button class="btn" type="button" data-rest="${x[0]}">${l.rest}</button></div>`).join('')+
+    `<div class="left ${leftv===0?'done':'bad'}" id="leftbox"><span>${leftv===0?l.allDone:l.left}</span><span>${n(leftv)}</span></div>`;
+  return `<h2 id="sh-t">${l.method}</h2><p class="sub">${l.payOf}: <b style="font-weight:600;color:var(--ink)">${n(tot)} MMK</b></p>
+   <div class="seg" style="margin-bottom:16px"><button type="button" data-mmode="one" aria-pressed="${m.mode==='one'}">${l.oneMethod}</button><button type="button" data-mmode="split" aria-pressed="${m.mode==='split'}">${l.split}</button></div>${body}
+   <div class="foot"><button class="btn" type="button" data-act="closesheet">${l.cancel}</button><button class="btn primary" type="button" data-act="mdone">${l.done}</button></div>`;
+}
+function leftUpdate(){
+  const l=L(),m=S.mm,sum=Object.values(m.sp).reduce((a,x)=>a+(+x||0),0),lv=S.mtotal-sum,b=$('#leftbox');
+  if(!b)return;b.className='left '+(lv===0?'done':'bad');b.innerHTML=`<span>${lv===0?l.allDone:l.left}</span><span>${n(lv)}</span>`;
+}
+let tt;
+function toast(msg){const t=$('#toast');t.innerHTML=ic('alert',20)+`<span>${msg}</span>`;t.classList.add('open');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('open'),5000);}
+
+/* ---------- events ---------- */
+function setKV(kv){
+  const [k,v]=kv.split('=');
+  if(k==='offline')S.offline=v==='1';else S[k]=v;
+}
+document.addEventListener('click',e=>{
+  const t=e.target.closest('button,[data-pv]');if(!t){ if(!e.target.closest('#pop'))$('#pop').classList.remove('open');return;}
+  const d=t.dataset;
+  if(!t.closest('#pop')&&d.act!=='pop')$('#pop').classList.remove('open');
+  if(t.id==='pvtog'){$('#pv').classList.toggle('open');return;}
+  if(d.pv){setKV(d.pv);S.sheet&&closeSheet();render(true);return;}
+  if(d.nav){S.screen=d.nav;S.sheet&&closeSheet();render();return;}
+  if(d.go){S.screen=d.go;if(d.go==='history')S.hview=null;render();return;}
+  if(d.set){setKV(d.set);if(S.sheet==='signout')closeSheet();render(true);return;}
+  if(d.cust!==undefined){S.cust=d.cust?+d.cust:null;S.query='';render();return;}
+  if(d.del){openSheet('delete',+d.del);return;}
+  if(d.sheet){$('#pop').classList.remove('open');openSheet(d.sheet);return;}
+  if(d.mmode){S.mm.mode=d.mmode;$('#scrim .sheet').innerHTML=methodSheet();return;}
+  if(d.one){S.mm.one=d.one;$('#scrim .sheet').innerHTML=methodSheet();return;}
+  if(d.rest){const m=S.mm;const others=Object.entries(m.sp).filter(x=>x[0]!==d.rest).reduce((a,x)=>a+(+x[1]||0),0);m.sp[d.rest]=Math.max(0,S.mtotal-others);$('#scrim .sheet').innerHTML=methodSheet();return;}
+  switch(d.act){
+    case 'back':S.screen=(S.screen==='customers'||S.screen==='history'||S.screen==='voucher'||S.screen==='payment')?'home':S.screen;render();break;
+    case 'pop':$('#pop').classList.toggle('open');break;
+    case 'closesheet':closeSheet();break;
+    case 'addc':openSheet('addc');break;
+    case 'mdone':{
+      const m=S.mm;
+      if(m.mode==='split'){const act=Object.values(m.sp).filter(x=>+x>0).length,sum=Object.values(m.sp).reduce((a,x)=>a+(+x||0),0);
+        if(sum!==S.mtotal||act<2){toast(L().errSplit);return;}}
+      if(S.mctx==='v')S.vm=m;else S.ym=m;closeSheet();render(true);break;}
+    case 'savev':
+      if(S.numMode==='own'&&!S.vno.trim()){toast(L().errNo);break;}
+      S.screen='history';S.hview=null;render();break;
+    case 'savep':
+      if(!(+S.pay.amt>0)){toast(L().errAmt);break;}
+      S.screen='history';S.hview=null;render();break;
+  }
+});
+document.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.id==='q'){S.query=t.value;$('#custlist').innerHTML=custListHTML();return;}
+  if(t.dataset.sp){S.mm.sp[t.dataset.sp]=+t.value.replace(/[^\d]/g,'')||0;leftUpdate();return;}
+  const f=t.dataset.f;
+  if(f){
+    if(S.screen==='payment'&&f==='pamt'){S.pay.amt=+t.value.replace(/[^\d]/g,'')||0;}
+    else if(f==='vno')S.vno=t.value;
+    else if(f==='vdate')S.vdate=t.value;
+    else if(f==='note')S.f.note=t.value;
+    else if(['size','g','pc','prc'].includes(f))S.f[f]=t.value;
+    else S.f[f]=+t.value.replace(/[^\d]/g,'')||0;
+    bind();
+  }
+});
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.id==='pvjump'){const v=t.value;if(v==='home-sel'){S.screen='home';S.cust=1;}else{S.screen=v;if(v==='home')S.cust=null;}S.hview=null;render();}
+  if(t.dataset.sort!==undefined){S.sort=t.value;render(true);}
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeSheet();$('#pop').classList.remove('open');}});
+$('#scrim').addEventListener('click',e=>{if(e.target.id==='scrim')closeSheet();});
+matchMedia('(min-width:1280px)').addEventListener('change',()=>render(true));mqL.addEventListener('change',()=>render(true));mqT.addEventListener('change',()=>render(true));
+
+/* ---------- boot (hash params for preview/screenshots) ---------- */
+(function(){
+  const q=new URLSearchParams(location.hash.slice(1));
+  for(const [k,v] of q){
+    if(k==='bare'){document.body.classList.add('bare');window.__shot=1;}
+    else if(k==='offline')S.offline=v==='1';
+    else if(k==='cust')S.cust=v?+v:null;
+    else if(k==='screen')S.screen=v;
+    else if(k==='hview')S.hview=v;
+    else if(k==='split'){S.numMode='auto';}
+    else if(k in S&&typeof S[k]==='string')S[k]=v;
+  }
+  if(!S.cust&&['voucher','payment','history'].includes(S.screen))S.cust=1;
+  if(window.innerWidth>700)$('#pv').classList.add('open');
+  render();
+  const sh=q.get('sheet');if(sh)openSheet(sh,sh==='delete'?4:undefined);
+})();
+</script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Boxes, Plus, Trash2, Pencil, Save, X, History as HistoryIcon } from 'lucide-react';
+import { Plus, Trash2, Pencil, Save, X, History as HistoryIcon } from 'lucide-react';
 import Layout from '../components/Layout';
 import Combo from '../components/Combo';
 import Pager from '../components/Pager';
@@ -10,8 +10,8 @@ import { usePlasticOptions } from '../hooks/usePlasticOptions';
 import { useAuth } from '../hooks/useAuth';
 import { useLanguage } from '../context/LanguageContext';
 
-const inputCls = 'w-full p-2 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none transition-all font-bold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
-const labelCls = 'block truncate text-base font-black text-gray-600 uppercase px-1 tracking-widest';
+const inputCls = 'w-full px-3 py-2 min-h-[var(--ctl)] bg-row border border-line-strong rounded-xl focus:border-accent outline-none transition-all font-medium [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
+const labelCls = 'block truncate text-sm font-medium text-muted px-1';
 const today = () => new Date().toLocaleDateString('en-GB').split('/').join('-');
 const num = (v) => parseFloat(v) || 0;
 const money = (v) => Math.round(v).toLocaleString();
@@ -38,15 +38,10 @@ const Stock = () => {
   return (
     <Layout>
       <div className="space-y-4 pb-12">
-        <header className="flex items-center gap-3">
-          <Boxes size={28} className="text-blue-600" />
-          <h2 className="text-2xl sm:text-3xl font-black text-gray-900">{t('stock')}</h2>
-        </header>
-
         <div className="grid grid-cols-3 gap-2 lg:flex lg:flex-wrap">
           {[['stock', t('stock_tab_stock')], ...(admin ? [['buy', t('stock_tab_buy')]] : []), ['lists', t('stock_tab_lists')]].map(([id, label]) => (
             <button key={id} onClick={() => setTab(id)}
-              className={`px-2 lg:px-4 py-3 rounded-2xl font-black text-sm lg:text-base leading-tight uppercase tracking-wide transition-all ${tab === id ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-gray-500 border-2 border-gray-100'}`}>
+              className={`px-2 lg:px-5 min-h-[var(--ctl)] py-2 rounded-2xl font-medium text-sm lg:text-base leading-tight transition-colors ${tab === id ? 'bg-accent text-on-accent font-semibold' : 'bg-row text-ink border border-line-strong'}`}>
               {label}
             </button>
           ))}
@@ -61,6 +56,26 @@ const Stock = () => {
 };
 
 /* ------------------------------------------------------------------ Stock */
+// Pop-up: bottom sheet on phone, centred dialog on tablet / PC (same pattern as Spending and the movement history).
+const Modal = ({ title, onClose, wide = false, children }) => (
+  <div className="fixed inset-0 z-50 bg-[var(--scrim)] flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      className={`bg-row w-full ${wide ? 'sm:max-w-3xl' : 'sm:max-w-xl'} max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl shadow-lg p-5 sm:p-6 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-6`}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="w-10 h-1 rounded-full bg-line-strong mx-auto mb-3 sm:hidden" aria-hidden="true" />
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold text-ink text-lg">{title}</h3>
+        <button type="button" onClick={onClose} aria-label="Close" className="w-11 h-11 -mr-2 flex items-center justify-center text-muted hover:text-ink hover:bg-band rounded-xl"><X size={20} /></button>
+      </div>
+      {children}
+    </div>
+  </div>
+);
+
 const StockTab = ({ admin, options, addOption, t }) => {
   const [data, setData] = useState({ items: [], total_lb: 0 });
   const [error, setError] = useState('');
@@ -135,35 +150,46 @@ const StockTab = ({ admin, options, addOption, t }) => {
 
   return (
     <div className="space-y-3">
-      {error && <div className="bg-red-50 text-red-700 font-bold p-3 rounded-xl">{error}</div>}
-      <div className={`grid gap-3 ${admin ? 'grid-cols-2' : 'grid-cols-1'}`}>
-        <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-          <span className="text-base font-black text-gray-600 uppercase block tracking-widest mb-1">{t('x_total_in_stock')}</span>
-          <span className="text-2xl font-black text-blue-600">{lbFmt(data.total_lb)}</span> <span className="text-gray-400 font-bold">lb</span>
+      {error && <div className="bg-debt-bg text-debt font-medium p-3 rounded-xl">{error}</div>}
+      <section className="bg-row rounded-2xl shadow-sm overflow-hidden">
+        <div className={`grid gap-px bg-line ${admin ? 'grid-cols-2' : 'grid-cols-1'}`}>
+          <div className="bg-row px-5 py-4 min-w-0">
+            <span className="block text-[length:var(--sfs)] text-muted">{t('x_total_in_stock')}</span>
+            <span className="flex flex-wrap items-baseline gap-x-1.5">
+              <span className="text-2xl font-semibold text-accent tabular-nums">{lbFmt(data.total_lb)}</span>
+              <span className="text-sm font-medium text-muted">lb</span>
+            </span>
+          </div>
+          {admin && (
+            <div className="bg-row px-5 py-4 min-w-0">
+              <span className="block text-[length:var(--sfs)] text-muted">{t('x_stock_value')}</span>
+              <span className="flex flex-wrap items-baseline gap-x-1.5">
+                <span className="text-2xl font-semibold text-ok tabular-nums">{money(data.total_value || 0)}</span>
+                <span className="text-sm font-medium text-muted">MMK</span>
+              </span>
+            </div>
+          )}
         </div>
         {admin && (
-          <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-            <span className="text-base font-black text-gray-600 uppercase block tracking-widest mb-1">{t('x_stock_value')}</span>
-            <span className="text-2xl font-black text-green-600">{money(data.total_value || 0)}</span> <span className="text-gray-400 font-bold">MMK</span>
+          <div className="border-t border-line p-3">
+            <button onClick={() => setShowOpening((v) => !v)} className="flex items-center justify-center gap-2 bg-accent text-on-accent px-5 min-h-[48px] w-full sm:w-auto rounded-xl font-semibold">
+              <Plus size={20} /> {t('x_add_opening')}
+            </button>
           </div>
         )}
-      </div>
-
-      {admin && (
-        <button onClick={() => setShowOpening((v) => !v)} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-3 rounded-2xl font-black">
-          <Plus size={18} /> {t('x_add_opening')}
-        </button>
-      )}
+      </section>
 
       {showOpening && (
-        <form onSubmit={saveOpening} className="bg-white p-4 rounded-3xl border-2 border-blue-100 space-y-3">
-          <p className="text-base font-bold text-gray-500">{t('x_opening_help')}</p>
+        <Modal title={t('x_add_opening')} onClose={() => setShowOpening(false)}>
+        <form onSubmit={saveOpening} className="space-y-3">
+          <p className="text-sm text-muted">{t('x_opening_help')}</p>
           <LineFields line={opening} onChange={setOpening} options={options} addOption={addOption} t={t} priceLabel={t('x_cost_per_lb')} />
           <div className="flex gap-2">
-            <button type="submit" className="flex items-center gap-2 bg-green-600 text-white px-4 py-3 rounded-2xl font-black"><Save size={18} /> {t('x_save')}</button>
-            <button type="button" onClick={() => setShowOpening(false)} className="px-4 py-3 rounded-2xl font-black bg-gray-100 text-gray-600">{t('x_cancel')}</button>
+            <button type="submit" className="flex items-center gap-2 bg-ok text-on-accent px-5 min-h-[48px] rounded-xl font-semibold"><Save size={18} /> {t('x_save')}</button>
+            <button type="button" onClick={() => setShowOpening(false)} className="px-5 min-h-[48px] rounded-xl font-medium bg-row border border-line-strong text-ink">{t('x_cancel')}</button>
           </div>
         </form>
+        </Modal>
       )}
 
       {data.items.length > 8 && (
@@ -172,53 +198,73 @@ const StockTab = ({ admin, options, addOption, t }) => {
           className={inputCls} />
       )}
 
-      <div className="space-y-2">
-        {data.items.length === 0 && <div className="text-center text-gray-400 font-bold py-10">{t('x_no_stock')}</div>}
-        {data.items.length > 0 && matches.length === 0 && <div className="text-center text-gray-400 font-bold py-10">{t('x_nothing_matches')}</div>}
+      <div className="bg-row rounded-2xl shadow-sm overflow-hidden divide-y divide-line">
+        {/* ruled table header, PC and tablet landscape only */}
+        {shownStock.rows.length > 0 && (
+          <div className={`hidden lg:grid lg:grid-cols-[minmax(0,.7fr)_minmax(0,1.5fr)_minmax(0,.9fr)_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1.9fr)] lg:gap-x-4 items-center bg-band px-4 py-2.5 text-[length:var(--sfs)] font-semibold text-muted`}>
+            <span>{t('size')}</span>
+            <span>{t('plastic_color')}</span>
+            <span>{t('gate')}</span>
+            <span className="text-right">{admin ? t('x_avg_cost') : ''}</span>
+            <span className="text-right">{admin ? t('x_stock_value') : ''}</span>
+            <span className="text-right pr-[9.5rem]">lb</span>
+          </div>
+        )}
+        {data.items.length === 0 && <div className="text-center text-muted py-10">{t('x_no_stock')}</div>}
+        {data.items.length > 0 && matches.length === 0 && <div className="text-center text-muted py-10">{t('x_nothing_matches')}</div>}
         {shownStock.rows.map((s) => (
-          <div key={s.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap items-center gap-3">
-            <div className="flex-1 min-w-[12rem]">
-              <div className="text-lg font-black text-gray-800 break-words">{s.size} <span className="text-gray-400">/</span> {s.color}{s.gate ? <span className="text-gray-400"> / {s.gate}</span> : null}</div>
-              {admin && <div className="text-base text-gray-500 font-bold">{t('x_avg_cost')} {money(s.avg_cost_per_lb)} / lb &middot; {t('x_value')} {money(s.value)}</div>}
+          <div key={s.id} className={`px-4 py-3 flex flex-wrap items-center gap-x-3 gap-y-1 lg:grid lg:grid-cols-[minmax(0,.7fr)_minmax(0,1.5fr)_minmax(0,.9fr)_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1.9fr)] lg:gap-x-4 lg:items-center hover:bg-zebra`}>
+            {/* phone / tablet: one combined title + the cost line */}
+            <div className="flex-1 min-w-[12rem] lg:hidden">
+              <div className="text-base sm:text-lg font-semibold text-ink break-words">{s.size} <span className="text-muted">/</span> {s.color}{s.gate ? <span className="text-muted"> / {s.gate}</span> : null}</div>
+              {admin && <div className="text-sm sm:text-base text-muted">{t('x_avg_cost')} {money(s.avg_cost_per_lb)} / lb &middot; {t('x_value')} {money(s.value)}</div>}
             </div>
+            {/* PC: one column per field */}
+            <span className="hidden lg:block font-semibold text-ink break-words">{s.size}</span>
+            <span className="hidden lg:block text-ink break-words">{s.color}</span>
+            <span className="hidden lg:block text-muted break-words">{s.gate || '-'}</span>
+            <span className="hidden lg:block text-right tabular-nums text-ink">{admin ? money(s.avg_cost_per_lb) : ''}</span>
+            <span className="hidden lg:block text-right tabular-nums text-ink">{admin ? money(s.value) : ''}</span>
+            <div className="min-w-0 ml-auto lg:ml-0 lg:justify-self-end">
             {editing?.id === s.id ? (
               <div className="flex items-center gap-2">
                 <input type="number" step="any" className={`${inputCls} w-28`} value={editing.qty} onChange={(e) => setEditing({ ...editing, qty: e.target.value })} />
-                <button onClick={saveAdjust} className="p-3 bg-green-600 text-white rounded-xl"><Save size={18} /></button>
-                <button onClick={() => setEditing(null)} className="p-3 bg-gray-100 text-gray-600 rounded-xl"><X size={18} /></button>
+                <button onClick={saveAdjust} className="w-11 h-11 flex items-center justify-center bg-ok text-on-accent rounded-xl"><Save size={18} /></button>
+                <button onClick={() => setEditing(null)} className="w-11 h-11 flex items-center justify-center text-muted hover:bg-band rounded-xl"><X size={18} /></button>
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <span className={`text-2xl font-black ${s.qty_lb < 0 ? 'text-red-600' : 'text-blue-700'}`}>{lbFmt(s.qty_lb)} <span className="text-base text-gray-400">lb</span></span>
+                <span className={`text-xl font-semibold tabular-nums lg:min-w-[6rem] lg:text-right ${s.qty_lb < 0 ? 'text-debt' : 'text-accent'}`}>{lbFmt(s.qty_lb)} <span className="text-base text-muted">lb</span></span>
                 {admin && (
                   <>
-                    <button title={t('x2_set_counted')} onClick={() => setEditing({ id: s.id, qty: s.qty_lb })} className="p-3 bg-gray-100 text-gray-600 rounded-xl"><Pencil size={18} /></button>
-                    <button title={t('x2_history')} onClick={() => openMoves(s)} className="p-3 bg-gray-100 text-gray-600 rounded-xl"><HistoryIcon size={18} /></button>
-                    <button title={t('x2_delete_row')} onClick={() => deleteRow(s)} className="p-3 bg-red-50 text-red-600 rounded-xl"><Trash2 size={18} /></button>
+                    <button title={t('x2_set_counted')} onClick={() => setEditing({ id: s.id, qty: s.qty_lb })} className="w-11 h-11 flex items-center justify-center text-muted hover:bg-band rounded-xl"><Pencil size={18} /></button>
+                    <button title={t('x2_history')} onClick={() => openMoves(s)} className="w-11 h-11 flex items-center justify-center text-muted hover:bg-band rounded-xl"><HistoryIcon size={18} /></button>
+                    <button title={t('x2_delete_row')} onClick={() => deleteRow(s)} className="w-11 h-11 flex items-center justify-center text-debt hover:bg-debt-bg rounded-xl"><Trash2 size={18} /></button>
                   </>
                 )}
               </div>
             )}
+            </div>
           </div>
         ))}
       </div>
       <Pager page={shownStock.page} pages={shownStock.pages} onChange={setStockPage} />
 
       {moves && (
-        <div className="fixed inset-0 z-40 bg-black/40 flex items-end sm:items-center justify-center p-3" onClick={() => setMoves(null)}>
-          <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[85vh] overflow-auto p-4" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-40 bg-[var(--scrim)] flex items-end sm:items-center justify-center sm:p-4" onClick={() => setMoves(null)}>
+          <div className="bg-row rounded-t-3xl sm:rounded-3xl w-full max-w-2xl max-h-[88vh] overflow-auto p-4 sm:p-6 shadow-lg" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-3">
-              <h3 className="text-lg font-black">{moves.item.size} / {moves.item.color} {moves.item.gate && `/ ${moves.item.gate}`}</h3>
-              <button onClick={() => setMoves(null)} className="p-2 bg-gray-100 rounded-xl"><X size={18} /></button>
+              <h3 className="text-lg font-semibold">{moves.item.size} / {moves.item.color} {moves.item.gate && `/ ${moves.item.gate}`}</h3>
+              <button onClick={() => setMoves(null)} className="w-11 h-11 flex items-center justify-center text-muted hover:bg-band rounded-xl"><X size={18} /></button>
             </div>
             <div className="space-y-1">
               {moves.rows.map((m) => (
-                <div key={m.id} className="flex justify-between gap-2 text-base border-b border-gray-100 py-2">
-                  <span className="font-bold text-gray-600 break-words">{m.kind} <span className="text-gray-400">{m.ref}</span><span className="block text-sm text-gray-400">{new Date(m.created_at).toLocaleString()}</span></span>
-                  <span className={`font-black whitespace-nowrap ${m.delta_lb < 0 ? 'text-red-600' : 'text-green-600'}`}>{m.delta_lb > 0 ? '+' : ''}{lbFmt(m.delta_lb)} lb</span>
+                <div key={m.id} className="flex justify-between gap-2 text-base border-b border-line py-2">
+                  <span className="font-medium text-ink break-words">{m.kind} <span className="text-muted">{m.ref}</span><span className="block text-sm text-muted">{new Date(m.created_at).toLocaleString()}</span></span>
+                  <span className={`font-semibold tabular-nums whitespace-nowrap ${m.delta_lb < 0 ? 'text-debt' : 'text-ok'}`}>{m.delta_lb > 0 ? '+' : ''}{lbFmt(m.delta_lb)} lb</span>
                 </div>
               ))}
-              {moves.rows.length === 0 && <div className="text-gray-400 font-bold py-4 text-center">{t('x_nothing_yet')}</div>}
+              {moves.rows.length === 0 && <div className="text-muted py-4 text-center">{t('x_nothing_yet')}</div>}
             </div>
             <Pager page={moves.page} pages={moves.pages} onChange={(p) => openMoves(moves.item, p)} disabled={movesLoading} className="pt-3" />
           </div>
@@ -304,13 +350,11 @@ const BuyTab = ({ options, addOption, t }) => {
 
   return (
     <div className="space-y-3">
-      {!form && (
-        <button onClick={() => setForm(blank())} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-3 rounded-2xl font-black"><Plus size={18} /> {t('x_new_factory')}</button>
-      )}
+      <button onClick={() => setForm(blank())} className="flex items-center gap-2 bg-accent text-on-accent px-5 min-h-[52px] rounded-xl font-semibold"><Plus size={20} /> {t('x_new_factory')}</button>
 
       {form && (
-        <form onSubmit={save} className="bg-white p-4 rounded-3xl border-2 border-blue-100 space-y-4">
-          <h3 className="text-xl font-black text-gray-800">{form.id ? t('x_edit_factory') : t('x_new_factory')}</h3>
+        <Modal wide title={form.id ? t('x_edit_factory') : t('x_new_factory')} onClose={() => setForm(null)}>
+        <form onSubmit={save} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1"><label className={labelCls}>{t('x_supplier')}</label>
               <input className={inputCls} value={form.supplier} onChange={(e) => setForm({ ...form, supplier: e.target.value })} /></div>
@@ -320,73 +364,74 @@ const BuyTab = ({ options, addOption, t }) => {
           </div>
 
           {form.lines.map((l, i) => (
-            <div key={i} className="bg-gray-50 p-3 rounded-2xl space-y-2">
+            <div key={i} className="bg-page p-3 rounded-2xl space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-base font-black text-gray-600 uppercase">{t('x_roll')} {i + 1}</span>
-                {form.lines.length > 1 && <button type="button" onClick={() => setForm({ ...form, lines: form.lines.filter((_, idx) => idx !== i) })} className="text-red-400"><Trash2 size={18} /></button>}
+                <span className="text-base font-semibold text-ink">{t('x_roll')} {i + 1}</span>
+                {form.lines.length > 1 && <button type="button" onClick={() => setForm({ ...form, lines: form.lines.filter((_, idx) => idx !== i) })} className="w-11 h-11 flex items-center justify-center text-debt hover:bg-debt-bg rounded-xl"><Trash2 size={18} /></button>}
               </div>
               <LineFields line={l} onChange={(nl) => setLine(i, nl)} options={options} addOption={addOption} t={t} />
-              <div className="text-right text-base font-bold text-gray-500">{t('x_cost')}: <span className="font-black text-blue-700">{money(num(l.weight_lb) * num(l.price_per_lb))}</span> MMK</div>
+              <div className="text-right text-base text-muted">{t('x_cost')}: <span className="font-semibold text-accent">{money(num(l.weight_lb) * num(l.price_per_lb))}</span> MMK</div>
             </div>
           ))}
-          <button type="button" onClick={() => setForm({ ...form, lines: [...form.lines, emptyLine()] })} className="flex items-center gap-2 bg-gray-100 text-gray-700 px-4 py-3 rounded-2xl font-black"><Plus size={18} /> {t('x_add_roll')}</button>
+          <button type="button" onClick={() => setForm({ ...form, lines: [...form.lines, emptyLine()] })} className="flex items-center gap-2 bg-row border border-line-strong text-ink px-5 min-h-[48px] rounded-xl font-medium"><Plus size={18} /> {t('x_add_roll')}</button>
 
-          <div className="bg-amber-50 border-2 border-amber-100 p-3 rounded-2xl space-y-2">
-            <div className="text-base font-black text-gray-700">{t('x4_extras_title')}</div>
-            <div className="text-sm font-bold text-gray-500">{t('x4_extras_hint')}</div>
-            {form.id && <div className="text-sm font-bold text-amber-700">{t('x4_edit_note')}</div>}
+          <div className="bg-extra-bg border border-extra/40 p-3 rounded-2xl space-y-2">
+            <div className="text-base font-semibold text-ink">{t('x4_extras_title')}</div>
+            <div className="text-sm text-muted">{t('x4_extras_hint')}</div>
+            {form.id && <div className="text-sm font-medium text-extra">{t('x4_edit_note')}</div>}
             {form.extras.map((x, i) => (
               <div key={i} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
                 <div className="space-y-1"><label className={labelCls}>{t('x4_extra_name')}</label>
                   <input className={inputCls} placeholder={t('x4_extra_ph')} value={x.label} onChange={(e) => setExtra(i, { label: e.target.value })} /></div>
                 <div className="space-y-1"><label className={labelCls}>{t('x4_extra_amount')}</label>
                   <input type="number" min="0" step="any" inputMode="decimal" className={inputCls} value={x.amount} onChange={(e) => setExtra(i, { amount: e.target.value })} /></div>
-                <button type="button" onClick={() => setForm({ ...form, extras: form.extras.filter((_, idx) => idx !== i) })} className="p-3 text-red-400"><Trash2 size={18} /></button>
+                <button type="button" onClick={() => setForm({ ...form, extras: form.extras.filter((_, idx) => idx !== i) })} className="w-11 h-11 flex items-center justify-center text-debt hover:bg-debt-bg rounded-xl"><Trash2 size={18} /></button>
               </div>
             ))}
-            <button type="button" onClick={() => setForm({ ...form, extras: [...form.extras, { label: '', amount: '' }] })} className="flex items-center gap-2 bg-white text-gray-700 px-4 py-3 rounded-2xl font-black border-2 border-amber-100"><Plus size={18} /> {t('x4_add_extra')}</button>
+            <button type="button" onClick={() => setForm({ ...form, extras: [...form.extras, { label: '', amount: '' }] })} className="flex items-center gap-2 bg-row text-ink px-5 min-h-[48px] rounded-xl font-medium border border-extra/40"><Plus size={18} /> {t('x4_add_extra')}</button>
           </div>
 
           <div className="space-y-1"><label className={labelCls}>{t('note')}</label>
             <input className={inputCls} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} /></div>
 
-          <div className="bg-gray-800 text-white p-4 rounded-2xl space-y-1">
+          <div className="bg-ink text-on-accent p-4 rounded-2xl space-y-1">
             {extrasTotal > 0 && (
-              <div className="text-sm font-bold text-gray-300 flex justify-between"><span>{t('x4_goods')} {money(total)}</span><span>{t('x4_extras_word')} {money(extrasTotal)}</span></div>
+              <div className="text-sm text-on-accent/70 flex justify-between"><span>{t('x4_goods')} {money(total)}</span><span>{t('x4_extras_word')} {money(extrasTotal)}</span></div>
             )}
             <div className="flex justify-between items-center">
-              <span className="font-bold">{lbFmt(totalLb)} lb</span>
-              <span className="text-2xl font-black text-blue-300">{money(total + extrasTotal)} MMK</span>
+              <span className="font-semibold">{lbFmt(totalLb)} lb</span>
+              <span className="text-xl sm:text-2xl font-semibold tabular-nums">{money(total + extrasTotal)} MMK</span>
             </div>
           </div>
           <div className="flex gap-2">
-            <button disabled={saving} type="submit" className="flex items-center gap-2 bg-green-600 text-white px-5 py-3 rounded-2xl font-black"><Save size={18} /> {saving ? '...' : t('x_save')}</button>
-            <button type="button" onClick={() => setForm(null)} className="px-5 py-3 rounded-2xl font-black bg-gray-100 text-gray-600">{t('x_cancel')}</button>
+            <button disabled={saving} type="submit" className="flex items-center gap-2 bg-ok text-on-accent px-5 min-h-[48px] rounded-xl font-semibold disabled:opacity-60"><Save size={18} /> {saving ? '...' : t('x_save')}</button>
+            <button type="button" onClick={() => setForm(null)} className="px-5 min-h-[48px] rounded-xl font-medium bg-row border border-line-strong text-ink">{t('x_cancel')}</button>
           </div>
         </form>
+        </Modal>
       )}
 
-      <div className="space-y-2">
-        {list.length === 0 && !form && <div className="text-center text-gray-400 font-bold py-10">{t('x_no_factory')}</div>}
+      <div className="bg-row rounded-2xl shadow-sm overflow-hidden divide-y divide-line">
+        {list.length === 0 && <div className="text-center text-muted py-10">{t('x_no_factory')}</div>}
         {list.map((p) => (
-          <div key={p.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 space-y-2">
+          <div key={p.id} className="px-4 py-3 space-y-2">
             <div className="flex flex-wrap justify-between gap-2 items-center">
               <div>
-                <div className="font-black text-gray-800">{p.supplier || t('x_factory')} {p.purchase_number && <span className="text-gray-400">#{p.purchase_number}</span>}</div>
-                <div className="text-sm text-gray-400 font-bold">{p.purchase_date}</div>
+                <div className="font-semibold text-ink">{p.supplier || t('x_factory')} {p.purchase_number && <span className="text-muted">#{p.purchase_number}</span>}</div>
+                <div className="text-sm text-muted">{p.purchase_date}</div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xl font-black text-blue-700">{money(p.grand_total ?? p.total_cost)} MMK</span>
-                <button onClick={() => edit(p)} className="p-3 bg-gray-100 text-gray-600 rounded-xl"><Pencil size={18} /></button>
-                <button onClick={() => remove(p)} className="p-3 bg-red-50 text-red-500 rounded-xl"><Trash2 size={18} /></button>
+                <span className="text-lg sm:text-xl font-semibold text-accent tabular-nums">{money(p.grand_total ?? p.total_cost)} MMK</span>
+                <button onClick={() => edit(p)} className="w-11 h-11 flex items-center justify-center text-muted hover:bg-band rounded-xl"><Pencil size={18} /></button>
+                <button onClick={() => remove(p)} className="w-11 h-11 flex items-center justify-center text-debt hover:bg-debt-bg rounded-xl"><Trash2 size={18} /></button>
               </div>
             </div>
-            <div className="text-base text-gray-600 font-bold space-y-0.5">
+            <div className="text-sm sm:text-base text-muted space-y-0.5">
               {p.lines.map((l) => (
                 <div key={l.id} className="flex justify-between gap-2"><span className="break-words">{l.size} / {l.color}{l.gate ? ` / ${l.gate}` : ''} &middot; {lbFmt(l.weight_lb)} lb &times; {money(l.price_per_lb)}</span><span className="whitespace-nowrap">{money(l.line_cost)}</span></div>
               ))}
               {(p.extras || []).map((x) => (
-                <div key={x.id} className="flex justify-between gap-2 text-amber-700"><span className="break-words">+ {x.label}</span><span className="whitespace-nowrap">{money(x.amount)}</span></div>
+                <div key={x.id} className="flex justify-between gap-2 text-extra"><span className="break-words">+ {x.label}</span><span className="whitespace-nowrap">{money(x.amount)}</span></div>
               ))}
             </div>
           </div>
@@ -452,37 +497,37 @@ const ListsTab = ({ options, admin, addOption, refresh, t }) => {
       <div className="flex gap-2 flex-wrap">
         {LIST_IDS.map((id) => (
           <button key={id} onClick={() => pick(id)}
-            className={`px-4 py-2 rounded-xl font-black text-base transition-all ${which === id ? 'bg-gray-800 text-white shadow' : 'bg-white text-gray-600 border-2 border-gray-200'}`}>
-            {groups[id].title} <span className={which === id ? 'text-gray-300' : 'text-gray-400'}>({groups[id].rows.length})</span>
+            className={`px-4 min-h-[var(--ctl)] rounded-full font-medium text-base ${which === id ? 'bg-accent text-on-accent font-semibold' : 'bg-row text-ink border border-line-strong'}`}>
+            {groups[id].title} <span className={which === id ? 'text-on-accent/70' : 'text-muted'}>({groups[id].rows.length})</span>
           </button>
         ))}
       </div>
 
-      <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm space-y-3">
-        <h3 className="text-xl font-black text-gray-800">{g.title} <span className="text-gray-400">({g.rows.length})</span></h3>
+      <div className="bg-row p-4 rounded-2xl shadow-sm space-y-3">
+        <h3 className="text-lg font-semibold text-ink">{g.title} <span className="text-muted">({g.rows.length})</span></h3>
         <form onSubmit={(e) => { e.preventDefault(); add(); }} className="flex gap-2">
           <input className={inputCls} placeholder={`${t('add_new')}...`} value={draft} onChange={(e) => setDraft(e.target.value)} />
-          <button type="submit" className="px-4 bg-blue-600 text-white rounded-xl font-black"><Plus size={18} /></button>
+          <button type="submit" aria-label={t('add_new')} className="min-w-[52px] min-h-[var(--ctl)] flex items-center justify-center bg-accent text-on-accent rounded-xl"><Plus size={20} /></button>
         </form>
         {g.rows.length > 8 && (
           <input type="search" className={inputCls} placeholder={t('x_search')} value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
         )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
           {shown.rows.map((o) => (
-            <div key={o.id} className="flex items-center justify-between gap-2 bg-gray-50 px-3 py-2 rounded-xl">
+            <div key={o.id} className="flex items-center justify-between gap-2 bg-page pl-3.5 pr-1.5 py-1.5 min-h-[48px] rounded-xl">
               {renaming?.id === o.id ? (
                 <>
                   <input className={inputCls} value={renaming.name} onChange={(e) => setRenaming({ ...renaming, name: e.target.value })} />
-                  <button onClick={rename} className="p-2 bg-green-600 text-white rounded-lg"><Save size={16} /></button>
-                  <button onClick={() => setRenaming(null)} className="p-2 bg-gray-200 rounded-lg"><X size={16} /></button>
+                  <button onClick={rename} className="w-11 h-11 shrink-0 flex items-center justify-center bg-ok text-on-accent rounded-xl"><Save size={18} /></button>
+                  <button onClick={() => setRenaming(null)} className="w-11 h-11 shrink-0 flex items-center justify-center text-muted hover:bg-band rounded-xl"><X size={18} /></button>
                 </>
               ) : (
                 <>
-                  <span className="font-bold text-gray-700 break-words min-w-0">{o.name}</span>
+                  <span className="font-medium text-ink break-words min-w-0">{o.name}</span>
                   {admin && (
                     <span className="flex gap-1 shrink-0">
-                      <button onClick={() => setRenaming({ id: o.id, name: o.name })} className="p-2 bg-gray-200 text-gray-600 rounded-lg"><Pencil size={16} /></button>
-                      <button onClick={() => remove(o)} className="p-2 bg-red-50 text-red-500 rounded-lg"><Trash2 size={16} /></button>
+                      <button onClick={() => setRenaming({ id: o.id, name: o.name })} className="w-11 h-11 flex items-center justify-center text-muted hover:bg-band rounded-xl"><Pencil size={18} /></button>
+                      <button onClick={() => remove(o)} className="w-11 h-11 flex items-center justify-center text-debt hover:bg-debt-bg rounded-xl"><Trash2 size={18} /></button>
                     </span>
                   )}
                 </>
@@ -490,8 +535,8 @@ const ListsTab = ({ options, admin, addOption, refresh, t }) => {
             </div>
           ))}
         </div>
-        {g.rows.length === 0 && <div className="text-gray-400 font-bold text-center py-4">{t('x_empty')}</div>}
-        {g.rows.length > 0 && matches.length === 0 && <div className="text-gray-400 font-bold text-center py-4">{t('x_nothing_matches')}</div>}
+        {g.rows.length === 0 && <div className="text-muted text-center py-4">{t('x_empty')}</div>}
+        {g.rows.length > 0 && matches.length === 0 && <div className="text-muted text-center py-4">{t('x_nothing_matches')}</div>}
         <Pager page={shown.page} pages={shown.pages} onChange={setPage} />
       </div>
     </div>

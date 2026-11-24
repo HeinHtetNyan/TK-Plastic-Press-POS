@@ -8,7 +8,7 @@ const MethodTags = ({ row, className = '' }) => {
   const parts = rowMethods(row);
   const split = parts.length > 1;
   return parts.map((p) => (
-    <span key={p.method} className={`text-xs px-1.5 py-0.5 rounded font-black uppercase whitespace-nowrap ${methodTagClass(p.method)} ${className}`}>
+    <span key={p.method} className={`text-xs px-1.5 py-0.5 rounded font-semibold uppercase whitespace-nowrap ${methodTagClass(p.method)} ${className}`}>
       {methodShort(p.method)}{split ? ` ${fmt(p.amount)}` : ''}
     </span>
   ));
