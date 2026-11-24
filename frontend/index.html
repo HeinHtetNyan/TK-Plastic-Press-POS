@@ -10,6 +10,17 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="%VITE_APP_SHORT_NAME%" />
     <link rel="manifest" href="/manifest.json" />
+    <script>
+      // Apply saved theme and text size before first paint (no flash).
+      try {
+        var d = document.documentElement;
+        var th = localStorage.getItem('tk-theme');
+        var sz = localStorage.getItem('tk-text-size');
+        if (th === 'dark') d.setAttribute('data-theme', 'dark');
+        if (sz === 'large') d.setAttribute('data-text-size', 'large');
+        if (localStorage.getItem('lang') === 'MM') { d.classList.add('lang-mm'); d.lang = 'my'; }
+      } catch (e) { /* storage unavailable */ }
+    </script>
     <title>%VITE_APP_TITLE%</title>
   </head>
   <body>
