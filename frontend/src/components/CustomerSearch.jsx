@@ -75,32 +75,28 @@ const CustomerSearch = ({ onSelect, onAdd, onEdit, selectedCustomer }) => {
 
   if (selectedCustomer) {
     return (
-      <div className="bg-white p-4 rounded-2xl shadow-sm border-2 border-blue-100 flex justify-between items-center">
-        <div className="flex-grow">
-          <p className="text-base font-black text-gray-400 uppercase tracking-widest">{t('selected_customer')}</p>
-          <div className="flex items-center gap-2">
-            <p className="text-xl font-black text-blue-700">{selectedCustomer.name}</p>
-            {selectedCustomer.phone_numbers && (
-              <span className="text-sm bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold">
-                {selectedCustomer.phone_numbers}
-              </span>
-            )}
-          </div>
+      <div className="bg-row rounded-2xl shadow-sm p-4 flex justify-between items-start gap-3">
+        <div className="min-w-0 flex-grow">
+          <p className="text-sm text-muted">{t('selected_customer')}</p>
+          <p className="text-xl font-semibold text-ink break-words">{selectedCustomer.name}</p>
+          {selectedCustomer.phone_numbers && (
+            <p className="text-base text-muted">{selectedCustomer.phone_numbers}</p>
+          )}
           {selectedCustomer.address && (
-            <p className="text-sm text-gray-400 font-medium truncate max-w-xs">{selectedCustomer.address}</p>
+            <p className="text-sm text-muted truncate max-w-xs">{selectedCustomer.address}</p>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 shrink-0">
           <button
             onClick={(e) => onEdit(e, selectedCustomer)}
-            className="p-2 text-gray-400 hover:text-blue-600 bg-gray-50 hover:bg-blue-50 rounded-full transition-all"
+            className="min-h-[var(--ctl)] min-w-[var(--ctl)] flex items-center justify-center text-muted hover:text-accent bg-row border border-line-strong hover:bg-band rounded-xl transition-colors"
             title="Edit Customer"
           >
             <Pencil size={20} />
           </button>
           <button
             onClick={handleClear}
-            className="p-2 text-gray-400 hover:text-red-500 bg-gray-50 hover:bg-red-50 rounded-full transition-all"
+            className="min-h-[var(--ctl)] min-w-[var(--ctl)] flex items-center justify-center text-muted hover:text-debt bg-row border border-line-strong hover:bg-debt-bg rounded-xl transition-colors"
             title="Clear Selection"
           >
             <X size={20} />
@@ -116,33 +112,33 @@ const CustomerSearch = ({ onSelect, onAdd, onEdit, selectedCustomer }) => {
         <div className="relative flex-grow">
           <input
             type="text"
-            className="w-full pl-11 pr-4 py-4 bg-white border-2 border-gray-100 rounded-2xl focus:border-blue-500 outline-none transition-all text-lg font-bold"
+            className="w-full pl-11 pr-4 min-h-[var(--ctl)] bg-row border border-line-strong rounded-xl focus:border-accent outline-none transition-colors text-base"
             placeholder={t('search_customer')}
             value={query}
             onChange={handleQueryChange}
             onFocus={() => query && setShowResults(true)}
           />
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" size={20} />
         </div>
         <button
           onClick={onAdd}
-          className="bg-blue-600 text-white px-5 rounded-2xl hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center gap-2 font-black shadow-md shadow-blue-100"
+          className="bg-accent text-on-accent px-5 min-h-[var(--ctl)] rounded-xl hover:opacity-90 transition-opacity flex items-center justify-center gap-2 font-semibold"
         >
           <UserPlus size={20} />
-          <span className="hidden sm:inline text-base uppercase tracking-wide">{t('add')}</span>
+          <span className="hidden sm:inline text-base">{t('add')}</span>
         </button>
       </div>
 
       {showResults && results.length > 0 && (
-        <ul className="absolute z-50 w-full mt-2 bg-white border-2 border-gray-100 rounded-2xl shadow-xl max-h-64 overflow-y-auto animate-in fade-in zoom-in duration-200">
+        <ul className="absolute z-50 w-full mt-2 bg-row shadow-md border border-line-strong rounded-2xl max-h-72 overflow-y-auto overflow-x-hidden animate-in fade-in duration-200">
           {results.map((customer) => (
             <li
               key={customer.client_id || customer.id}
-              className="p-4 hover:bg-blue-50 cursor-pointer border-b last:border-b-0 border-gray-50 transition-colors flex justify-between items-center"
+              className="px-5 py-3 min-h-[var(--row-h)] hover:bg-band cursor-pointer border-b last:border-b-0 border-line transition-colors flex justify-between items-center gap-3"
               onClick={() => handleSelect(customer)}
             >
-              <span className="font-black text-gray-800 text-lg">{customer.name}</span>
-              <span className="text-base font-black text-gray-600 uppercase">
+              <span className="font-semibold text-ink text-base break-words min-w-0">{customer.name}</span>
+              <span className="text-sm text-muted bg-band rounded-full px-2.5 py-0.5 whitespace-nowrap tabular-nums shrink-0">
                 {customer.server_id ? `${t('id')}: ${customer.server_id}` : customer.id ? `${t('id')}: ${customer.id}` : t('local')}
               </span>
             </li>
@@ -151,7 +147,7 @@ const CustomerSearch = ({ onSelect, onAdd, onEdit, selectedCustomer }) => {
       )}
 
       {showResults && results.length === 0 && query.trim().length > 0 && (
-        <div className="absolute z-50 w-full mt-2 bg-white border-2 border-gray-100 rounded-2xl shadow-xl p-4 text-center text-gray-400 font-bold text-base animate-in fade-in duration-200">
+        <div className="absolute z-50 w-full mt-2 bg-row shadow-md border border-line-strong rounded-2xl p-5 text-center text-muted text-base animate-in fade-in duration-200">
           {t('no_customers_found')} "{query}"
         </div>
       )}

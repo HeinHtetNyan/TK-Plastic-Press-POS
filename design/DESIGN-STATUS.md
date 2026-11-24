@@ -30,3 +30,6 @@
 - Stitch phone fixes done: 01,02,10,11,12,15 + regenerated 03,04,05,06. Timed out (superseded by HTML): 07,13,14.
 - Open: 05 uppercase labels, Reports chart numbers invented by Stitch, Myanmar draft strings need native review, 15-col sheet only fits at 1024-1279 with icon rail. Tablet/PC for Stock/Reports/Spending in Stitch not yet generated.
 - Printed A5 voucher: never changed.
+
+## 2026-11-25 final
+- Direction: v2 Soft look + v3 ruled tables (user choice). Mock-up: design/app-mockup-v2v3.html (screens in design/shots-v2v3/). Real app built in frontend/ on branch redesign-v3 (uncommitted): lint + build pass; tested on a local copy of the live data (see memory project_tk_redesign_v3_build_2026_11_25). Open: phone test, offline-state screenshots, Large/Myanmar sweep, user review + commits.

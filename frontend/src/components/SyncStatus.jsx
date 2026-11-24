@@ -46,7 +46,7 @@ const SyncStatus = () => {
   // Offline
   if (!isOnline) {
     return (
-      <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-debt-bg text-debt text-[.87em] font-medium whitespace-nowrap select-none">
+      <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-debt-bg text-debt text-[.87em] font-medium whitespace-nowrap select-none">
         <WifiOff size={14} strokeWidth={2} />
         <span>{t('x2_offline')}</span>
         {pendingCount > 0 && (
@@ -61,7 +61,7 @@ const SyncStatus = () => {
   // Syncing
   if (syncing) {
     return (
-      <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-band text-accent text-[.87em] font-medium whitespace-nowrap select-none">
+      <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-band text-accent text-[.87em] font-medium whitespace-nowrap select-none">
         <RefreshCw size={14} strokeWidth={2} className="animate-spin" />
         <span>{t('x2_syncing')}</span>
       </div>
@@ -74,7 +74,7 @@ const SyncStatus = () => {
       <button
         onClick={handleSync}
         title={t('x2_tap_sync')}
-        className="flex items-center gap-1.5 px-2.5 min-h-8 rounded bg-extra-bg text-extra text-[.87em] font-medium whitespace-nowrap"
+        className="flex items-center gap-1.5 px-2.5 min-h-8 rounded-full bg-extra-bg text-extra text-[.87em] font-medium whitespace-nowrap"
       >
         <AlertCircle size={14} strokeWidth={2} />
         <span>{t('x2_pending')}</span>
@@ -87,7 +87,7 @@ const SyncStatus = () => {
 
   // All synced
   return (
-    <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-ok-bg text-ok text-[.87em] font-medium whitespace-nowrap select-none">
+    <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-ok-bg text-ok text-[.87em] font-medium whitespace-nowrap select-none">
       <CheckCircle2 size={14} strokeWidth={2} />
       <span>{t('x2_online')}</span>
     </div>

@@ -76,10 +76,10 @@ const Login = () => {
   // Still waiting for backend response — show spinner
   if (isSetupRequired === null && !checkError) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-page">
         <div className="text-center space-y-3">
-          <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto" />
-          <p className="text-base font-bold text-gray-600 uppercase tracking-widest">{t('x2_connecting')}</p>
+          <div className="w-10 h-10 border-4 border-line border-t-accent rounded-full animate-spin mx-auto" />
+          <p className="text-base font-medium text-muted">{t('x2_connecting')}</p>
         </div>
       </div>
     );
@@ -88,21 +88,21 @@ const Login = () => {
   // Backend unreachable
   if (checkError) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-        <div className="max-w-sm w-full bg-white rounded-2xl p-8 shadow-lg border border-red-100 text-center space-y-4">
-          <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto">
-            <Lock className="h-6 w-6 text-red-500" />
+      <div className="min-h-screen flex items-center justify-center bg-page px-4">
+        <div className="max-w-sm w-full bg-row rounded-2xl p-8 shadow-sm text-center space-y-4">
+          <div className="w-12 h-12 bg-debt-bg rounded-full flex items-center justify-center mx-auto">
+            <Lock className="h-6 w-6 text-debt" />
           </div>
-          <h2 className="text-xl font-black text-gray-800">Cannot Reach Server</h2>
-          <p className="text-base text-gray-500">The backend is not reachable. Make sure the server is running and the API URL is configured correctly.</p>
+          <h2 className="text-xl font-semibold text-ink">Cannot Reach Server</h2>
+          <p className="text-base text-muted">The backend is not reachable. Make sure the server is running and the API URL is configured correctly.</p>
           <button
             onClick={checkStatus}
-            className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all"
+            className="w-full min-h-[48px] bg-accent text-on-accent rounded-xl font-bold hover:opacity-90 transition-all"
           >
             Retry
           </button>
           {!isDemo() && (
-            <button type="button" onClick={enterDemo} className="w-full text-center text-base font-bold text-blue-600 underline">
+            <button type="button" onClick={enterDemo} className="w-full text-center text-base font-bold text-accent underline">
               {t('x4_demo_link')}
             </button>
           )}
@@ -113,54 +113,54 @@ const Login = () => {
 
   if (isSetupRequired) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg border-2 border-blue-100 animate-in zoom-in duration-300">
+      <div className="min-h-screen flex items-center justify-center bg-page py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8 bg-row p-8 sm:p-10 rounded-2xl shadow-sm animate-in zoom-in duration-300">
           <div>
-            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100">
-              <ShieldCheck className="h-6 w-6 text-blue-600" />
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-accent/40">
+              <ShieldCheck className="h-6 w-6 text-accent" />
             </div>
-            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            <h2 className="mt-6 text-center text-2xl sm:text-3xl font-semibold text-ink">
               Initial Setup
             </h2>
-            <p className="mt-2 text-center text-base text-gray-600">
+            <p className="mt-2 text-center text-base text-muted">
               Create the first **Super Admin** account
             </p>
           </div>
           <form className="mt-8 space-y-4" onSubmit={handleSetup}>
             {error && (
-              <div className="bg-red-50 border-l-4 border-red-400 p-4">
-                <p className="text-base text-red-700">{error}</p>
+              <div className="bg-debt-bg border-l-4 border-debt rounded-xl p-4">
+                <p className="text-base text-debt">{error}</p>
               </div>
             )}
             <div className="space-y-3">
               <div>
-                <label className="text-base font-bold text-gray-600 uppercase">{t('x2_username')}</label>
+                <label className="text-base font-bold text-muted uppercase">{t('x2_username')}</label>
                 <input
                   type="text"
                   required
-                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 min-h-[48px] bg-row border border-line rounded-xl outline-none focus:ring-2 focus:ring-accent"
                   placeholder="admin"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                 />
               </div>
               <div>
-                <label className="text-base font-bold text-gray-600 uppercase">{t('x2_password')}</label>
+                <label className="text-base font-bold text-muted uppercase">{t('x2_password')}</label>
                 <input
                   type="password"
                   required
-                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 min-h-[48px] bg-row border border-line rounded-xl outline-none focus:ring-2 focus:ring-accent"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
               <div>
-                <label className="text-base font-bold text-gray-600 uppercase">{t('x2_confirm_pw')}</label>
+                <label className="text-base font-bold text-muted uppercase">{t('x2_confirm_pw')}</label>
                 <input
                   type="password"
                   required
-                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 min-h-[48px] bg-row border border-line rounded-xl outline-none focus:ring-2 focus:ring-accent"
                   placeholder="••••••••"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
@@ -171,7 +171,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-base font-bold rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-base font-semibold rounded-xl text-on-accent bg-accent hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent"
             >
               {loading ? 'Processing...' : 'Complete Setup'}
             </button>
@@ -182,72 +182,81 @@ const Login = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg border border-gray-100">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+    <div className="min-h-screen flex items-center justify-center bg-page py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8 bg-row p-8 sm:p-10 rounded-2xl shadow-sm">
+        <div className="text-center">
+          <div className="mx-auto w-14 h-14 rounded-2xl border-2 border-ink grid place-items-center text-xl font-semibold">TK</div>
+          <h2 className="mt-5 text-2xl sm:text-3xl font-semibold text-ink">
             {import.meta.env.VITE_APP_NAME} POS
           </h2>
-          <p className="mt-2 text-center text-base text-gray-600">
+          <p className="mt-1.5 text-base text-muted">
             {t('x2_please_signin')}
           </p>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        <form className="space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="bg-red-50 border-l-4 border-red-400 p-4">
-              <p className="text-base text-red-700">{error}</p>
+            <div className="bg-debt-bg border-l-4 border-debt rounded-xl p-4">
+              <p className="text-base text-debt">{error}</p>
             </div>
           )}
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <User className="h-5 w-5 text-gray-400" />
+          <div className="space-y-3">
+            <label className="block">
+              <span className="block text-sm font-medium text-muted mb-1.5">{t('x2_username')}</span>
+              <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+                <User className="h-5 w-5 text-muted" />
               </div>
               <input
                 type="text"
                 required
-                className="appearance-none rounded-none relative block w-full px-10 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                className="appearance-none rounded-xl relative block w-full px-10 min-h-[48px] bg-row border border-line-strong placeholder:text-muted text-ink text-base focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
                 placeholder="Username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
               />
-            </div>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Lock className="h-5 w-5 text-gray-400" />
+              </div>
+            </label>
+            <label className="block">
+              <span className="block text-sm font-medium text-muted mb-1.5">{t('x2_password')}</span>
+              <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+                <Lock className="h-5 w-5 text-muted" />
               </div>
               <input
                 type="password"
                 required
-                className="appearance-none rounded-none relative block w-full px-10 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                className="appearance-none rounded-xl relative block w-full px-10 min-h-[48px] bg-row border border-line-strong placeholder:text-muted text-ink text-base focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-            </div>
+              </div>
+            </label>
           </div>
 
           <div>
             <button
               type="submit"
               disabled={loading}
-              className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`group relative w-full flex justify-center min-h-[48px] px-4 items-center border border-transparent text-base font-semibold rounded-xl text-on-accent bg-accent hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {loading ? t('x2_signing_in') : t('x2_signin')}
             </button>
           </div>
         </form>
+        <div className="border-t border-line pt-6">
         {isDemo() ? (
-          <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-center space-y-2">
-            <p className="text-base font-black text-amber-800">{t('x4_demo_pill')}</p>
-            <p className="text-base text-amber-900">{t('x4_demo_login_hint')}: <b>{DEMO_LOGIN.username}</b> / <b>{DEMO_LOGIN.password}</b></p>
-            <button type="button" onClick={exitDemo} className="text-base font-bold text-amber-800 underline">{t('x4_demo_exit')}</button>
+          <div className="rounded-xl bg-extra-bg p-4 text-center space-y-2">
+            <p className="text-base font-semibold text-extra">{t('x4_demo_pill')}</p>
+            <p className="text-base text-extra">{t('x4_demo_login_hint')}: <b>{DEMO_LOGIN.username}</b> / <b>{DEMO_LOGIN.password}</b></p>
+            <button type="button" onClick={exitDemo} className="text-base font-bold text-extra underline">{t('x4_demo_exit')}</button>
           </div>
         ) : (
-          <button type="button" onClick={enterDemo} className="w-full text-center text-base font-bold text-blue-600 underline">
+          <button type="button" onClick={enterDemo} className="w-full text-center text-base font-bold text-accent underline">
             {t('x4_demo_link')}
           </button>
         )}
+        </div>
       </div>
     </div>
   );

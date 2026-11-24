@@ -11,7 +11,7 @@ const APP_NAME = import.meta.env.VITE_APP_NAME;
 
 const Logo = () => (
   <div className="flex items-center gap-3 min-w-0">
-    <div className="w-10 h-8 rounded bg-white border border-line overflow-hidden flex-shrink-0 flex items-center justify-center">
+    <div className="w-10 h-8 rounded-lg bg-row border border-line overflow-hidden flex-shrink-0 flex items-center justify-center">
       <img src="/TK.jpeg" alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
     </div>
     <span className="font-semibold leading-tight truncate">{APP_NAME}</span>
@@ -27,6 +27,7 @@ const Layout = ({ children, wide = false }) => {
   const { isOnline } = useNetworkStatus();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
+  const railOnly = location.pathname === '/history';
 
   const navItems = [
     { path: '/', icon: Home, label: t('home'), short: t('nav_home') },
@@ -67,9 +68,9 @@ const Layout = ({ children, wide = false }) => {
       {/* Rail (600-1023) and sidebar (>= 1024) */}
       <nav
         aria-label="Main"
-        className="hidden min-[600px]:flex flex-col gap-1 fixed left-0 top-0 bottom-0 z-30 w-24 lg:w-60 bg-row border-r border-line-strong px-2 py-3 lg:px-3 lg:py-4"
+        className={`hidden min-[600px]:flex flex-col gap-1 fixed left-0 top-0 bottom-0 z-30 w-24 bg-row border-r border-line-strong px-2 py-3 ${railOnly ? 'min-[1600px]:w-60 min-[1600px]:px-3 min-[1600px]:py-4' : 'lg:w-60 lg:px-3 lg:py-4'}`}
       >
-        <div className="hidden lg:flex items-center h-12 px-2 mb-3"><Logo /></div>
+        <div className={`hidden items-center h-12 px-2 mb-3 ${railOnly ? 'min-[1600px]:flex' : 'lg:flex'}`}><Logo /></div>
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = location.pathname === item.path;
@@ -79,21 +80,21 @@ const Layout = ({ children, wide = false }) => {
               type="button"
               onClick={() => go(item)}
               aria-current={active ? 'page' : undefined}
-              className={`flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-3 min-h-[68px] lg:min-h-[52px] px-1 lg:px-4 rounded text-[13px] lg:text-base font-medium ${
+              className={`flex items-center rounded-xl font-medium ${railOnly ? 'flex-col justify-center gap-1 min-h-[68px] px-1 text-[13px] min-[1600px]:flex-row min-[1600px]:justify-start min-[1600px]:gap-3 min-[1600px]:min-h-[52px] min-[1600px]:px-4 min-[1600px]:text-base' : 'flex-col justify-center gap-1 min-h-[68px] px-1 text-[13px] lg:flex-row lg:justify-start lg:gap-3 lg:min-h-[52px] lg:px-4 lg:text-base'} ${
                 active ? 'bg-accent text-on-accent font-semibold' : 'text-ink hover:bg-band'
               }`}
             >
               <Icon size={24} strokeWidth={1.75} aria-hidden="true" />
               <span className="max-w-full truncate leading-snug">
-                <span className="lg:hidden">{item.short || item.label}</span>
-                <span className="hidden lg:inline">{item.label}</span>
+                <span className={railOnly ? 'min-[1600px]:hidden' : 'lg:hidden'}>{item.short || item.label}</span>
+                <span className={railOnly ? 'hidden min-[1600px]:inline' : 'hidden lg:inline'}>{item.label}</span>
               </span>
             </button>
           );
         })}
       </nav>
 
-      <div className="min-[600px]:ml-24 lg:ml-60 min-h-screen flex flex-col">
+      <div className={`min-[600px]:ml-24 ${railOnly ? 'min-[1600px]:ml-60' : 'lg:ml-60'} min-h-screen flex flex-col`}>
         {/* Title bar */}
         <header className="sticky top-0 z-20 flex items-center gap-2 min-h-14 pl-4 pr-2 bg-row border-b border-line-strong">
           <div className="flex-1 min-w-0">
@@ -108,12 +109,12 @@ const Layout = ({ children, wide = false }) => {
               aria-haspopup="true"
               aria-expanded={menuOpen}
               aria-label={user?.username || t('language')}
-              className="min-w-12 min-h-12 grid place-items-center rounded hover:bg-band"
+              className="min-w-12 min-h-12 grid place-items-center rounded-xl hover:bg-band"
             >
-              <span className="w-10 h-10 rounded-full border border-line-strong bg-band grid place-items-center text-[.85em] font-semibold">{initials}</span>
+              <span className="w-10 h-10 rounded-full border border-line-strong bg-row grid place-items-center text-[.85em] font-semibold">{initials}</span>
             </button>
             {menuOpen && (
-              <div className="absolute right-0 top-[52px] w-[min(300px,calc(100vw-16px))] bg-row border border-line-strong rounded p-3 z-40 shadow-[0_6px_18px_-8px_var(--shadow-pin)]">
+              <div className="absolute right-0 top-[52px] w-[min(300px,calc(100vw-16px))] bg-row rounded-2xl p-3 z-40 shadow-[0_10px_30px_-10px_var(--shadow-pin)]">
                 {user && (
                   <div className="flex flex-col pb-2.5 mb-2.5 border-b border-line">
                     <b className="font-semibold truncate">{user.username}</b>
@@ -121,14 +122,14 @@ const Layout = ({ children, wide = false }) => {
                   </div>
                 )}
                 <div className="text-[.88em] font-medium text-muted mb-1">{t('language')}</div>
-                <div className="flex border border-line-strong rounded overflow-hidden mb-3">
+                <div className="flex border border-line-strong rounded-xl overflow-hidden mb-3">
                   {[['EN', 'English'], ['MM', 'မြန်မာ']].map(([code, name]) => (
                     <button
                       key={code}
                       type="button"
                       onClick={() => setLang(code)}
                       aria-pressed={lang === code}
-                      className={`flex-1 min-h-12 px-3 font-medium border-r border-line last:border-r-0 ${lang === code ? 'bg-ink text-row font-semibold' : 'bg-row text-ink'}`}
+                      className={`flex-1 min-h-12 px-3 font-medium border-r border-line last:border-r-0 ${lang === code ? 'bg-accent text-on-accent font-semibold' : 'bg-row text-ink'}`}
                     >
                       {name}
                     </button>
@@ -137,7 +138,7 @@ const Layout = ({ children, wide = false }) => {
                 <button
                   type="button"
                   onClick={logout}
-                  className="w-full min-h-12 px-4 rounded border border-line-strong bg-row text-ink font-medium inline-flex items-center justify-center gap-2 hover:bg-band"
+                  className="w-full min-h-12 px-4 rounded-xl border border-line-strong bg-row text-ink font-medium inline-flex items-center justify-center gap-2 hover:bg-band"
                 >
                   <LogOut size={20} strokeWidth={1.75} aria-hidden="true" />
                   {t('logout')}

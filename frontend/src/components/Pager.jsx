@@ -14,19 +14,19 @@ const pageNumbers = (page, pages) => {
 const Pager = ({ page, pages, onChange, disabled = false, className = '' }) => {
   const { t } = useLanguage();
   if (!pages || pages <= 1) return null;
-  const btn = 'px-3 py-2 rounded-xl font-black text-base transition-all';
+  const btn = 'px-3 min-h-[44px] rounded-xl border font-medium text-base transition-all';
   return (
-    <div className={`flex flex-wrap items-center justify-center gap-1.5 ${className}`}>
+    <div className={`flex flex-wrap items-center justify-center gap-1.5 py-1 ${className}`}>
       <button type="button" disabled={disabled || page <= 1} onClick={() => onChange(page - 1)}
-        className={`${btn} bg-gray-100 text-gray-600 disabled:opacity-40`}>{t('x_prev')}</button>
+        className={`${btn} bg-row border-line-strong text-ink disabled:opacity-40`}>{t('x_prev')}</button>
       {pageNumbers(page, pages).map((n, i) => (n === '...'
-        ? <span key={`gap${i}`} className="px-1 text-gray-400 font-black">...</span>
+        ? <span key={`gap${i}`} className="px-1 text-muted font-black">...</span>
         : (
           <button key={n} type="button" disabled={disabled} onClick={() => onChange(n)}
-            className={`${btn} min-w-[2.75rem] ${n === page ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}>{n}</button>
+            className={`${btn} min-w-[2.75rem] ${n === page ? 'bg-accent border-accent text-on-accent font-semibold' : 'bg-row border-line-strong text-ink'}`}>{n}</button>
         )))}
       <button type="button" disabled={disabled || page >= pages} onClick={() => onChange(page + 1)}
-        className={`${btn} bg-gray-100 text-gray-600 disabled:opacity-40`}>{t('x_next')}</button>
+        className={`${btn} bg-row border-line-strong text-ink disabled:opacity-40`}>{t('x_next')}</button>
     </div>
   );
 };

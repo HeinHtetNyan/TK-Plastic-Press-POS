@@ -84,9 +84,9 @@ const Users = ({ embedded = false }) => {
     return (
       <Wrap>
         <div className="flex flex-col items-center justify-center py-20">
-          <Shield size={48} className="text-red-200 mb-4" />
-          <p className="text-red-500 font-black uppercase tracking-widest">{t('x2_access_denied')}</p>
-          <button onClick={() => navigate('/')} className="mt-4 text-blue-600 font-bold underline">{t('x2_back_home')}</button>
+          <Shield size={48} className="text-debt mb-4" />
+          <p className="text-debt font-semibold">{t('x2_access_denied')}</p>
+          <button onClick={() => navigate('/')} className="mt-4 text-accent font-medium underline min-h-[44px]">{t('x2_back_home')}</button>
         </div>
       </Wrap>
     );
@@ -94,52 +94,52 @@ const Users = ({ embedded = false }) => {
 
   return (
     <Wrap>
-      <div className="max-w-4xl mx-auto space-y-8 pb-20 animate-in slide-in-from-bottom-4 duration-500">
-        <div className="flex items-center justify-between">
+      <div className={embedded ? 'space-y-4 pb-20' : 'max-w-4xl mx-auto space-y-4 pb-20'}>
+        <div className={`flex items-center justify-between ${embedded ? 'hidden' : ''}`}>
           <div className="flex items-center gap-4">
             {!embedded && (
               <button 
                 onClick={() => navigate('/')} 
-                className="p-2 bg-white rounded-full shadow-sm hover:bg-gray-100 transition-all border border-gray-100"
+                className="p-2 bg-row rounded-full shadow-sm hover:bg-band transition-all border border-line"
               >
-                <ArrowLeft size={20} className="text-gray-600" />
+                <ArrowLeft size={20} className="text-muted" />
               </button>
             )}
-            <h1 className="text-2xl font-black flex items-center gap-2 text-gray-800 uppercase tracking-tight">
-              <Shield className="text-blue-600" /> {t('x2_user_mgmt')}
+            <h1 className="text-xl font-semibold flex items-center gap-2 text-ink">
+              <Shield className="text-accent" /> {t('x2_user_mgmt')}
             </h1>
           </div>
         </div>
 
         {error && (
-          <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-xl">
-            <p className="text-red-700 font-bold text-base">{error}</p>
+          <div className="bg-debt-bg p-4 rounded-xl">
+            <p className="text-debt font-medium text-base">{error}</p>
           </div>
         )}
 
         {/* Create User Form */}
-        <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100">
-          <h2 className="text-lg font-black mb-6 flex items-center gap-2 text-gray-700 uppercase tracking-tight">
-            <UserPlus size={20} className="text-green-600" /> {t('x2_add_staff')}
+        <div className="bg-row p-4 sm:p-6 rounded-2xl shadow-sm">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-ink">
+            <UserPlus size={20} className="text-ok" /> {t('x2_add_staff')}
           </h2>
-          <form onSubmit={handleCreateUser} className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+          <form onSubmit={handleCreateUser} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
             <div className="space-y-2">
-              <label className="text-base font-black text-gray-600 uppercase tracking-widest px-1">{t('x2_username')}</label>
+              <label className="text-sm font-medium text-muted px-1">{t('x2_username')}</label>
               <input
                 type="text"
                 required
-                className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-blue-500 outline-none font-bold transition-all"
+                className="w-full px-4 min-h-[52px] bg-row border border-line-strong rounded-xl focus:border-accent outline-none font-medium transition-all"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="staff_username"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-base font-black text-gray-600 uppercase tracking-widest px-1">{t('x2_password')}</label>
+              <label className="text-sm font-medium text-muted px-1">{t('x2_password')}</label>
               <input
                 type="password"
                 required
-                className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-blue-500 outline-none font-bold transition-all"
+                className="w-full px-4 min-h-[52px] bg-row border border-line-strong rounded-xl focus:border-accent outline-none font-medium transition-all"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={t('x2_min6')}
@@ -148,70 +148,70 @@ const Users = ({ embedded = false }) => {
             <button
               type="submit"
               disabled={submitting}
-              className="bg-blue-600 text-white px-6 py-4 rounded-2xl hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-all font-black uppercase text-base shadow-lg shadow-blue-100 h-[52px]"
+              className="bg-accent text-on-accent px-6 rounded-xl hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2 transition-all font-semibold text-base h-[52px]"
             >
               {submitting ? <Loader2 className="animate-spin" size={20} /> : t('x2_create_account')}
             </button>
           </form>
-          <p className="mt-4 text-sm text-gray-400 font-black uppercase tracking-widest italic flex items-center gap-1">
-            <Shield size={10} /> {t('x2_staff_note')}
+          <p className="mt-3 text-sm text-muted flex items-center gap-1.5">
+            <Shield size={14} /> {t('x2_staff_note')}
           </p>
         </div>
 
         {/* User List */}
-        <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-8 py-4 border-b border-gray-100 bg-gray-50/50">
-            <h2 className="text-base font-black text-gray-600 uppercase tracking-widest">{t('x2_active_accounts')}</h2>
+        <div className="bg-row rounded-2xl shadow-sm overflow-hidden">
+          <div className="px-4 sm:px-6 py-3.5 border-b border-line">
+            <h2 className="text-lg font-semibold text-ink">{t('x2_active_accounts')}</h2>
           </div>
           
           {loading ? (
             <div className="p-12 flex justify-center">
-              <Loader2 className="animate-spin text-blue-500" />
+              <Loader2 className="animate-spin text-muted" />
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="text-base font-black text-gray-600 uppercase tracking-widest border-b border-gray-50">
-                    <th className="px-8 py-4">{t('x2_user_identity')}</th>
-                    <th className="px-8 py-4">{t('x2_access_level')}</th>
-                    <th className="px-8 py-4">{t('x2_joined')}</th>
-                    <th className="px-8 py-4 text-right">{t('x2_actions')}</th>
+                  <tr className="text-sm font-semibold text-ink bg-band border-b border-line">
+                    <th className="px-4 sm:px-6 py-3">{t('x2_user_identity')}</th>
+                    <th className="px-4 sm:px-6 py-3">{t('x2_access_level')}</th>
+                    <th className="px-4 sm:px-6 py-3">{t('x2_joined')}</th>
+                    <th className="px-4 sm:px-6 py-3 text-right">{t('x2_actions')}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-line">
                   {users.map((u) => (
-                    <tr key={u.id} className={`hover:bg-gray-50/50 transition-colors group ${!u.is_active ? 'opacity-50' : ''}`}>
-                      <td className="px-8 py-5 flex items-center gap-4">
-                        <div className={`p-3 rounded-2xl ${u.role === 'ADMIN' ? 'bg-blue-600 text-white' : u.is_active ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
+                    <tr key={u.id} className={`hover:bg-zebra transition-colors group ${!u.is_active ? 'opacity-50' : ''}`}>
+                      <td className="px-4 sm:px-6 py-3 flex items-center gap-3">
+                        <div className={`p-2.5 rounded-xl ${u.role === 'ADMIN' ? 'bg-accent text-on-accent' : u.is_active ? 'bg-band text-accent' : 'bg-band text-muted'}`}>
                           <UserIcon size={18} />
                         </div>
                         <div>
-                          <span className="font-black text-gray-800 text-lg tracking-tight">{u.username}</span>
+                          <span className="font-semibold text-ink text-base sm:text-lg">{u.username}</span>
                           {!u.is_active && (
-                            <span className="ml-2 text-xs font-black uppercase bg-red-100 text-red-500 px-2 py-0.5 rounded-full">{t('x2_disabled')}</span>
+                            <span className="ml-2 text-xs font-semibold bg-debt-bg text-debt px-2 py-0.5 rounded-full">{t('x2_disabled')}</span>
                           )}
                         </div>
                       </td>
-                      <td className="px-8 py-5">
-                        <span className={`px-3 py-1 rounded-full text-sm font-black tracking-widest ${
-                          u.role === 'ADMIN' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                      <td className="px-4 sm:px-6 py-3">
+                        <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                          u.role === 'ADMIN' ? 'bg-band text-accent' : 'bg-ok-bg text-ok'
                         }`}>
                           {u.role}
                         </span>
                       </td>
-                      <td className="px-8 py-5 text-base font-bold text-gray-400">
+                      <td className="px-4 sm:px-6 py-3 text-base text-muted whitespace-nowrap">
                         {new Date(u.created_at).toLocaleDateString()}
                       </td>
-                      <td className="px-8 py-5 text-right">
+                      <td className="px-4 sm:px-6 py-3 text-right">
                         {u.role !== 'ADMIN' && (
-                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                          <div className="flex items-center justify-end gap-1 flex-wrap">
                             <button
                               onClick={() => handleToggleActive(u.id)}
-                              className={`p-2 rounded-xl transition-all flex items-center gap-1.5 text-sm font-black uppercase ${
+                              className={`px-3 min-h-[44px] rounded-xl border border-line-strong transition-all flex items-center gap-1.5 text-sm font-medium ${
                                 u.is_active
-                                  ? 'text-yellow-500 hover:bg-yellow-50'
-                                  : 'text-green-500 hover:bg-green-50'
+                                  ? 'text-ink hover:bg-band'
+                                  : 'text-ok hover:bg-ok-bg'
                               }`}
                               title={u.is_active ? t('x2_disable_account') : t('x2_enable_account')}
                             >
@@ -220,7 +220,7 @@ const Users = ({ embedded = false }) => {
                             </button>
                             <button
                               onClick={() => handleDeleteUser(u.id)}
-                              className="text-gray-300 hover:text-red-500 p-2 rounded-xl hover:bg-red-50 transition-all"
+                              className="w-11 h-11 flex items-center justify-center text-debt hover:bg-debt-bg rounded-xl transition-all"
                               title={t('x2_delete_user')}
                             >
                               <Trash2 size={20} />

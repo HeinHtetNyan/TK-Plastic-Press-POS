@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { FilePlus, CreditCard, History, UserPlus, Users, Search as SearchIcon, Pencil, Trash2 } from 'lucide-react';
+import { FilePlus, CreditCard, History, UserPlus, Users, Search as SearchIcon, Pencil, Trash2, Phone, MapPin, X } from 'lucide-react';
 import Layout from '../components/Layout';
 import Pager from '../components/Pager';
 import { paginate } from '../utils/paginate';
@@ -46,6 +46,7 @@ const Home = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [dashboardPeriod, setDashboardPeriod] = useState('month');
   const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const navigate = useNavigate();
 
@@ -360,10 +361,16 @@ const Home = () => {
     }
   };
 
-  const handleDeleteCustomer = async (e, id) => {
+  const handleDeleteCustomer = (e, id) => {
     e.stopPropagation();
-    if (!window.confirm('Are you sure you want to delete this customer? This will also affect their history.')) return;
+    const c = allCustomers.find((x) => x.server_id === id || x.id === id);
+    setDeleteTarget({ id, name: c?.name || '' });
+  };
 
+  const confirmDeleteCustomer = async () => {
+    const id = deleteTarget?.id;
+    setDeleteTarget(null);
+    if (id == null) return;
     try {
       await customerService.delete(id);
       if (selectedCustomer?.id === id || selectedCustomer?.server_id === id) {
@@ -376,151 +383,194 @@ const Home = () => {
   };
 
   const actions = [
-    { label: t('create_voucher'), icon: FilePlus, color: 'bg-blue-600', path: '/voucher' },
-    { label: t('add_payment'), icon: CreditCard, color: 'bg-green-600', path: '/payment' },
-    { label: t('history'), icon: History, color: 'bg-gray-600', path: '/history' },
+    { label: t('create_voucher'), icon: FilePlus, color: 'bg-accent text-on-accent border border-accent', path: '/voucher' },
+    { label: t('add_payment'), icon: CreditCard, color: 'bg-ok text-on-accent border border-ok', path: '/payment' },
+    { label: t('history'), icon: History, color: 'bg-row text-ink border border-line-strong hover:bg-band', path: '/history' },
   ];
 
   return (
     <Layout>
-      <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
-        <section className="space-y-4">
-          <div className="flex flex-wrap justify-between items-end gap-2">
+      <div className="space-y-4 animate-in fade-in duration-300">
+        <section className="space-y-3">
+          <div className="flex flex-wrap justify-between items-center gap-2">
             <div className="flex items-center gap-2">
-              <h2 className="text-2xl sm:text-3xl font-black text-gray-900">{t('select_customer')}</h2>
+              <h2 className="text-xl sm:text-2xl font-semibold text-ink">{t('select_customer')}</h2>
               {allCustomers.length > 0 && (
-                <span className="text-base font-black text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
+                <span className="text-sm font-semibold text-ok bg-ok-bg px-2.5 py-0.5 rounded-full">
                   {allCustomers.length}
                 </span>
               )}
             </div>
             <button
               onClick={() => setShowAll(!showAll)}
-              className="text-blue-600 font-bold text-base uppercase flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-all"
+              className="text-ink font-medium text-base underline underline-offset-4 flex items-center gap-2 min-h-[var(--ctl)] px-1 hover:text-accent transition-colors"
             >
-              {showAll ? <SearchIcon size={14} /> : <Users size={14} />}
+              {showAll ? <SearchIcon size={18} /> : <Users size={18} />}
               {showAll ? t('search_mode') : t('browse_all')}
             </button>
           </div>
 
           {!showAll ? (
-            <CustomerSearch
-              onSelect={(c) => setSelectedCustomer(c ? (c.client_id ? c : enrichCustomer(c)) : null)}
-              onAdd={() => setShowAddModal(true)}
-              onEdit={handleEditClick}
-              selectedCustomer={selectedCustomer}
-            />
+            selectedCustomer ? null : (
+              <CustomerSearch
+                onSelect={(c) => setSelectedCustomer(c ? ((c.server_id || !c.id) ? c : enrichCustomer(c)) : null)}
+                onAdd={() => setShowAddModal(true)}
+                onEdit={handleEditClick}
+                selectedCustomer={selectedCustomer}
+              />
+            )
           ) : (
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-2 space-y-2 animate-in fade-in zoom-in duration-200">
-              <div className="flex items-center justify-between px-2 pt-1 pb-0.5">
-                <span className="text-base font-black text-gray-600 uppercase tracking-widest">{t('browse_all')}</span>
-                <span className="text-sm font-black text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full">
+            <div className="bg-row rounded-2xl shadow-sm overflow-hidden animate-in fade-in duration-200">
+              <div className="flex items-center justify-between gap-3 px-5 py-4">
+                <span className="text-lg font-semibold text-ink">{t('browse_all')}</span>
+                <span className="text-sm font-medium text-muted bg-band px-3 py-1 rounded-full">
                   {allCustomers.length} {allCustomers.length === 1 ? 'customer' : 'customers'}
                 </span>
               </div>
-              <div className="max-h-64 overflow-y-auto px-2 space-y-1">
-                {allCustomers.length > 0 ? paginate(allCustomers, browsePage, 20).rows.map(c => (
-                  <div
-                    key={c.client_id || c.id}
-                    onClick={() => { setSelectedCustomer(c); setShowAll(false); }}
-                    className={`w-full text-left p-4 rounded-2xl transition-all flex justify-between items-center cursor-pointer ${
-                      (selectedCustomer?.client_id === c.client_id || selectedCustomer?.id === c.id)
-                        ? 'bg-blue-600 text-white shadow-lg'
-                        : 'hover:bg-blue-50 text-gray-700 font-bold border-b border-gray-50 last:border-0'
-                    }`}
-                  >
-                    <div className="flex flex-col">
-                      <span className="text-lg">{c.name}</span>
-                      {c.phone_numbers && <span className={`text-sm font-medium ${(selectedCustomer?.client_id === c.client_id || selectedCustomer?.id === c.id) ? 'text-blue-100' : 'text-gray-400'}`}>{c.phone_numbers}</span>}
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      {c.sync_status === 'pending' && (
-                        <span className="text-xs bg-yellow-400 text-yellow-900 px-1.5 py-0.5 rounded-full font-black uppercase">{t('offline_notice')}</span>
-                      )}
-                      <span className={`text-sm uppercase font-black ${
-                        (selectedCustomer?.client_id === c.client_id || selectedCustomer?.id === c.id)
-                          ? 'text-blue-200' : 'text-gray-400'
-                      }`}>
-                        {c.server_id ? `ID: ${c.server_id}` : 'Local'}
-                      </span>
-                      <div className="flex gap-1 ml-2">
+              {allCustomers.length > 0 && (
+                <div className="hidden md:grid grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)_minmax(0,1.1fr)] gap-x-4 px-5 py-2 bg-band border-y border-line text-sm font-semibold text-muted">
+                  <span>{t('customer')}</span>
+                  <span>{t('x2_phone')}</span>
+                  <span className="text-right pr-1">{t('x2_actions')}</span>
+                </div>
+              )}
+              <div className="max-h-[32rem] overflow-y-auto border-t border-line md:border-t-0">
+                {allCustomers.length > 0 ? paginate(allCustomers, browsePage, 20).rows.map(c => {
+                  const isSel = selectedCustomer?.client_id === c.client_id || selectedCustomer?.id === c.id;
+                  return (
+                    <div
+                      key={c.client_id || c.id}
+                      onClick={() => { setSelectedCustomer(c); setShowAll(false); }}
+                      className={`grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)_minmax(0,1.1fr)] items-center gap-x-4 gap-y-0.5 pl-5 pr-3 py-2 min-h-[var(--row-h)] cursor-pointer border-b border-line last:border-b-0 border-l-4 transition-colors ${
+                        isSel ? 'bg-band border-l-accent' : 'border-l-transparent hover:bg-zebra'
+                      }`}
+                    >
+                      <div className="min-w-0">
+                        <span className="text-base font-semibold text-ink break-words block">{c.name}</span>
+                        {c.phone_numbers && <span className="md:hidden text-sm text-muted block truncate">{c.phone_numbers}</span>}
+                      </div>
+                      <span className="hidden md:block text-base text-muted truncate">{c.phone_numbers || '—'}</span>
+                      <div className="flex items-center justify-end gap-1.5 shrink-0">
+                        {c.sync_status === 'pending' && (
+                          <span className="text-sm bg-extra-bg text-extra px-2 py-0.5 rounded-full font-medium">{t('offline_notice')}</span>
+                        )}
+                        <span className="text-sm text-muted tabular-nums whitespace-nowrap hidden sm:inline">
+                          {c.server_id ? `ID: ${c.server_id}` : 'Local'}
+                        </span>
                         <button
                           onClick={(e) => handleEditClick(e, c)}
-                          className={`p-1.5 rounded-lg transition-all ${
-                            (selectedCustomer?.client_id === c.client_id || selectedCustomer?.id === c.id)
-                              ? 'hover:bg-blue-700 text-blue-200 hover:text-white'
-                              : 'hover:bg-blue-50 text-gray-300 hover:text-blue-600'
-                          }`}
+                          className="min-h-[var(--ctl)] min-w-[var(--ctl)] flex items-center justify-center rounded-xl text-muted hover:text-accent hover:bg-row transition-colors"
+                          aria-label={t('edit')}
                         >
-                          <Pencil size={16} />
+                          <Pencil size={18} />
                         </button>
                         {isAdmin() && c.server_id && (
                           <button
                             onClick={(e) => handleDeleteCustomer(e, c.server_id)}
-                            className={`p-1.5 rounded-lg transition-all ${
-                              (selectedCustomer?.client_id === c.client_id || selectedCustomer?.id === c.id)
-                                ? 'hover:bg-blue-700 text-blue-200 hover:text-white'
-                                : 'hover:bg-red-50 text-gray-300 hover:text-red-500'
-                            }`}
+                            className="min-h-[var(--ctl)] min-w-[var(--ctl)] flex items-center justify-center rounded-xl text-muted hover:text-debt hover:bg-debt-bg transition-colors"
+                            aria-label={t('delete')}
                           >
-                            <Trash2 size={16} />
+                            <Trash2 size={18} />
                           </button>
                         )}
                       </div>
                     </div>
-                  </div>
-                )) : customersLoadError ? (
+                  );
+                }) : customersLoadError ? (
                   <div className="text-center py-8 space-y-3">
-                    <p className="text-red-400 font-bold text-base">{t('x2_load_fail')}</p>
-                    <p className="text-gray-400 text-base">{customersLoadError} — no offline cache available.</p>
+                    <p className="text-debt font-semibold text-base">{t('x2_load_fail')}</p>
+                    <p className="text-muted text-base">{customersLoadError} — no offline cache available.</p>
                     <button
                       onClick={fetchAllCustomers}
-                      className="text-blue-600 font-black text-base bg-blue-50 px-4 py-2 rounded-full hover:bg-blue-100 transition-colors"
+                      className="text-accent font-semibold text-base bg-band px-4 min-h-[var(--ctl)] rounded-xl hover:opacity-90 transition-colors"
                     >
                       {t('x2_retry')}
                     </button>
                   </div>
                 ) : (
-                  <p className="text-center py-8 text-gray-400 font-bold">{t('x_no_customers')}</p>
+                  <p className="text-center py-8 text-muted">{t('x_no_customers')}</p>
                 )}
               </div>
-              <Pager page={paginate(allCustomers, browsePage, 20).page} pages={paginate(allCustomers, browsePage, 20).pages} onChange={setBrowsePage} className="px-2" />
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="w-full py-4 bg-gray-50 text-blue-600 rounded-2xl font-black uppercase text-base hover:bg-blue-50 transition-colors border-2 border-dashed border-blue-100"
-              >
-                + {t('add_new_customer')}
-              </button>
+              <div className="border-t border-line py-2">
+                <Pager page={paginate(allCustomers, browsePage, 20).page} pages={paginate(allCustomers, browsePage, 20).pages} onChange={setBrowsePage} className="px-4" />
+              </div>
+              <div className="p-3 border-t border-line bg-page">
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="block w-full min-h-[var(--ctl)] bg-row text-accent font-semibold text-base hover:bg-band transition-colors rounded-xl border-2 border-dashed border-line-strong"
+                >
+                  + {t('add_new_customer')}
+                </button>
+              </div>
             </div>
           )}
         </section>
 
-        {selectedCustomer && (
-          <div className="space-y-6 animate-in fade-in duration-300">
-            <BalanceDisplay balance={balance} />
+        {selectedCustomer && !showAll && (
+          <section className="bg-row rounded-2xl shadow-sm overflow-hidden animate-in fade-in duration-300">
+            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] gap-px bg-line">
+              <div className="bg-row p-5 min-w-0">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm text-muted">{t('selected_customer')}</p>
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      onClick={(e) => handleEditClick(e, selectedCustomer)}
+                      className="min-h-[var(--ctl)] min-w-[var(--ctl)] flex items-center justify-center text-muted hover:text-accent bg-row border border-line-strong hover:bg-band rounded-xl transition-colors"
+                      title="Edit Customer"
+                      aria-label="Edit Customer"
+                    >
+                      <Pencil size={20} />
+                    </button>
+                    <button
+                      onClick={() => setSelectedCustomer(null)}
+                      className="min-h-[var(--ctl)] min-w-[var(--ctl)] flex items-center justify-center text-muted hover:text-debt bg-row border border-line-strong hover:bg-debt-bg rounded-xl transition-colors"
+                      title="Clear Selection"
+                      aria-label="Clear Selection"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+                </div>
+                <h3 className="text-2xl font-semibold text-ink break-words leading-snug -mt-1">{selectedCustomer.name}</h3>
+                {selectedCustomer.phone_numbers && (
+                  <p className="mt-3 text-base text-ink flex items-start gap-2.5">
+                    <Phone size={18} className="mt-0.5 text-muted shrink-0" aria-hidden="true" />
+                    <span className="break-words min-w-0">{selectedCustomer.phone_numbers}</span>
+                  </p>
+                )}
+                {selectedCustomer.address && (
+                  <p className="mt-1.5 text-base text-muted flex items-start gap-2.5">
+                    <MapPin size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
+                    <span className="break-words min-w-0">{selectedCustomer.address}</span>
+                  </p>
+                )}
+              </div>
+              <div className="bg-row min-w-0">
+                <BalanceDisplay balance={balance} embedded />
+              </div>
+            </div>
             {balanceIsEstimate && (
-              <p className="text-center text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-2 font-bold">
+              <p className="text-sm text-extra bg-extra-bg px-5 py-2.5 border-t border-line">
                 {t('balance_estimate_notice')}
               </p>
             )}
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 bg-band border-t border-line">
               {actions.map((action) => (
                 <button
                   key={action.path}
                   onClick={() => navigate(action.path, { state: { customer: selectedCustomer } })}
-                  className={`${action.color} text-white p-4 rounded-2xl shadow-md hover:shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3 text-lg font-bold`}
+                  className={`${action.color} min-h-14 px-4 py-3 rounded-xl transition-opacity hover:opacity-90 flex items-center justify-center gap-3 text-base font-semibold`}
                 >
-                  <action.icon size={24} />
+                  <action.icon size={20} />
                   {action.label}
                 </button>
               ))}
             </div>
-          </div>
+          </section>
         )}
 
         {!selectedCustomer && !showAll && (
-          <div className="space-y-8 animate-in fade-in duration-700">
+          <div className="space-y-4 animate-in fade-in duration-700">
             <div className="grid grid-cols-4 gap-2 lg:flex lg:flex-wrap lg:items-center lg:justify-end">
               {[
                 { value: 'month', label: t('x_p_month') },
@@ -531,10 +581,10 @@ const Home = () => {
                 <button
                   key={p.value}
                   onClick={() => setDashboardPeriod(p.value)}
-                  className={`px-1 lg:px-3 py-2 lg:py-1.5 rounded-full text-sm lg:text-base leading-tight font-black uppercase transition-all ${
+                  className={`px-1 lg:px-5 min-h-[var(--ctl)] rounded-full border text-sm lg:text-base leading-tight font-semibold transition-colors ${
                     dashboardPeriod === p.value
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                      ? 'bg-accent text-on-accent border-accent'
+                      : 'bg-row text-ink border-line-strong hover:bg-band'
                   }`}
                 >
                   {p.label}
@@ -543,49 +593,49 @@ const Home = () => {
             </div>
             <Dashboard data={dashboardData} />
 
-            <div className="py-12 text-center text-gray-400 bg-white rounded-3xl border-2 border-dashed border-gray-200">
-              <UserPlus size={48} className="mx-auto mb-2 opacity-20" />
-              <p className="text-lg font-bold">{t('x2_begin')}</p>
+            <div className="py-8 text-center text-muted bg-row rounded-2xl border-2 border-dashed border-line-strong">
+              <UserPlus size={36} className="mx-auto mb-2 opacity-40" />
+              <p className="text-base">{t('x2_begin')}</p>
             </div>
           </div>
         )}
 
         {showAddModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-in fade-in">
-            <div className="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl animate-in zoom-in duration-200">
-              <h3 className="text-2xl font-black mb-6 text-gray-800">{t('x2_new_customer')}</h3>
+          <div className="fixed inset-0 bg-[var(--scrim)] flex items-end sm:items-center justify-center sm:p-4 z-50 animate-in fade-in">
+            <div className="bg-row rounded-t-3xl sm:rounded-2xl shadow-xl p-5 sm:p-6 w-full sm:max-w-md max-h-[92dvh] overflow-y-auto animate-in slide-in-from-bottom-4 duration-200">
+              <h3 className="text-xl font-semibold mb-4 text-ink">{t('x2_new_customer')}</h3>
               {!navigator.onLine && (
-                <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-2 text-sm font-bold text-yellow-700">
+                <div className="mb-4 bg-extra-bg border border-extra/40 rounded-lg px-3 py-2 text-sm text-extra">
                   {t('x2_offline_cust')}
                 </div>
               )}
               <form onSubmit={handleAddCustomer} className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-base font-black text-gray-600 uppercase tracking-widest px-1">{t('x2_cust_name')}</label>
+                  <label className="text-sm font-medium text-muted block">{t('x2_cust_name')}</label>
                   <input
                     autoFocus
                     type="text"
                     required
-                    className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-500 font-bold text-lg transition-all"
+                    className="w-full px-3 min-h-[var(--ctl)] bg-row border border-line-strong rounded-xl outline-none focus:border-accent text-base transition-colors"
                     placeholder={t('x2_ph_name')}
                     value={customerForm.name}
                     onChange={(e) => setCustomerForm({ ...customerForm, name: e.target.value })}
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-base font-black text-gray-600 uppercase tracking-widest px-1">{t('x2_phone')}</label>
+                  <label className="text-sm font-medium text-muted block">{t('x2_phone')}</label>
                   <input
                     type="text"
-                    className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-500 font-bold text-lg transition-all"
+                    className="w-full px-3 min-h-[var(--ctl)] bg-row border border-line-strong rounded-xl outline-none focus:border-accent text-base transition-colors"
                     placeholder={t('x2_ph_phone')}
                     value={customerForm.phone_numbers}
                     onChange={(e) => setCustomerForm({ ...customerForm, phone_numbers: e.target.value })}
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-base font-black text-gray-600 uppercase tracking-widest px-1">{t('x2_address')}</label>
+                  <label className="text-sm font-medium text-muted block">{t('x2_address')}</label>
                   <textarea
-                    className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-500 font-bold text-lg transition-all resize-none"
+                    className="w-full px-3 py-2 bg-row border border-line-strong rounded-xl outline-none focus:border-accent text-base transition-colors resize-none"
                     rows="2"
                     placeholder={t('x2_ph_addr')}
                     value={customerForm.address}
@@ -596,17 +646,17 @@ const Home = () => {
                   <button
                     type="button"
                     onClick={() => { setShowAddModal(false); resetForm(); }}
-                    className="flex-1 px-4 py-4 bg-gray-100 rounded-2xl font-black text-gray-500 uppercase text-base"
+                    className="flex-1 px-4 min-h-[var(--ctl)] bg-row border border-line-strong rounded-xl font-semibold text-ink text-base"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isCreatingCustomer}
-                    className={`flex-1 px-4 py-4 rounded-2xl font-black shadow-lg uppercase text-base transition-all ${
+                    className={`flex-1 px-4 min-h-[var(--ctl)] rounded-xl font-semibold text-base transition-opacity ${
                       isCreatingCustomer
-                        ? 'bg-blue-300 text-white cursor-not-allowed'
-                        : 'bg-blue-600 text-white shadow-blue-200'
+                        ? 'bg-accent/40 text-on-accent cursor-not-allowed'
+                        : 'bg-accent text-on-accent'
                     }`}
                   >
                     {isCreatingCustomer ? 'Saving...' : 'Create'}
@@ -617,37 +667,53 @@ const Home = () => {
           </div>
         )}
 
+        {deleteTarget && (
+          <div className="fixed inset-0 bg-[var(--scrim)] flex items-end sm:items-center justify-center sm:p-4 z-50 animate-in fade-in" onClick={() => setDeleteTarget(null)}>
+            <div className="bg-row rounded-t-3xl sm:rounded-2xl shadow-xl p-5 sm:p-6 w-full sm:max-w-md animate-in slide-in-from-bottom-4 duration-200" onClick={(e) => e.stopPropagation()}>
+              <span className="block mx-auto mb-3 h-1 w-10 rounded-full bg-line-strong sm:hidden" />
+              <h3 className="text-xl font-semibold mb-2 text-ink">Delete customer?</h3>
+              <p className="text-base text-muted mb-5">
+                {deleteTarget.name ? `Delete customer "${deleteTarget.name}"? ` : 'Delete this customer? '}This will also affect their history and cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button type="button" onClick={() => setDeleteTarget(null)} className="flex-1 px-4 min-h-[var(--ctl)] bg-row border border-line-strong rounded-xl font-semibold text-ink text-base">Cancel</button>
+                <button type="button" onClick={confirmDeleteCustomer} className="flex-1 px-4 min-h-[var(--ctl)] bg-danger text-on-danger rounded-xl font-semibold text-base flex items-center justify-center gap-2"><Trash2 size={18} />Delete</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {showEditModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-in fade-in">
-            <div className="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl animate-in zoom-in duration-200">
-              <h3 className="text-2xl font-black mb-6 text-gray-800">{t('x2_edit_customer')}</h3>
+          <div className="fixed inset-0 bg-[var(--scrim)] flex items-end sm:items-center justify-center sm:p-4 z-50 animate-in fade-in">
+            <div className="bg-row rounded-t-3xl sm:rounded-2xl shadow-xl p-5 sm:p-6 w-full sm:max-w-md max-h-[92dvh] overflow-y-auto animate-in slide-in-from-bottom-4 duration-200">
+              <h3 className="text-xl font-semibold mb-4 text-ink">{t('x2_edit_customer')}</h3>
               <form onSubmit={handleUpdateCustomer} className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-base font-black text-gray-600 uppercase tracking-widest px-1">{t('x2_cust_name')}</label>
+                  <label className="text-sm font-medium text-muted block">{t('x2_cust_name')}</label>
                   <input
                     autoFocus
                     type="text"
                     required
-                    className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-500 font-bold text-lg transition-all"
+                    className="w-full px-3 min-h-[var(--ctl)] bg-row border border-line-strong rounded-xl outline-none focus:border-accent text-base transition-colors"
                     placeholder={t('x2_ph_name')}
                     value={customerForm.name}
                     onChange={(e) => setCustomerForm({ ...customerForm, name: e.target.value })}
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-base font-black text-gray-600 uppercase tracking-widest px-1">{t('x2_phone')}</label>
+                  <label className="text-sm font-medium text-muted block">{t('x2_phone')}</label>
                   <input
                     type="text"
-                    className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-500 font-bold text-lg transition-all"
+                    className="w-full px-3 min-h-[var(--ctl)] bg-row border border-line-strong rounded-xl outline-none focus:border-accent text-base transition-colors"
                     placeholder={t('x2_ph_phone')}
                     value={customerForm.phone_numbers}
                     onChange={(e) => setCustomerForm({ ...customerForm, phone_numbers: e.target.value })}
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-base font-black text-gray-600 uppercase tracking-widest px-1">{t('x2_address')}</label>
+                  <label className="text-sm font-medium text-muted block">{t('x2_address')}</label>
                   <textarea
-                    className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl outline-none focus:border-blue-500 font-bold text-lg transition-all resize-none"
+                    className="w-full px-3 py-2 bg-row border border-line-strong rounded-xl outline-none focus:border-accent text-base transition-colors resize-none"
                     rows="2"
                     placeholder={t('x2_ph_addr')}
                     value={customerForm.address}
@@ -658,13 +724,13 @@ const Home = () => {
                   <button
                     type="button"
                     onClick={() => { setShowEditModal(false); resetForm(); }}
-                    className="flex-1 px-4 py-4 bg-gray-100 rounded-2xl font-black text-gray-500 uppercase text-base"
+                    className="flex-1 px-4 min-h-[var(--ctl)] bg-row border border-line-strong rounded-xl font-semibold text-ink text-base"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-4 bg-blue-600 text-white rounded-2xl font-black shadow-lg shadow-blue-200 uppercase text-base"
+                    className="flex-1 px-4 min-h-[var(--ctl)] bg-accent text-on-accent rounded-xl font-semibold text-base"
                   >
                     {t('x2_save_changes')}
                   </button>

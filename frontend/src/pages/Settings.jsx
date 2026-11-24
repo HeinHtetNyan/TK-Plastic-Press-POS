@@ -21,10 +21,10 @@ const getTab = () => {
 const Choice = ({ label, value, onChange, options }) => (
   <div className="flex flex-col gap-1">
     <span className="text-[.88em] font-medium text-muted">{label}</span>
-    <div className="flex border border-line-strong rounded overflow-hidden bg-row" role="group" aria-label={label}>
+    <div className="flex border border-line-strong rounded-xl overflow-hidden bg-row" role="group" aria-label={label}>
       {options.map(([id, text]) => (
         <button key={id} type="button" aria-pressed={value === id} onClick={() => onChange(id)}
-          className={`flex-1 min-h-12 px-4 font-medium border-r border-line last:border-r-0 ${value === id ? 'bg-ink text-row font-semibold' : 'bg-row text-ink'}`}>
+          className={`flex-1 min-h-12 px-4 font-medium border-r border-line last:border-r-0 ${value === id ? 'bg-accent text-on-accent font-semibold' : 'bg-row text-ink'}`}>
           {text}
         </button>
       ))}
@@ -48,8 +48,8 @@ const Settings = () => {
   return (
     <Layout>
       <div className="space-y-4 pb-12">
-        <section className="bg-row border border-line rounded">
-          <h2 className="bg-band px-4 py-3 min-h-12 flex items-center gap-2 font-semibold border-b border-line rounded-t">
+        <section className="bg-row rounded-2xl shadow-sm overflow-hidden">
+          <h2 className="px-4 py-3 min-h-12 flex items-center gap-2 font-semibold border-b border-line">
             <SettingsIcon size={20} strokeWidth={1.75} aria-hidden="true" /> {t('set_display')}
           </h2>
           <div className="p-4 grid gap-4 sm:grid-cols-2">
@@ -63,10 +63,10 @@ const Settings = () => {
           <p className="px-4 pb-4 text-[.88em] text-muted">{t('set_display_note')}</p>
         </section>
 
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex border-b border-line-strong overflow-x-auto" role="tablist">
           {TABS.map(({ id, icon: Icon, label }) => (
-            <button key={id} onClick={() => setTab(id)}
-              className={`flex items-center gap-2 px-4 min-h-12 rounded font-medium border ${tab === id ? 'bg-accent text-on-accent border-accent font-semibold' : 'bg-row text-ink border-line-strong'}`}>
+            <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)}
+              className={`flex items-center gap-2 px-5 min-h-12 -mb-px border-b-[3px] whitespace-nowrap ${tab === id ? 'border-accent text-accent font-semibold' : 'border-transparent text-muted font-medium'}`}>
               {React.createElement(Icon, { size: 18 })} {t(label)}
             </button>
           ))}
