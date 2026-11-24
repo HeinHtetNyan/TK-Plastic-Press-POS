@@ -109,3 +109,5 @@ html.lang-mm nav .text-xs { font-size: 0.7rem; line-height: 1.5; }
   body { background: #fff !important; color: #000 !important; font-family: 'Segoe UI', Arial, sans-serif !important; }
   :root[data-theme='dark'] .bg-white { background-color: #fff; }
 }
+
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }

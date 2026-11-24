@@ -285,6 +285,15 @@ const translations = {
     nav_reports: 'Reports',
     nav_spending: 'Spending',
     nav_settings: 'Settings',
+    shell_offline_banner: 'You are offline. Changes are saved on this device and will sync later.',
+    set_text_size: 'Text size',
+    set_text_normal: 'Normal',
+    set_text_large: 'Large',
+    set_theme: 'Theme',
+    set_theme_light: 'Light',
+    set_theme_dark: 'Dark',
+    set_display: 'Display',
+    set_display_note: 'Saved on this device only.',
 
     // titles and labels added in the Myanmar pass 2
     voucher: 'Voucher',
@@ -674,6 +683,15 @@ const translations = {
     nav_reports: 'မှတ်တမ်း',
     nav_spending: 'အသုံးစရိတ်',
     nav_settings: 'ဆက်တင်',
+    shell_offline_banner: 'အင်တာနက် မရှိပါ။ ပြောင်းလဲမှုများကို ဤစက်တွင် သိမ်းထားပြီး အင်တာနက်ရလျှင် ပို့ပေးပါမည်။',
+    set_text_size: 'စာလုံးအရွယ်',
+    set_text_normal: 'ပုံမှန်',
+    set_text_large: 'ကြီး',
+    set_theme: 'အသွင်အပြင်',
+    set_theme_light: 'အလင်း',
+    set_theme_dark: 'အမှောင်',
+    set_display: 'ဖန်သားပြင်',
+    set_display_note: 'ဤစက်တွင်သာ သိမ်းထားသည်။',
 
     // titles and labels added in the Myanmar pass 2
     voucher: 'ဘောက်ချာ',

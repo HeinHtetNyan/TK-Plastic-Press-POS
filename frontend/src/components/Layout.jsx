@@ -1,16 +1,32 @@
-import React from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, FileText, CreditCard, History, BarChart3, LogOut, User as UserIcon, TrendingDown, Boxes, Settings as SettingsIcon } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Home, LogOut, TrendingDown, Boxes, BarChart3, Settings as SettingsIcon, WifiOff } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useLanguage } from '../context/LanguageContext';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import SyncStatus from './SyncStatus';
 import DemoPill from './DemoPill';
 
+const APP_NAME = import.meta.env.VITE_APP_NAME;
+
+const Logo = () => (
+  <div className="flex items-center gap-3 min-w-0">
+    <div className="w-10 h-8 rounded bg-white border border-line overflow-hidden flex-shrink-0 flex items-center justify-center">
+      <img src="/TK.jpeg" alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
+    </div>
+    <span className="font-semibold leading-tight truncate">{APP_NAME}</span>
+  </div>
+);
+
+// Shell: bottom tab bar < 600px, icon rail 600-1023px, labelled sidebar >= 1024px.
 const Layout = ({ children, wide = false }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout, isAdmin } = useAuth();
   const { lang, setLang, t } = useLanguage();
+  const { isOnline } = useNetworkStatus();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
 
   const navItems = [
     { path: '/', icon: Home, label: t('home'), short: t('nav_home') },
@@ -23,113 +39,148 @@ const Layout = ({ children, wide = false }) => {
     navItems.push({ path: '/settings', icon: SettingsIcon, label: t('settings'), short: t('nav_settings') });
   }
 
+  const extraTitles = { '/history': t('history'), '/voucher': t('voucher'), '/payment': t('payment') };
+  const current = navItems.find((i) => i.path === location.pathname);
+  const isHome = location.pathname === '/';
+  const title = current ? current.label : extraTitles[location.pathname] || APP_NAME;
+
+  // close the profile menu on outside click or Escape
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const onDown = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
+    const onKey = (e) => { if (e.key === 'Escape') setMenuOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
+
+  const go = (item) => navigate(item.path, { replace: item.path === '/', state: null });
+  const initials = (user?.username || '?').slice(0, 2).toUpperCase();
+
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col lg:flex-row">
+    <div className="min-h-screen bg-page text-ink">
       <DemoPill />
-      {/* Desktop Sidebar / Mobile Header */}
-      <header className="bg-blue-600 text-white px-3 py-2 lg:p-3 shadow-md sticky top-0 z-20 flex flex-row items-center gap-2 lg:flex-col lg:items-stretch lg:gap-0 lg:h-screen lg:w-64 lg:fixed lg:left-0">
-        <div className="flex items-center gap-3 lg:mb-8">
-          <div className="max-[359px]:hidden w-12 h-8 lg:w-16 lg:h-10 bg-white rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center shadow-inner">
-            <img src="/TK.jpeg" alt="TK Logo" className="w-full h-full object-cover" onError={(e) => e.target.style.display='none'} />
-          </div>
-          <h1 className="text-lg lg:text-xl font-black tracking-tight leading-tight uppercase">{import.meta.env.VITE_APP_NAME}</h1>
-        </div>
 
-        {/* Language Toggle */}
-        <div className="flex gap-1 mb-0 lg:mb-6 p-0.5 lg:p-1 bg-blue-700/30 rounded-xl lg:self-start">
-          <button
-            onClick={() => setLang('EN')}
-            className={`px-2.5 sm:px-3 py-2 lg:py-1.5 rounded-lg text-sm font-black transition-all ${lang === 'EN' ? 'bg-white text-blue-600 shadow-sm' : 'text-blue-200 hover:text-white'}`}
-          >
-            <span className="lg:hidden">EN</span><span className="hidden lg:inline">ENGLISH</span>
-          </button>
-          <button
-            onClick={() => setLang('MM')}
-            className={`px-2.5 sm:px-3 py-2 lg:py-1.5 rounded-lg text-sm font-black transition-all ${lang === 'MM' ? 'bg-white text-blue-600 shadow-sm' : 'text-blue-200 hover:text-white'}`}
-          >
-            <span className="lg:hidden">MM</span><span className="hidden lg:inline">MYANMAR</span>
-          </button>
-        </div>
-
-        {/* User Info (Desktop) */}
-        {user && (
-          <div className="hidden lg:flex flex-col gap-1 p-4 mb-4 bg-blue-700/50 rounded-2xl border border-blue-500/30">
-            <div className="flex items-center gap-2">
-              <div className="bg-white/20 p-1.5 rounded-full">
-                <UserIcon size={16} />
-              </div>
-              <span className="font-bold truncate">{user.username}</span>
-            </div>
-            <span className="text-sm font-black uppercase tracking-widest text-blue-200 ml-8">{user.role}</span>
-          </div>
-        )}
-
-        {/* Sync status pill (Desktop — inside sidebar) */}
-        <div className="hidden lg:flex mb-3">
-          <SyncStatus />
-        </div>
-
-        {/* Desktop Navigation */}
-        <nav className="hidden lg:flex flex-col gap-2 mt-2 flex-grow">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
-            return (
-              <button
-                key={item.path}
-                onClick={() => navigate(item.path, { replace: item.path === '/', state: null })}
-                className={`flex items-center gap-3 p-4 rounded-2xl transition-all font-black uppercase text-base tracking-widest text-left ${
-                  isActive ? 'bg-white text-blue-600 shadow-lg scale-105' : 'text-blue-100 hover:bg-blue-500'
-                }`}
-              >
-                <Icon size={20} />
-                {item.label}
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* Logout Button (Desktop) */}
-        <button
-          onClick={logout}
-          className="hidden lg:flex items-center gap-3 p-4 rounded-2xl transition-all font-black uppercase text-base tracking-widest text-blue-100 hover:bg-red-500 hover:text-white mt-auto mb-4"
-        >
-          <LogOut size={20} />
-          {t('logout')}
-        </button>
-
-        {/* Mobile Header Right — username + sync pill + logout */}
-        <div className="lg:hidden flex items-center justify-end ml-auto gap-2">
-          {user && <span className="hidden sm:inline text-base font-bold uppercase">{user.username}</span>}
-          <SyncStatus />
-          <button onClick={logout} aria-label={t('logout')} className="p-2.5 bg-blue-700 rounded-lg">
-            <LogOut size={18} />
-          </button>
-        </div>
-      </header>
-
-      {/* Main Content Area */}
-      <main className="flex-grow min-w-0 p-4 lg:p-8 lg:ml-64 transition-all">
-        <div className={`${wide ? 'max-w-[1500px]' : 'max-w-5xl'} mx-auto mb-20 lg:mb-0`}>
-          {children}
-        </div>
-      </main>
-
-      {/* Mobile Bottom Navigation */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex justify-around p-2 z-20 pb-safe shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+      {/* Rail (600-1023) and sidebar (>= 1024) */}
+      <nav
+        aria-label="Main"
+        className="hidden min-[600px]:flex flex-col gap-1 fixed left-0 top-0 bottom-0 z-30 w-24 lg:w-60 bg-row border-r border-line-strong px-2 py-3 lg:px-3 lg:py-4"
+      >
+        <div className="hidden lg:flex items-center h-12 px-2 mb-3"><Logo /></div>
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = location.pathname === item.path;
+          const active = location.pathname === item.path;
           return (
             <button
               key={item.path}
-              onClick={() => navigate(item.path, { replace: item.path === '/', state: null })}
-              className={`flex flex-col items-center flex-1 min-w-0 py-1 px-1 rounded-xl transition-all ${
-                isActive ? 'text-blue-600 scale-110' : 'text-gray-400'
+              type="button"
+              onClick={() => go(item)}
+              aria-current={active ? 'page' : undefined}
+              className={`flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-3 min-h-[68px] lg:min-h-[52px] px-1 lg:px-4 rounded text-[13px] lg:text-base font-medium ${
+                active ? 'bg-accent text-on-accent font-semibold' : 'text-ink hover:bg-band'
               }`}
             >
-              <Icon size={24} />
-              <span className="text-xs max-[359px]:text-[10px] mt-1 font-black uppercase tracking-tighter whitespace-nowrap">{item.short || item.label}</span>
+              <Icon size={24} strokeWidth={1.75} aria-hidden="true" />
+              <span className="max-w-full truncate leading-snug">
+                <span className="lg:hidden">{item.short || item.label}</span>
+                <span className="hidden lg:inline">{item.label}</span>
+              </span>
+            </button>
+          );
+        })}
+      </nav>
+
+      <div className="min-[600px]:ml-24 lg:ml-60 min-h-screen flex flex-col">
+        {/* Title bar */}
+        <header className="sticky top-0 z-20 flex items-center gap-2 min-h-14 pl-4 pr-2 bg-row border-b border-line-strong">
+          <div className="flex-1 min-w-0">
+            {isHome && <div className="min-[600px]:hidden"><Logo /></div>}
+            <h1 className={`text-[1.2em] font-semibold truncate ${isHome ? 'hidden min-[600px]:block' : ''}`}>{title}</h1>
+          </div>
+          <SyncStatus />
+          <div className="relative" ref={menuRef}>
+            <button
+              type="button"
+              onClick={() => setMenuOpen((o) => !o)}
+              aria-haspopup="true"
+              aria-expanded={menuOpen}
+              aria-label={user?.username || t('language')}
+              className="min-w-12 min-h-12 grid place-items-center rounded hover:bg-band"
+            >
+              <span className="w-10 h-10 rounded-full border border-line-strong bg-band grid place-items-center text-[.85em] font-semibold">{initials}</span>
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 top-[52px] w-[min(300px,calc(100vw-16px))] bg-row border border-line-strong rounded p-3 z-40 shadow-[0_6px_18px_-8px_var(--shadow-pin)]">
+                {user && (
+                  <div className="flex flex-col pb-2.5 mb-2.5 border-b border-line">
+                    <b className="font-semibold truncate">{user.username}</b>
+                    <small className="text-muted">{user.role}</small>
+                  </div>
+                )}
+                <div className="text-[.88em] font-medium text-muted mb-1">{t('language')}</div>
+                <div className="flex border border-line-strong rounded overflow-hidden mb-3">
+                  {[['EN', 'English'], ['MM', 'မြန်မာ']].map(([code, name]) => (
+                    <button
+                      key={code}
+                      type="button"
+                      onClick={() => setLang(code)}
+                      aria-pressed={lang === code}
+                      className={`flex-1 min-h-12 px-3 font-medium border-r border-line last:border-r-0 ${lang === code ? 'bg-ink text-row font-semibold' : 'bg-row text-ink'}`}
+                    >
+                      {name}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="w-full min-h-12 px-4 rounded border border-line-strong bg-row text-ink font-medium inline-flex items-center justify-center gap-2 hover:bg-band"
+                >
+                  <LogOut size={20} strokeWidth={1.75} aria-hidden="true" />
+                  {t('logout')}
+                </button>
+              </div>
+            )}
+          </div>
+        </header>
+
+        {!isOnline && (
+          <div role="status" className="flex items-center gap-2 px-4 py-2 bg-extra-bg text-ink border-b border-line text-[.93em]">
+            <WifiOff size={20} strokeWidth={1.75} className="text-extra" aria-hidden="true" />
+            <span>{t('shell_offline_banner')}</span>
+          </div>
+        )}
+
+        <main className="flex-grow min-w-0 p-4 min-[600px]:p-6 lg:px-8">
+          <div className={`${wide ? 'max-w-[1500px]' : 'max-w-5xl'} mx-auto mb-20 min-[600px]:mb-0`}>
+            {children}
+          </div>
+        </main>
+      </div>
+
+      {/* Bottom tab bar (< 600px) */}
+      <nav
+        aria-label="Main"
+        className="min-[600px]:hidden fixed bottom-0 left-0 right-0 z-30 flex bg-row border-t border-line-strong pb-safe"
+      >
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const active = location.pathname === item.path;
+          return (
+            <button
+              key={item.path}
+              type="button"
+              onClick={() => go(item)}
+              aria-current={active ? 'page' : undefined}
+              className={`flex-1 min-w-0 min-h-[60px] flex flex-col items-center justify-center gap-0.5 px-0.5 py-1 border-t-[3px] text-[12.5px] ${
+                active ? 'text-accent border-accent font-semibold' : 'text-muted border-transparent font-medium'
+              }`}
+            >
+              <Icon size={24} strokeWidth={1.75} aria-hidden="true" />
+              <span className="max-w-full truncate leading-normal">{item.short || item.label}</span>
             </button>
           );
         })}
