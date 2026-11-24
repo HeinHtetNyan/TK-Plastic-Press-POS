@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TK POS: History sheet mock-up</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600&family=Noto+Sans+Myanmar:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --page:#F6F4EF; --row:#FFFFFF; --band:#EFEBE2; --zebra:#FAF8F3; --line:#D9D4C8; --line-strong:#B9B2A3; --grid:#BDB6A6;
+  --ink:#1F2430; --muted:#5C6270; --accent:#173F8A;
+  --debt:#B3402F; --debt-bg:#F8E9E6; --ok:#2F7D5B; --ok-bg:#E6F2EC; --pay-bg:#E9F3EC; --extra:#B35A1F; --extra-bg:#F9ECE0;
+  --fs:15px; --row-h:56px; --shadow-pin:rgba(31,36,48,.14);
+}
+:root[data-theme="dark"]{
+  --page:#111419; --row:#181C23; --band:#1F242D; --zebra:#1C2028; --line:#343A45; --line-strong:#4A5260; --grid:#485060;
+  --ink:#EAEDF2; --muted:#A9B1BE; --accent:#86A6E8;
+  --debt:#F29B8C; --debt-bg:#3A2420; --ok:#7CCBA3; --ok-bg:#1E3329; --pay-bg:#1B2E25; --extra:#E7A56F; --extra-bg:#3A2A1B; --shadow-pin:rgba(0,0,0,.5);
+}
+:root[data-size="large"]{--fs:17px;--row-h:64px}
+*{box-sizing:border-box}
+html{color-scheme:light dark}
+body{margin:0;background:#CFCBC1;font:400 var(--fs)/1.5 "Public Sans",system-ui,sans-serif;color:var(--ink)}
+html[lang="my"] body{font-family:"Noto Sans Myanmar","Public Sans",system-ui,sans-serif;line-height:1.7}
+:root[data-theme="dark"] body{background:#07090c}
+.controls{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px;background:#fff;border-bottom:1px solid #ccc;font-size:14px;color:#222;position:sticky;top:0;z-index:50}
+.controls fieldset{border:1px solid #bbb;border-radius:4px;padding:2px 6px;display:flex;gap:4px;align-items:center}
+.controls legend{font-size:12px;padding:0 4px;color:#555}
+.controls button{min-height:40px;padding:0 12px;border:1px solid #bbb;background:#fff;border-radius:4px;font:inherit;color:#222;cursor:pointer}
+.controls button[aria-pressed="true"]{background:#173F8A;color:#fff;border-color:#173F8A}
+.stage{display:flex;justify-content:center;padding:16px}
+.device{background:var(--page);width:390px;height:780px;border-radius:4px;overflow:hidden;display:flex;flex-direction:column;border:1px solid #999;position:relative}
+.device.landscape{width:844px;height:390px}
+@media (max-width:860px){.stage{padding:0}.device{width:100%!important;height:calc(100dvh - 120px)!important;border:0;border-radius:0}}
+header.bar{display:flex;align-items:center;gap:8px;min-height:52px;padding:0 8px 0 4px;background:var(--row);border-bottom:1px solid var(--line-strong);flex:none}
+.icon-btn{min-width:48px;min-height:48px;display:grid;place-items:center;background:none;border:0;color:var(--ink);cursor:pointer;border-radius:4px}
+.icon-btn:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+header.bar h1{font-size:1.2em;font-weight:600;margin:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:4px;font-size:.87em;font-weight:500;white-space:nowrap}
+.pill.ok{background:var(--ok-bg);color:var(--ok)}
+.summary{display:flex;gap:0;flex:none;background:var(--band);border-bottom:1px solid var(--line-strong)}
+.summary div{flex:1;padding:6px 12px;border-right:1px solid var(--line);min-width:0}
+.summary div:last-child{border-right:0}
+.summary small{display:block;color:var(--muted);font-size:.8em}
+.summary b{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.summary .owes b{color:var(--debt)}
+.scroller{flex:1;overflow:auto;position:relative;-webkit-overflow-scrolling:touch;background:var(--row)}
+table{border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums;width:max-content;min-width:100%}
+th,td{padding:0 12px;height:var(--row-h);white-space:nowrap;text-align:left;border-bottom:1px solid var(--grid);border-right:1px solid var(--line);background:var(--row)}
+thead th{position:sticky;top:0;z-index:3;background:var(--band);font-weight:600;border-bottom:1px solid var(--line-strong);height:48px;font-size:.93em}
+tbody tr:nth-child(even) td{background:var(--zebra)}
+td.num,th.num{text-align:right}
+/* pinned columns */
+.pin-l1{position:sticky;left:0;z-index:2;min-width:116px;width:116px;max-width:116px;white-space:normal;line-height:1.3;padding:0 8px 0 12px;border-right:1px solid var(--line-strong);box-shadow:4px 0 6px -4px var(--shadow-pin)}
+.pin-l1 small{display:block;color:var(--muted);font-size:.87em;font-weight:400}
+tr.pay .pin-l1 small{color:var(--ok)}
+.pin-r{position:sticky;right:0;z-index:2;min-width:96px;padding:0 12px;text-align:right;border-left:1px solid var(--line-strong);box-shadow:-4px 0 6px -4px var(--shadow-pin)}
+thead .pin-l1,thead .pin-r{z-index:4}
+.vno{color:var(--accent);font-weight:600;display:flex;align-items:center;gap:4px;background:none;border:0;font:inherit;font-weight:600;cursor:pointer;min-height:48px;padding:0}
+.rem{font-weight:600}
+.rem.debt{color:var(--debt)}
+.rem.zero{color:var(--ok)}
+.rem.later{color:var(--muted);font-weight:400}
+tr.pay td{background:var(--pay-bg)!important;color:var(--ok)}
+tr.pay td.pin-l1{font-weight:600}
+tr.sub td{height:36px;font-size:.87em;background:var(--row)!important;color:var(--muted);font-style:normal}
+tr.sub.extra td.amt{color:var(--extra);font-weight:600}
+tr.sub.disc td.amt{color:var(--debt);font-weight:600}
+tr.sub td.amt{text-align:right}
+.menu{min-width:44px;min-height:44px;display:inline-grid;place-items:center;background:none;border:0;color:var(--muted);cursor:pointer;border-radius:4px}
+.tag{font-size:.8em;padding:1px 6px;border-radius:4px;background:var(--band);color:var(--muted);margin-left:4px}
+tfoot td{position:sticky;bottom:0;z-index:3;background:var(--band)!important;font-weight:600;border-top:1px solid var(--line-strong);height:52px}
+tfoot .pin-l1,tfoot .pin-r{z-index:5}
+.hint{flex:none;padding:6px 12px;font-size:.87em;color:var(--muted);background:var(--page);border-top:1px solid var(--line);display:flex;gap:8px;align-items:center}
+.note{max-width:860px;margin:8px auto 24px;padding:0 16px;font-size:14px;color:#222}
+:root[data-theme="dark"] .note{color:#ddd}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div class="controls" role="toolbar" aria-label="Preview options">
+  <fieldset><legend>Language</legend>
+    <button data-k="lang" data-v="en" aria-pressed="true">English</button>
+    <button data-k="lang" data-v="my" aria-pressed="false">မြန်မာ</button></fieldset>
+  <fieldset><legend>Text size</legend>
+    <button data-k="size" data-v="normal" aria-pressed="true">Normal</button>
+    <button data-k="size" data-v="large" aria-pressed="false">Large</button></fieldset>
+  <fieldset><legend>Phone</legend>
+    <button data-k="orient" data-v="portrait" aria-pressed="true">Portrait</button>
+    <button data-k="orient" data-v="landscape" aria-pressed="false">Landscape</button></fieldset>
+  <fieldset><legend>Theme</legend>
+    <button data-k="theme" data-v="light" aria-pressed="true">Light</button>
+    <button data-k="theme" data-v="dark" aria-pressed="false">Dark</button></fieldset>
+</div>
+
+<div class="stage">
+  <div class="device" id="device">
+    <header class="bar">
+      <button class="icon-btn" aria-label="Back"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button>
+      <h1 id="t-title">History</h1>
+      <span class="pill ok" id="t-online"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span>Online</span></span>
+    </header>
+    <div class="summary" id="summary"></div>
+    <div class="scroller" id="scroller" tabindex="0" role="region" aria-label="History sheet, scrolls sideways">
+      <table id="sheet"></table>
+    </div>
+    <div class="hint" id="hint"></div>
+  </div>
+</div>
+
+<p class="note"><strong>How to read this mock-up.</strong> Voucher and Date (stacked in one narrow column) stay pinned on the left, Remaining stays pinned on the right, and the other columns scroll sideways (with a row menu for Edit / Delete at the end). Header and totals row stay in place while you scroll up and down. All 15 columns of the real sheet are here. Names are U Aung (sample). Numbers are sample values, only checked to add up.</p>
+
+<script>
+const T={
+ en:{title:'History',online:'Online',voucher:'Voucher',date:'Date',size:'Size',gate:'Thickness',pc:'Plastic Color',prc:'Print Color',lb:'LB',pp:'Plastic Price',cp:'Color Price',price:'Price',total:'Total',vt:'Voucher Total',prev:'Previous Balance',paid:'Paid at Site',rem:'Remaining',
+  pay:'Direct Payment',later:'Paid later',extra:'Extra charge',disc:'Discount',totals:'Totals',owes:'Owes now',billed:'Billed',paidT:'Paid',edit:'Edit / delete',hintP:'Swipe sideways for more columns. Turn the phone for a wider view.',hintL:'Swipe sideways for more columns.',
+  delivery:'Delivery fee',cash:'Cash',kbz:'KBZPay',reprint:'Reprint voucher',pending:'Pending',
+  colors:{Clear:'Clear',White:'White',Yellow:'Yellow',Red:'Red',Black:'Black',Blue:'Blue'}},
+ my:{title:'မှတ်တမ်း',online:'အွန်လိုင်း',voucher:'ဘောက်ချာ',date:'ရက်စွဲ',size:'အရွယ်အစား',gate:'အထူ',pc:'ပလတ်စတစ် အရောင်',prc:'ပုံနှိပ် အရောင်',lb:'ပေါင်',pp:'ပလပ်စတစ်စျေး',cp:'အရောင်စျေး',price:'စျေးနှုန်း',total:'စုစုပေါင်း',vt:'ဘောက်ချာစုစုပေါင်း',prev:'ယခင်လက်ကျန်ငွေ',paid:'ပေးချေပြီးငွေ',rem:'ကျန်ငွေ',
+  pay:'ငွေပေးချေမှု',later:'နောက်မှပေးပြီး',extra:'ထပ်ဆောင်းစရိတ်',disc:'လျှော့ငွေ',totals:'စုစုပေါင်း',owes:'ယခုကြွေးကျန်',billed:'ဘောက်ချာစုစုပေါင်း',paidT:'ပေးချေပြီးငွေ',edit:'ပြင်ရန် / ဖျက်ရန်',hintP:'ဘေးသို့ ပွတ်ဆွဲ၍ ကော်လံများ ပိုကြည့်ပါ။ ဖုန်းကို လှည့်ပါ။',hintL:'ဘေးသို့ ပွတ်ဆွဲ၍ ကော်လံများ ပိုကြည့်ပါ။',
+  delivery:'ပို့ခ',cash:'ငွေသား',kbz:'KBZPay',reprint:'ဘောက်ချာ ပြန်ထုတ်',pending:'စောင့်ဆိုင်းဆဲ',
+  colors:{Clear:'ကြည်',White:'အဖြူ',Yellow:'အဝါ',Red:'အနီ',Black:'အနက်',Blue:'အပြာ'}}
+};
+const n=x=>x.toLocaleString('en-US');
+// sample data (newest first). rem: number | 'later'
+const rows=[
+ {t:'v',no:'000123',d:'24 Nov 2026',size:'8x12',g:'10g',pc:'Clear',prc:'Red',lb:45,pp:4900,cp:1295,tot:278775,vt:281775,prev:32500,paid:100000,rem:181775,extra:5000,disc:2000,pend:true},
+ {t:'p',d:'22 Nov 2026',amt:50000,m:'Cash 30,000 · KBZPay 20,000'},
+ {t:'v',no:'000122',d:'20 Nov 2026',size:'6x9',g:'9g',pc:'White',prc:'Black',lb:30,pp:4500,cp:0,tot:135000,vt:135000,prev:82500,paid:135000,rem:0},
+ {t:'v',no:'000121',d:'18 Nov 2026',size:'10x15',g:'11g',pc:'Yellow',prc:'Blue',lb:25,pp:4200,cp:1100,tot:132500,vt:132500,prev:0,paid:50000,rem:'later'}
+];
+const state={lang:'en',size:'normal',orient:'portrait',theme:'light'};
+function render(){
+  const L=T[state.lang],h=document.documentElement;
+  h.lang=state.lang==='my'?'my':'en';h.dataset.size=state.size;h.dataset.theme=state.theme;
+  document.getElementById('device').className='device '+(state.orient==='landscape'?'landscape':'');
+  document.getElementById('t-title').textContent=L.title+' · U Aung';
+  document.querySelector('#t-online span').textContent=L.online;
+  document.getElementById('summary').innerHTML=`<div><small>${L.billed}</small><b>549,275</b></div><div><small>${L.paidT}</small><b>335,000</b></div><div class="owes"><small>${L.owes}</small><b>214,275 MMK</b></div>`;
+  document.getElementById('hint').textContent=(state.orient==='landscape'?L.hintL:L.hintP);
+  const mid=['size','gate','pc','prc','lb','pp','cp','price','total','vt','prev','paid'];
+  const head=`<thead><tr><th class="pin-l1">${L.voucher} / ${L.date}</th>`+
+   `<th>${L.size}</th><th>${L.gate}</th><th>${L.pc}</th><th>${L.prc}</th><th class="num">${L.lb}</th><th class="num">${L.pp}</th><th class="num">${L.cp}</th><th class="num">${L.price}</th><th class="num">${L.total}</th><th class="num">${L.vt}</th><th class="num">${L.prev}</th><th class="num">${L.paid}</th><th aria-label="${L.edit}"></th>`+
+   `<th class="pin-r">${L.rem}</th></tr></thead>`;
+  let body='<tbody>';
+  const menu=`<button class="menu" aria-label="${L.edit}"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button>`;
+  for(const r of rows){
+    if(r.t==='v'){
+      const price=r.pp+r.cp;
+      const remCell=r.rem==='later'?`<span class="rem later">${L.later}</span>`:`<span class="rem ${r.rem>0?'debt':'zero'}">${n(r.rem)}</span>`;
+      body+=`<tr><td class="pin-l1"><button class="vno" aria-label="${L.reprint} ${r.no}">${r.no}</button><small>${r.d}</small></td>`+
+        `<td>${r.size}</td><td>${r.g}</td><td>${L.colors[r.pc]}</td><td>${L.colors[r.prc]}</td><td class="num">${r.lb}</td><td class="num">${n(r.pp)}</td><td class="num">${n(r.cp)}</td><td class="num">${n(price)}</td><td class="num">${n(r.tot)}</td><td class="num">${n(r.vt)}</td><td class="num">${n(r.prev)}</td><td class="num">${n(r.paid)}</td><td>${menu}</td>`+
+        `<td class="pin-r">${remCell}</td></tr>`;
+      if(r.extra) body+=`<tr class="sub extra"><td class="pin-l1">${L.extra}</td><td colspan="8">${L.delivery}</td><td class="amt">+${n(r.extra)}</td><td colspan="3"></td><td class="pin-r"></td></tr>`;
+      if(r.disc) body+=`<tr class="sub disc"><td class="pin-l1">${L.disc}</td><td colspan="8"></td><td class="amt">−${n(r.disc)}</td><td colspan="3"></td><td class="pin-r"></td></tr>`;
+    } else {
+      body+=`<tr class="pay"><td class="pin-l1">${L.pay}<small>${r.d}</small></td><td colspan="10">${r.m}</td><td class="num" style="font-weight:600">${n(r.amt)}</td><td>${menu}</td><td class="pin-r"></td></tr>`;
+    }
+  }
+  body+='</tbody>';
+  const foot=`<tfoot><tr><td class="pin-l1">${L.totals}</td><td colspan="4"></td><td class="num">100</td><td colspan="3"></td><td class="num">546,275</td><td class="num">549,275</td><td></td><td class="num">335,000</td><td></td><td class="pin-r rem debt">214,275</td></tr></tfoot>`;
+  document.getElementById('sheet').innerHTML=head+body+foot;
+}
+document.querySelectorAll('.controls button').forEach(b=>b.addEventListener('click',()=>{
+  const k=b.dataset.k;state[k]=b.dataset.v;
+  document.querySelectorAll(`.controls button[data-k="${k}"]`).forEach(x=>x.setAttribute('aria-pressed',x===b));
+  render();
+}));
+render();
+</script>
+</body>
+</html>
