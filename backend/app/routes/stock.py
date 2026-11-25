@@ -11,7 +11,7 @@ from app.models.stock import PlasticOption, StockItem, StockMovement, Purchase, 
 from app.models.customer import get_yangon_now
 from app.dependencies.auth import require_staff_or_admin, require_admin
 from app.services.audit import log_action
-from app.services.stock import norm, get_or_create_stock, add_stock, _move
+from app.services.stock import norm, get_or_create_stock, add_stock, _move, history_rows
 
 router = APIRouter(tags=["stock"])
 KINDS = ("SIZE", "COLOR", "GATE", "PRINT")
@@ -171,10 +171,12 @@ def stock_movements(
     stock_id: int, page: int = Query(default=1, ge=1), page_size: int = Query(default=20, ge=1, le=100),
     session: Session = Depends(get_session), user: User = Depends(require_admin),
 ):
-    total = session.exec(select(func.count(StockMovement.id)).where(StockMovement.stock_item_id == stock_id)).one()
+    every = session.exec(select(StockMovement).where(StockMovement.stock_item_id == stock_id).order_by(StockMovement.id)).all()
+    shown = history_rows(every)[::-1]  # newest first
+    total = len(shown)
     pages = max(1, -(-total // page_size))
     page = min(page, pages)
-    rows = session.exec(select(StockMovement).where(StockMovement.stock_item_id == stock_id).order_by(StockMovement.id.desc()).offset((page - 1) * page_size).limit(page_size)).all()
+    rows = shown[(page - 1) * page_size:page * page_size]
     return {"items": [{"id": m.id, "kind": m.kind, "delta_lb": m.delta_lb, "cost_per_lb": m.cost_per_lb, "ref": m.ref, "note": m.note, "created_at": m.created_at} for m in rows],
             "total": total, "page": page, "pages": pages}
 
@@ -349,7 +351,7 @@ def create_purchase(body: PurchaseIn, session: Session = Depends(get_session), u
 
 @router.put("/purchases/{purchase_id}")
 def update_purchase(purchase_id: int, body: PurchaseIn, session: Session = Depends(get_session), user: User = Depends(require_admin)):
-    p = session.get(Purchase, purchase_id)
+    p = session.get(Purchase, purchase_id, with_for_update=True)  # one change at a time, stock moves only once
     if not p:
         raise HTTPException(status_code=404, detail="Not found")
     lines_same = _same_lines(session, p, body.lines)
@@ -373,7 +375,7 @@ def update_purchase(purchase_id: int, body: PurchaseIn, session: Session = Depen
 
 @router.delete("/purchases/{purchase_id}")
 def delete_purchase(purchase_id: int, session: Session = Depends(get_session), user: User = Depends(require_admin)):
-    p = session.get(Purchase, purchase_id)
+    p = session.get(Purchase, purchase_id, with_for_update=True)  # one change at a time, stock moves only once
     if not p:
         raise HTTPException(status_code=404, detail="Not found")
     _reverse_lines(session, p)

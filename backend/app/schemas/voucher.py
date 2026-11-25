@@ -77,7 +77,7 @@ class AutoNumber(BaseModel):
 class VoucherCreate(VoucherBase):
     voucher_number: Optional[str] = None  # typed number; may be empty when auto_number is given
     auto_number: Optional[AutoNumber] = None
-    items: List[ItemCreate]
+    items: List[ItemCreate] = Field(min_length=1)
     client_id: Optional[str] = None
 
 class VoucherUpdate(BaseModel):
@@ -92,7 +92,7 @@ class VoucherUpdate(BaseModel):
     discount_amount: float = Field(default=0.0, ge=0)
     core_weight_lb: Optional[float] = Field(default=None, ge=0)
     wastes: Optional[List[WasteIn]] = None  # None = keep what the voucher has (old app); a list (even empty) replaces it
-    items: List[ItemCreate]
+    items: List[ItemCreate] = Field(min_length=1)
 
     @field_validator("voucher_date", mode="before")
     @classmethod

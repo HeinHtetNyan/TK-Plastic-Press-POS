@@ -53,6 +53,36 @@ def _move(session: Session, stock: StockItem, kind: str, delta: float, cost: Opt
     session.add(StockMovement(stock_item_id=stock.id, kind=kind, delta_lb=delta, cost_per_lb=cost, ref=ref, note=note))
 
 
+HISTORY_KINDS = ("SALE", "CORE", "DAMAGE", "PURCHASE", "ADJUST")
+
+
+def history_rows(movements: list) -> list:
+    """What the stock History shows (movements oldest first in, same order out): vouchers (sale, cardboard core,
+    damage), factory purchases, manual counts, and ONE "stock entered" line (date of the first opening entry, all the
+    opening lb together). An edit or delete writes a *_REVERSE row; that row and the row it undid are both left out, so
+    only what is in effect now is listed. Nothing is removed from the database."""
+    live: list = []
+    for m in movements:
+        if m.kind.endswith("_REVERSE"):
+            kind = m.kind[: -len("_REVERSE")]
+            ref = (m.ref or "").removesuffix(" deleted").removesuffix(" removed")
+            same = [i for i, x in enumerate(live) if x.kind == kind and abs(x.delta_lb + m.delta_lb) < 1e-6]
+            # same voucher / purchase number first; a purchase number can be changed later, then match on the weight
+            match = [i for i in same if live[i].ref == ref] or (same if kind == "PURCHASE" else [])
+            if match:
+                live.pop(match[-1])
+        elif m.kind in HISTORY_KINDS and not (m.kind == "ADJUST" and abs(m.delta_lb) < 1e-6):  # a count that changed nothing
+            live.append(m)
+    openings = [m for m in movements if m.kind == "OPENING"]
+    if openings:
+        first = openings[0]
+        live.append(StockMovement(id=first.id, stock_item_id=first.stock_item_id, kind="OPENING",
+                                  delta_lb=round(sum(m.delta_lb for m in openings), 4), cost_per_lb=first.cost_per_lb,
+                                  ref=first.ref, created_at=first.created_at))
+        live.sort(key=lambda m: m.id)
+    return live
+
+
 def add_stock(session: Session, stock: StockItem, lb: float, cost_per_lb: float, kind: str, ref: Optional[str] = None, note: Optional[str] = None):
     """Add lb at a known cost and re-average. If the stock was empty/negative, the new cost simply becomes the average."""
     if stock.qty_lb > 0:

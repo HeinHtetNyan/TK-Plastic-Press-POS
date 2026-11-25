@@ -173,7 +173,8 @@ def update_voucher(
     session: Session = Depends(get_session),
     current_user: User = Depends(require_staff_or_admin)
 ):
-    voucher = session.get(Voucher, voucher_id)
+    # row lock: a repeated edit / delete of this voucher waits for the first one, so stock is never moved twice
+    voucher = session.get(Voucher, voucher_id, with_for_update=True)
     if not voucher:
         raise HTTPException(status_code=404, detail="Voucher not found")
 
@@ -259,7 +260,7 @@ def delete_voucher(
     session: Session = Depends(get_session),
     current_user: User = Depends(require_admin)
 ):
-    voucher = session.get(Voucher, voucher_id)
+    voucher = session.get(Voucher, voucher_id, with_for_update=True)
     if not voucher:
         raise HTTPException(status_code=404, detail="Voucher not found")
     

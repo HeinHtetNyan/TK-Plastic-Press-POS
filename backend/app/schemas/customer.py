@@ -1,6 +1,14 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+
+
+def _not_blank(v: Optional[str]) -> Optional[str]:
+    if v is None:
+        return v
+    if not v.strip():
+        raise ValueError("Customer name is empty")
+    return v.strip()
 
 class CustomerBase(BaseModel):
     name: str
@@ -9,11 +17,13 @@ class CustomerBase(BaseModel):
 
 class CustomerCreate(CustomerBase):
     client_id: Optional[str] = None
+    _name = field_validator("name")(_not_blank)
 
 class CustomerUpdate(BaseModel):
     name: Optional[str] = None
     phone_numbers: Optional[str] = None
     address: Optional[str] = None
+    _name = field_validator("name")(_not_blank)
 
 class CustomerRead(CustomerBase):
     id: int

@@ -7,9 +7,10 @@ import Pager from '../components/Pager';
 import { paginate } from '../utils/paginate';
 import { syncAll } from '../services/syncService';
 import db, { generateUUID } from '../lib/db';
+import { shopToday } from '../utils/shopTime';
 import { useLanguage } from '../context/LanguageContext';
 
-const today = () => new Date().toLocaleDateString('en-GB').split('/').join('-');
+const today = shopToday;
 
 const Spending = () => {
   const { t } = useLanguage();

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, FileText, Table2, List, CreditCard, ChevronDown, ChevronUp, Printer, Trash2, ArrowUpDown, Pencil, Plus, Save, X } from 'lucide-react';
 import Layout from '../components/Layout';
@@ -154,8 +154,20 @@ const History = () => {
     }
   }, [customer, navigate, fetchHistory]);
 
-  const handleDeleteVoucher = async (e, item) => {
+  // one delete at a time: while it is on its way, further taps do nothing
+  const deleting = useRef(false);
+  const deleteOnce = async (job) => {
+    if (deleting.current) return;
+    deleting.current = true;
+    try { await job(); } finally { deleting.current = false; }
+  };
+
+  const handleDeleteVoucher = (e, item) => {
     e.stopPropagation();
+    return deleteOnce(() => deleteVoucher(item));
+  };
+
+  const deleteVoucher = async (item) => {
     if (!window.confirm(t('are_you_sure_delete_voucher'))) return;
 
     const clientId = item.client_id;
@@ -193,13 +205,15 @@ const History = () => {
     try {
       await voucherService.delete(serverId);
       db.vouchers.delete(clientId).catch(() => {});
-      fetchHistory();
+      await fetchHistory();
     } catch {
       alert(t('error_deleting_voucher'));
     }
   };
 
-  const handleDeletePayment = async (item) => {
+  const handleDeletePayment = (item) => deleteOnce(() => deletePayment(item));
+
+  const deletePayment = async (item) => {
     if (!window.confirm(t('are_you_sure_delete_payment'))) return;
 
     const clientId = item.client_id;
@@ -237,7 +251,7 @@ const History = () => {
     try {
       await paymentService.delete(serverId);
       db.payments.delete(clientId).catch(() => {});
-      fetchHistory();
+      await fetchHistory();
     } catch {
       alert(t('error_deleting_payment'));
     }
@@ -271,6 +285,10 @@ const History = () => {
     const amount = parseFloat(editPaymentAmount);
     if (!amount || amount <= 0) {
       alert('Amount must be greater than 0.');
+      return;
+    }
+    if ((parseFloat(editPaymentDiscountAmount) || 0) < 0) {
+      alert(t('x2_no_negative'));
       return;
     }
     let pmtSplits = [];
@@ -813,6 +831,7 @@ const History = () => {
                 <input
                   type="number"
                   step="any"
+                  min="0"
                   value={editPaymentAmount}
                   onChange={e => setEditPaymentAmount(e.target.value)}
                   className="w-full min-h-[48px] px-3 bg-row border border-line-strong rounded-lg font-bold text-lg leading-normal outline-none focus:border-ok"
@@ -825,6 +844,7 @@ const History = () => {
                 <input
                   type="number"
                   step="any"
+                  min="0"
                   value={editPaymentDiscountAmount}
                   onChange={e => setEditPaymentDiscountAmount(e.target.value)}
                   className="w-full p-2.5 bg-debt-bg border border-debt/40 rounded-xl font-bold text-base outline-none focus:border-debt"

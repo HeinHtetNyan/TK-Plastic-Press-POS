@@ -5,6 +5,7 @@ import CoreAndProfit from '../components/CoreAndProfit';
 import Pager from '../components/Pager';
 import { paginate } from '../utils/paginate';
 import { useAuth } from '../hooks/useAuth';
+import { shopNow, shopToday } from '../utils/shopTime';
 import { useLanguage } from '../context/LanguageContext';
 import DropdownDatePicker from '../components/DropdownDatePicker';
 import { voucherService, analyticsService } from '../services/api';
@@ -19,9 +20,9 @@ const Reports = () => {
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [expandedVoucher, setExpandedVoucher] = useState(null);
 
-  const now = new Date();
+  const now = shopNow();
   const currentMonthStr = `${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`;
-  const today = new Date().toLocaleDateString('en-GB').split('/').join('-');
+  const today = shopToday();
 
   const [selectedMonth, setSelectedMonth] = useState(currentMonthStr);
   const [selectedDate, setSelectedDate] = useState('');
