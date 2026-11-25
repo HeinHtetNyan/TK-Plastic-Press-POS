@@ -39,6 +39,13 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // A rejected field comes back as a list of problems; screens expect one readable sentence.
+    const detail = error.response?.data?.detail;
+    if (Array.isArray(detail)) {
+      error.response.data.detail = detail
+        .map((d) => [(d.loc || []).filter((x) => x !== 'body').join(' '), (d.msg || '').replace(/^Value error, /, '')].filter(Boolean).join(': '))
+        .join('\n');
+    }
     if (error.response && error.response.status === 401) {
       localStorage.removeItem(k('token'));
       localStorage.removeItem(k('user'));

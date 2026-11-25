@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { UserPlus, Trash2, Shield, User as UserIcon, Loader2, ArrowLeft, ToggleLeft, ToggleRight } from 'lucide-react';
 import Layout from '../components/Layout';
 import { useLanguage } from '../context/LanguageContext';
+import { shopDate } from '../utils/shopTime';
 
 
 // Renders just the content when shown inside the Settings tab (no second page frame).
@@ -128,6 +129,8 @@ const Users = ({ embedded = false }) => {
               <input
                 type="text"
                 required
+                minLength={3}
+                maxLength={64}
                 className="w-full px-4 min-h-[52px] bg-row border border-line-strong rounded-xl focus:border-accent outline-none font-medium transition-all"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -139,10 +142,14 @@ const Users = ({ embedded = false }) => {
               <input
                 type="password"
                 required
+                minLength={8}
+                maxLength={128}
+                pattern=".*[0-9].*"
+                title={t('x2_pw_rule')}
                 className="w-full px-4 min-h-[52px] bg-row border border-line-strong rounded-xl focus:border-accent outline-none font-medium transition-all"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder={t('x2_min6')}
+                placeholder={t('x2_pw_rule')}
               />
             </div>
             <button
@@ -201,7 +208,7 @@ const Users = ({ embedded = false }) => {
                         </span>
                       </td>
                       <td className="px-4 sm:px-6 py-3 text-base text-muted whitespace-nowrap">
-                        {new Date(u.created_at).toLocaleDateString()}
+                        {shopDate(u.created_at)}
                       </td>
                       <td className="px-4 sm:px-6 py-3 text-right">
                         {u.role !== 'ADMIN' && (

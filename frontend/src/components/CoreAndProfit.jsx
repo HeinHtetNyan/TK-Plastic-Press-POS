@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Package, TrendingUp, X, ChevronRight } from 'lucide-react';
 import { stockService } from '../services/api';
+import { shopNow } from '../utils/shopTime';
 import { useLanguage } from '../context/LanguageContext';
 import Pager from './Pager';
 
 const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 const periodRange = (p) => {
-  const now = new Date();
+  const now = shopNow();
   if (p === 'today') return [iso(now), iso(now)];
   if (p === 'week') { const s = new Date(now); s.setDate(s.getDate() - 6); return [iso(s), iso(now)]; }
   if (p === 'month') return [iso(new Date(now.getFullYear(), now.getMonth(), 1)), iso(now)];

@@ -6,6 +6,7 @@ import DropdownDatePicker from '../components/DropdownDatePicker';
 import { customerService, voucherService } from '../services/api';
 import { cacheBalance, getOfflineBalance, syncAll } from '../services/syncService';
 import db, { generateUUID } from '../lib/db';
+import { shopNow, shopToday } from '../utils/shopTime';
 import { useLanguage } from '../context/LanguageContext';
 import SplitPicker from '../components/SplitPicker';
 import Combo from '../components/Combo';
@@ -45,9 +46,9 @@ const Voucher = () => {
     ? { kind: numCfg.kind, prefix: numCfg.kind === 'PREFIX' ? String(numCfg.prefix || '').trim() : '', digits: Math.min(9, Math.max(1, parseInt(numCfg.digits) || 4)) }
     : null;
   const autoExample = autoNumber
-    ? (autoNumber.kind === 'YEAR' ? `${new Date().getFullYear()}-0001` : `${autoNumber.prefix}${String(1).padStart(autoNumber.digits, '0')}`)
+    ? (autoNumber.kind === 'YEAR' ? `${shopNow().getFullYear()}-0001` : `${autoNumber.prefix}${String(1).padStart(autoNumber.digits, '0')}`)
     : '';
-  const [voucherDate, setVoucherDate] = useState(new Date().toLocaleDateString('en-GB').split('/').join('-'));
+  const [voucherDate, setVoucherDate] = useState(shopToday());
   const [items, setItems] = useState([{ lb: '', plastic_size: '', gate: '', plastic_price: '', color: '', print_color: '', color_price: '', total_price: 0 }]);
   const [wastes, setWastes] = useState([]);
   const [paidAmount, setPaidAmount] = useState('');

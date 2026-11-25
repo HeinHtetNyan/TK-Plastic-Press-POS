@@ -6,6 +6,7 @@ import DropdownDatePicker from '../components/DropdownDatePicker';
 import { customerService, paymentService } from '../services/api';
 import { cacheBalance, getOfflineBalance, syncAll } from '../services/syncService';
 import db, { generateUUID } from '../lib/db';
+import { shopToday } from '../utils/shopTime';
 import { useLanguage } from '../context/LanguageContext';
 import SplitPicker from '../components/SplitPicker';
 import { emptyParts, partsToSplits, splitError, primaryMethod } from '../utils/paymentSplits';
@@ -24,7 +25,7 @@ const Payment = () => {
   const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [splitMode, setSplitMode] = useState(false);
   const [parts, setParts] = useState(emptyParts());
-  const [paymentDate, setPaymentDate] = useState(new Date().toLocaleDateString('en-GB').split('/').join('-'));
+  const [paymentDate, setPaymentDate] = useState(shopToday());
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {

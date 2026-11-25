@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Plus, Trash2, Pencil, Save, X, History as HistoryIcon } from 'lucide-react';
 import Layout from '../components/Layout';
 import Combo from '../components/Combo';
@@ -9,15 +9,27 @@ import { stockService, optionService } from '../services/api';
 import { usePlasticOptions } from '../hooks/usePlasticOptions';
 import { useAuth } from '../hooks/useAuth';
 import { useLanguage } from '../context/LanguageContext';
+import { shopDateTime, shopToday } from '../utils/shopTime';
 
 const inputCls = 'w-full px-3 py-2 min-h-[var(--ctl)] bg-row border border-line-strong rounded-xl focus:border-accent outline-none transition-all font-medium [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 const labelCls = 'block truncate text-sm font-medium text-muted px-1';
-const today = () => new Date().toLocaleDateString('en-GB').split('/').join('-');
+const today = shopToday;
 const num = (v) => parseFloat(v) || 0;
 const money = (v) => Math.round(v).toLocaleString();
 const lbFmt = (v) => (Math.round(v * 100) / 100).toLocaleString();
 
-const emptyLine = () => ({ size: '', gate: '', color: '', weight_lb: '', price_per_lb: '' });
+// 'voucher:6324' -> 'Voucher #6324', in the chosen language
+const moveLabel = (m, t) => {
+  const no = (m.ref || '').split(':')[1];
+  const tag = no && no !== 'None' ? ` #${no}` : '';
+  if (m.kind === 'ADJUST') return t('mv_adjust');
+  if (m.kind === 'OPENING') return t('mv_entered');
+  if (m.kind === 'PURCHASE') return `${t('mv_purchase')}${tag}`;
+  const part = { CORE: t('mv_core'), DAMAGE: t('mv_damage') }[m.kind];
+  return `${t('voucher')}${tag}${part ? ` · ${part}` : ''}`;
+};
+
+const emptyLine = () =>({ size: '', gate: '', color: '', weight_lb: '', price_per_lb: '' });
 
 // URL keeps the tab so a refresh stays on the same view.
 const getTab = () => new URLSearchParams(window.location.search).get('tab') || 'stock';
@@ -98,37 +110,49 @@ const StockTab = ({ admin, options, addOption, t }) => {
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  const saveOpening = async (e) => {
+  // One save at a time: the ref blocks a second tap / Enter at once, the state greys the button out.
+  const busy = useRef(false);
+  const [saving, setSaving] = useState(false);
+  const once = async (job) => {
+    if (busy.current) return;
+    busy.current = true;
+    setSaving(true);
+    try { await job(); } finally { busy.current = false; setSaving(false); }
+  };
+
+  const saveOpening = (e) => {
     e.preventDefault();
-    try {
+    once(async () => { try {
       await stockService.opening({ size: opening.size, color: opening.color, gate: opening.gate, weight_lb: num(opening.weight_lb), cost_per_lb: num(opening.price_per_lb) });
       setOpening(emptyLine());
       setShowOpening(false);
-      load();
+      await load();
     } catch (err) {
       alert(err.response?.data?.detail || 'Could not save');
-    }
+    } });
   };
 
-  const saveAdjust = async () => {
+  const countEmpty = String(editing?.qty ?? '').trim() === ''; // an empty box must not become 0 lb
+  const saveAdjust = () => once(async () => {
+    if (countEmpty) return;
     try {
       await stockService.adjust(editing.id, { new_qty_lb: num(editing.qty), note: 'counted by hand' });
       setEditing(null);
-      load();
+      await load();
     } catch (err) {
       alert(err.response?.data?.detail || 'Could not save');
     }
-  };
+  });
 
-  const deleteRow = async (s) => {
+  const deleteRow = (s) => once(async () => {
     if (!window.confirm(`Delete "${s.size} / ${s.color}${s.gate ? ' / ' + s.gate : ''}" from stock? (${lbFmt(s.qty_lb)} lb and its history will be removed)`)) return;
     try {
       await stockService.removeStock(s.id);
-      load();
+      await load();
     } catch (err) {
       alert(err.response?.data?.detail || 'Could not delete');
     }
-  };
+  });
 
   const openMoves = async (item, page = 1) => {
     setMovesLoading(true);
@@ -185,7 +209,7 @@ const StockTab = ({ admin, options, addOption, t }) => {
           <p className="text-sm text-muted">{t('x_opening_help')}</p>
           <LineFields line={opening} onChange={setOpening} options={options} addOption={addOption} t={t} priceLabel={t('x_cost_per_lb')} />
           <div className="flex gap-2">
-            <button type="submit" className="flex items-center gap-2 bg-ok text-on-accent px-5 min-h-[48px] rounded-xl font-semibold"><Save size={18} /> {t('x_save')}</button>
+            <button disabled={saving} type="submit" className="flex items-center gap-2 bg-ok text-on-accent px-5 min-h-[48px] rounded-xl font-semibold disabled:opacity-60"><Save size={18} /> {saving ? '...' : t('x_save')}</button>
             <button type="button" onClick={() => setShowOpening(false)} className="px-5 min-h-[48px] rounded-xl font-medium bg-row border border-line-strong text-ink">{t('x_cancel')}</button>
           </div>
         </form>
@@ -229,7 +253,7 @@ const StockTab = ({ admin, options, addOption, t }) => {
             {editing?.id === s.id ? (
               <div className="flex items-center gap-2">
                 <input type="number" step="any" className={`${inputCls} w-28`} value={editing.qty} onChange={(e) => setEditing({ ...editing, qty: e.target.value })} />
-                <button onClick={saveAdjust} className="w-11 h-11 flex items-center justify-center bg-ok text-on-accent rounded-xl"><Save size={18} /></button>
+                <button disabled={saving || countEmpty} onClick={saveAdjust} className="w-11 h-11 flex items-center justify-center bg-ok text-on-accent rounded-xl disabled:opacity-60"><Save size={18} /></button>
                 <button onClick={() => setEditing(null)} className="w-11 h-11 flex items-center justify-center text-muted hover:bg-band rounded-xl"><X size={18} /></button>
               </div>
             ) : (
@@ -239,7 +263,7 @@ const StockTab = ({ admin, options, addOption, t }) => {
                   <>
                     <button title={t('x2_set_counted')} onClick={() => setEditing({ id: s.id, qty: s.qty_lb })} className="w-11 h-11 flex items-center justify-center text-muted hover:bg-band rounded-xl"><Pencil size={18} /></button>
                     <button title={t('x2_history')} onClick={() => openMoves(s)} className="w-11 h-11 flex items-center justify-center text-muted hover:bg-band rounded-xl"><HistoryIcon size={18} /></button>
-                    <button title={t('x2_delete_row')} onClick={() => deleteRow(s)} className="w-11 h-11 flex items-center justify-center text-debt hover:bg-debt-bg rounded-xl"><Trash2 size={18} /></button>
+                    <button disabled={saving} title={t('x2_delete_row')} onClick={() => deleteRow(s)} className="w-11 h-11 flex items-center justify-center text-debt hover:bg-debt-bg rounded-xl"><Trash2 size={18} /></button>
                   </>
                 )}
               </div>
@@ -260,7 +284,7 @@ const StockTab = ({ admin, options, addOption, t }) => {
             <div className="space-y-1">
               {moves.rows.map((m) => (
                 <div key={m.id} className="flex justify-between gap-2 text-base border-b border-line py-2">
-                  <span className="font-medium text-ink break-words">{m.kind} <span className="text-muted">{m.ref}</span><span className="block text-sm text-muted">{new Date(m.created_at).toLocaleString()}</span></span>
+                  <span className="font-medium text-ink break-words">{moveLabel(m, t)}<span className="block text-sm text-muted">{shopDateTime(m.created_at)}</span></span>
                   <span className={`font-semibold tabular-nums whitespace-nowrap ${m.delta_lb < 0 ? 'text-debt' : 'text-ok'}`}>{m.delta_lb > 0 ? '+' : ''}{lbFmt(m.delta_lb)} lb</span>
                 </div>
               ))}
@@ -343,9 +367,12 @@ const BuyTab = ({ options, addOption, t }) => {
     }
   };
 
+  const removing = useRef(false);
   const remove = async (p) => {
+    if (removing.current) return;
     if (!window.confirm(`Delete purchase ${p.purchase_number || p.id}? Its lb will be taken out of stock again.`)) return;
-    try { await stockService.deletePurchase(p.id); load(); } catch (err) { alert(err.response?.data?.detail || 'Could not delete'); }
+    removing.current = true;
+    try { await stockService.deletePurchase(p.id); await load(); } catch (err) { alert(err.response?.data?.detail || 'Could not delete'); } finally { removing.current = false; }
   };
 
   return (

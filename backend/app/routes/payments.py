@@ -78,7 +78,7 @@ def update_payment(
     session: Session = Depends(get_session),
     current_user: User = Depends(require_admin)
 ):
-    payment = session.get(Payment, payment_id)
+    payment = session.get(Payment, payment_id, with_for_update=True)
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
 
@@ -117,7 +117,7 @@ def delete_payment(
     session: Session = Depends(get_session),
     current_user: User = Depends(require_admin)
 ):
-    payment = session.get(Payment, payment_id)
+    payment = session.get(Payment, payment_id, with_for_update=True)
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
 

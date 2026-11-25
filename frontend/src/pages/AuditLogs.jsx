@@ -5,6 +5,7 @@ import Layout from '../components/Layout';
 import { auditService } from '../services/api';
 import Pager from '../components/Pager';
 import { useLanguage } from '../context/LanguageContext';
+import { shopDateTime } from '../utils/shopTime';
 
 
 // Renders just the content when shown inside the Settings tab (no second page frame).
@@ -89,7 +90,7 @@ const AuditLogs = ({ embedded = false }) => {
                     <td className="px-4 sm:px-5 py-3 whitespace-nowrap">
                       <div className="flex items-center gap-2 text-base text-muted">
                         <Clock size={14} />
-                        {new Date(log.created_at).toLocaleString('en-GB')}
+                        {shopDateTime(log.created_at)}
                       </div>
                     </td>
                     <td className="px-4 sm:px-5 py-3 whitespace-nowrap">

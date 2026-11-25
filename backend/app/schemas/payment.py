@@ -38,8 +38,8 @@ class PaymentCreate(PaymentBase):
     payment_method: PaymentMethod  # required for standalone payments
 
 class PaymentUpdate(BaseModel):
-    amount_paid: Optional[float] = None
-    discount_amount: Optional[float] = None
+    amount_paid: Optional[float] = Field(default=None, ge=0)
+    discount_amount: Optional[float] = Field(default=None, ge=0)
     payment_method: Optional[PaymentMethod] = None
     payment_splits: Optional[List[PaymentSplit]] = None
     payment_date: Optional[date] = None
